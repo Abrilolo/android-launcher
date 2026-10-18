@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+**/build/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+
+# Local Android SDK configuration
+local.properties
+
+# Kotlin / JVM
+*.class
+
+# Native build output
+.externalNativeBuild/
+.cxx/
+
+# Generated APKs and bundles
+*.apk
+*.aab
+
+# Temporary and local files
+*.log
+captures/
