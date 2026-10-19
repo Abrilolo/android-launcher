@@ -1,19 +1,14 @@
 package com.adrian.minimallauncher.ui.widgets
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -54,12 +49,6 @@ fun WidgetStack(editing: Boolean, onLongPress: () -> Unit, modifier: Modifier = 
                 userScrollEnabled = !editing,
             ) { page ->
                 Box(Modifier.fillMaxSize().padding(14.dp)) { widgets[page](now, size) }
-            }
-        }
-        Row(Modifier.padding(top = 10.dp), Arrangement.spacedBy(6.dp)) {
-            repeat(widgets.size) { index ->
-                val color = if (index == pagerState.currentPage) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
-                Box(Modifier.size(5.dp).background(color, CircleShape))
             }
         }
     }

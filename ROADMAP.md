@@ -4,16 +4,16 @@ Project: Minimal Launcher
 Aspect: Personal  
 Default mode: New Project  
 Execution mode: New Android project  
-Status: MVP shell functional; visual polish in progress; contextual scope defined
+Status: Visual polish validated on S24+; next: time-based spaces
 Last updated: 2026-10-19
 
 ## Current Phase
 
-Current phase: Phase 3 - Visual Polish and Device Validation
+Current phase: Phase 4 - Espacios por horario
 
 Current objective:
 
-- Aplicar la estética solo texto en blanco y negro y validar el launcher en el Samsung Galaxy S24+.
+- Mostrar el espacio correspondiente (Mañana, Trabajo, Noche) según la hora.
 
 ## Phase List
 
@@ -22,8 +22,8 @@ Current objective:
 | Phase 0 - Clarify | Fijar problema y principios | IDEA.md | Objetivo, usuario y límites definidos | Complete |
 | Phase 1 - Define MVP | Definir comportamiento verificable | REQUIREMENTS.md, DECISIONS.md | Criterios de aceptación definidos | Complete |
 | Phase 2 - Build Shell | Crear launcher Compose mínimo | Proyecto Android, Manifest, UI base | Compila y puede seleccionarse como Home | Complete |
-| Phase 3 - Visual Polish and Device Validation | Estética blanco y negro y uso real | Tema B/N, reloj y alarma, apartados desplegables, pruebas S24+ | Diseño usable y estable en el dispositivo principal | Current |
-| Phase 4 - Espacios por horario | Mostrar contenido según la hora | Modelo de espacios, franjas, disponibilidad de apps por espacio | Home muestra el espacio correcto y cambia de franja solo | Planned |
+| Phase 3 - Visual Polish and Device Validation | Estética blanco y negro y uso real | Tema B/N, reloj y alarma, apartados desplegables, pruebas S24+ | Diseño usable y estable en el dispositivo principal | Complete |
+| Phase 4 - Espacios por horario | Mostrar contenido según la hora | Modelo de espacios, franjas, disponibilidad de apps por espacio | Home muestra el espacio correcto y cambia de franja solo | Current |
 | Phase 5 - Fricción | Hacer incómodo abrir apps restringidas | Sección Restringidas, pantalla de pausa, motivo de apertura | Abrir una app restringida requiere pausa y motivo | Planned |
 | Phase 6 - Notas y recordatorios | Capturar información del día | Notas etiquetadas, recordatorios programados, persistencia local | Notas y recordatorios sobreviven a un reinicio | Planned |
 | Phase 7 - Personalize | Configurar sin editar código | Edición de franjas, apps por espacio, apartados | El usuario adapta el launcher desde ajustes | Future |
@@ -40,6 +40,11 @@ Completion notes:
 - Se añadió manejo del área segura del sistema para evitar solapamientos con status/navigation bars.
 
 ## Phase 3 - Visual Polish and Device Validation
+
+Completion notes:
+
+- Validado en Samsung Galaxy S24+ (2026-10-19): tema B/N, reloj y alarma, apartados, lista de texto y widgets.
+- Se quitaron los indicadores de página (puntos) bajo el widget.
 
 Priority order:
 
@@ -122,4 +127,4 @@ Exit criteria:
 
 ## Next Action
 
-Aplicar el tema blanco y negro con reloj, alarma y apartados desplegables en la pantalla principal, validándolo en el Galaxy S24+.
+Crear el modelo `Space` con los espacios iniciales y seleccionar el activo según la hora.
