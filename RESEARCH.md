@@ -82,6 +82,20 @@ Confidence:
 
 - Media para el enfoque técnico; la hipótesis de reducción de distracciones debe validarse con uso real.
 
+## Contextual Launcher Notes (2026-10-19)
+
+Technical notes for the time-based spaces, friction and notes scope:
+
+| Need | Candidate API | Notes |
+| --- | --- | --- |
+| Espacio según la hora | `LocalTime` + recomposición periódica o `ACTION_TIME_TICK` | Recalcular al volver a Home y al cambiar de minuto. |
+| Próxima alarma | `AlarmManager.getNextAlarmClock()` | No requiere permisos especiales. |
+| Fricción dentro del launcher | Pantalla Compose propia antes de lanzar el Intent | Solo cubre aperturas desde el launcher. |
+| Interceptar aperturas externas | `AccessibilityService` o `UsageStatsManager` | Requiere permisos sensibles; One UI puede matar el servicio. Opcional y futuro. |
+| Notas y configuración | DataStore (simple) o Room (consultas) | Room si las notas se migrarán a módulos de finanzas y dieta. |
+| Recordatorios | `AlarmManager` exacto o `WorkManager` + `POST_NOTIFICATIONS` | Las alarmas exactas requieren `SCHEDULE_EXACT_ALARM` en Android 12+. |
+| Agenda | `CalendarContract` + `READ_CALENDAR` | Futuro; decidir si se usa el calendario del sistema. |
+
 ## Unresolved Questions
 
 - Confirmar la versión mínima y objetivo de Android.
