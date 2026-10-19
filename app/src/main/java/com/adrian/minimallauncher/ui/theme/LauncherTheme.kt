@@ -31,6 +31,8 @@ private val typography = Typography(
     headlineSmall = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Normal),
     bodyLarge = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Normal),
     bodyMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Normal),
+    bodySmall = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal),
+    labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal, letterSpacing = 1.5.sp),
 )
 @Composable
 fun LauncherTheme(content: @Composable () -> Unit) {

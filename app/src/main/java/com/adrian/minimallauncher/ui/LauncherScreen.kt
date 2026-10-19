@@ -14,6 +14,7 @@ import com.adrian.minimallauncher.viewmodel.LauncherViewModel
 @Composable
 fun LauncherScreen(viewModel: LauncherViewModel) {
     val apps by viewModel.apps.collectAsState()
+    val widgetPlacement by viewModel.widgetPlacement.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 2 })
     LauncherTheme {
         HorizontalPager(
@@ -24,7 +25,7 @@ fun LauncherScreen(viewModel: LauncherViewModel) {
                 .safeDrawingPadding()
         ) { page ->
             when (page) {
-                0 -> MainZone(apps.filterNot { it.isEntertainment }, viewModel::openApp)
+                0 -> MainZone(apps.filterNot { it.isEntertainment }, viewModel::openApp, widgetPlacement, viewModel::setWidgetPlacement)
                 1 -> EntertainmentZone(apps.filter { it.isEntertainment }, viewModel::openApp)
             }
         }

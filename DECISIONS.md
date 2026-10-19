@@ -97,6 +97,24 @@ Reduce el atractivo visual de las apps y refuerza un uso intencional.
 - Jerarquía visual basada en tamaño, peso y opacidad del texto.
 - Secciones desplegables (▸ / ▾) en lugar de tarjetas o iconos.
 
+## 2026-10-19 - Pantalla principal en dos columnas
+
+Type: UI
+Status: Accepted
+Review date: After Phase 3
+
+### Decision
+
+Debajo del reloj, la pantalla principal se divide en dos columnas:
+
+- Izquierda (~55%): apartados desplegables (Recordatorios, Apps, Todas).
+- Derecha (~45%): espacio reservado para una visualización propia, aún por definir.
+
+### Impact
+
+- La columna izquierda hace scroll de forma independiente.
+- Los nombres de apps y apartados deben caber en media pantalla.
+
 ## 2026-10-19 - Finanzas y dieta: notas ahora, módulos propios en el futuro
 
 Type: Scope

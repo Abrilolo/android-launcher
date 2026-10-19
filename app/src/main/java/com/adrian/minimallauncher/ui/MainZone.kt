@@ -1,8 +1,7 @@
 package com.adrian.minimallauncher.ui
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
@@ -15,22 +14,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.LauncherApp
+import com.adrian.minimallauncher.data.WidgetPlacement
 import com.adrian.minimallauncher.ui.components.AppTextItem
 import com.adrian.minimallauncher.ui.components.ClockHeader
 import com.adrian.minimallauncher.ui.components.ExpandableSection
+import com.adrian.minimallauncher.ui.widgets.EditableWidgetRow
 // Placeholder until reminders are persisted (Phase 6).
 private val sampleReminders = listOf("Desayunar")
 @Composable
-fun MainZone(apps: List<LauncherApp>, onOpenApp: (String) -> Unit) {
+fun MainZone(apps: List<LauncherApp>, onOpenApp: (String) -> Unit, widgetPlacement: WidgetPlacement, onWidgetPlacementChange: (WidgetPlacement) -> Unit) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 28.dp).padding(top = 32.dp, bottom = 16.dp)) {
+        ClockHeader(Modifier.padding(bottom = 40.dp))
+        EditableWidgetRow(widgetPlacement, onWidgetPlacementChange, Modifier.weight(1f)) { columnModifier ->
+            SectionsColumn(apps, onOpenApp, columnModifier)
+        }
+    }
+}
+@Composable
+private fun SectionsColumn(apps: List<LauncherApp>, onOpenApp: (String) -> Unit, modifier: Modifier) {
     var remindersExpanded by rememberSaveable { mutableStateOf(true) }
     var appsExpanded by rememberSaveable { mutableStateOf(true) }
     var allAppsExpanded by rememberSaveable { mutableStateOf(false) }
     val (essentialApps, otherApps) = apps.partition { it.isEssential }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 28.dp, vertical = 32.dp)) {
-        item {
-            ClockHeader()
-            Spacer(Modifier.height(40.dp))
-        }
+    LazyColumn(modifier, contentPadding = PaddingValues(bottom = 32.dp)) {
         item {
             ExpandableSection("Recordatorios", remindersExpanded, { remindersExpanded = !remindersExpanded }) {
                 sampleReminders.forEach { reminder ->
@@ -44,7 +50,7 @@ fun MainZone(apps: List<LauncherApp>, onOpenApp: (String) -> Unit) {
             }
         }
         item {
-            ExpandableSection("Todas las apps", allAppsExpanded, { allAppsExpanded = !allAppsExpanded }) {
+            ExpandableSection("Todas", allAppsExpanded, { allAppsExpanded = !allAppsExpanded }) {
                 otherApps.forEach { app ->
                     AppTextItem(app.label, { onOpenApp(app.packageName) }, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
