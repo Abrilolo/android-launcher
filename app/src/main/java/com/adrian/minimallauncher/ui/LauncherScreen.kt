@@ -1,4 +1,5 @@
 package com.adrian.minimallauncher.ui
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -8,16 +9,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.adrian.minimallauncher.ui.theme.LauncherTheme
 import com.adrian.minimallauncher.viewmodel.LauncherViewModel
 @Composable
 fun LauncherScreen(viewModel: LauncherViewModel) {
     val apps by viewModel.apps.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 2 })
-    MaterialTheme {
+    LauncherTheme {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .safeDrawingPadding()
         ) { page ->
             when (page) {

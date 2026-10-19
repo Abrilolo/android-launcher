@@ -1,2 +1,2 @@
 package com.adrian.minimallauncher.data
-data class LauncherApp(val packageName: String, val label: String, val isEntertainment: Boolean)
+data class LauncherApp(val packageName: String, val label: String, val isEntertainment: Boolean, val isEssential: Boolean)
