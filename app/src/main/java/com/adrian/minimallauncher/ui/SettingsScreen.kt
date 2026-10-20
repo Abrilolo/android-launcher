@@ -37,7 +37,7 @@ fun SettingsScreen(
     BackHandler(onBack = onBack)
     var drafts by remember(spaces) { mutableStateOf(spaces.map { EditableSpace(it, it.startsAt.toString(), it.endsAt.toString(), it.availableGroups) }) }
     var pauseText by remember(pauseSeconds) { mutableStateOf(pauseSeconds.toString()) }
-    val sectionNames = listOf("reminders" to "Recordatorios", "notes" to "Notas", "finance" to "Finanzas", "diet" to "Dieta", "apps" to "Apps", "all" to "Todas", "restricted" to "Restringidas")
+    val sectionNames = listOf("reminders" to "Recordatorios", "notes" to "Notas", "finance" to "Finanzas", "diet" to "Dieta", "apps" to "Apps", "entertainment" to "Entretenimiento", "games" to "Juegos", "all" to "Todas")
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 24.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("CONFIGURACIÓN", style = MaterialTheme.typography.headlineSmall)
@@ -83,5 +83,5 @@ fun SettingsScreen(
 private fun AppGroup.label(): String = when (this) {
     AppGroup.ESSENTIAL -> "Esenciales"
     AppGroup.OTHER -> "Otras apps"
-    AppGroup.ENTERTAINMENT -> "Entretenimiento"
+    AppGroup.ENTERTAINMENT -> "Entretenimiento y juegos"
 }

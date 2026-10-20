@@ -51,8 +51,8 @@ fun LauncherScreen(viewModel: LauncherViewModel) {
             )
         } else if (blockedApp == null) {
             MainZone(
-                apps = apps.filter(space::allows),
-                restrictedApps = apps.filterNot(space::allows),
+                apps = apps,
+                isAllowed = space::allows,
                 onOpenApp = viewModel::openApp,
                 onRestrictedApp = { restrictedApp = it },
                 widgetPlacement = widgetPlacement,
