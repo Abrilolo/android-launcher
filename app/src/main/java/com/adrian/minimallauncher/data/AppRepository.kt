@@ -1,6 +1,8 @@
 package com.adrian.minimallauncher.data
+
 import android.content.Context
 import android.content.Intent
+
 /** An app the user picked by name; matched by known package or by its launcher label. */
 private class CuratedApp(val names: List<String>, val packages: List<String> = emptyList(), val prefix: Boolean = false) {
     fun matches(packageName: String, label: String): Boolean {
@@ -9,10 +11,28 @@ private class CuratedApp(val names: List<String>, val packages: List<String> = e
         return names.any { name -> normalized == name || (prefix && normalized.startsWith(name)) }
     }
 }
+
 private fun String.normalized() = lowercase().filter(Char::isLetterOrDigit)
+
 class AppRepository(private val context: Context) {
+    // Protected bank and financial vault apps
+    private val vaultApps = listOf(
+        CuratedApp(listOf("nu", "nubank"), listOf("com.nu.production")),
+        CuratedApp(listOf("bbva", "bancomer"), listOf("com.bancomer.mbanking")),
+        CuratedApp(listOf("mercadopago"), listOf("com.mercadopago.wallet")),
+        CuratedApp(listOf("wallet", "googlewallet"), listOf("com.google.android.apps.walletnfcrel")),
+        CuratedApp(listOf("stori"), listOf("com.storicard.stori")),
+        CuratedApp(listOf("plata", "platacard"), listOf("card.plata.app")),
+        CuratedApp(listOf("revolut"), listOf("com.revolut.revolut")),
+        CuratedApp(listOf("bitso"), listOf("com.bitso.exchange", "com.bitso.wallet")),
+        CuratedApp(listOf("dolarapp"), listOf("com.dolarapp")),
+        CuratedApp(listOf("gbm", "gmb", "gbmhomebroker"), listOf("com.gbm.homebroker", "com.gbm.app")),
+        CuratedApp(listOf("binance"), listOf("com.binance.dev")),
+    )
+
     // Not shown in a section of their own, but restricted like entertainment.
     private val distractingPackages = setOf("com.instagram.android", "com.twitter.android", "com.facebook.katana")
+
     // Each list is shown on the main screen in this order.
     private val essentialApps = listOf(
         CuratedApp(listOf("whatsapp"), listOf("com.whatsapp")),
@@ -26,6 +46,7 @@ class AppRepository(private val context: Context) {
         CuratedApp(listOf("outlook"), listOf("com.microsoft.office.outlook")),
         CuratedApp(emptyList(), listOf("com.android.settings")),
     )
+
     private val entertainmentApps = listOf(
         CuratedApp(listOf("netflix"), listOf("com.netflix.mediaclient")),
         CuratedApp(listOf("primevideo", "amazonprimevideo"), listOf("com.amazon.avod.thirdpartyclient")),
@@ -39,6 +60,7 @@ class AppRepository(private val context: Context) {
         CuratedApp(listOf("foxone"), listOf("com.foxappy.astericmx"), prefix = true),
         CuratedApp(listOf("youtube"), listOf("com.google.android.youtube")),
     )
+
     private val gameApps = listOf(
         CuratedApp(listOf("ruleta"), listOf("com.kamagames.roulettist"), prefix = true),
         CuratedApp(listOf("pocketchess"), listOf("com.dkxqzbfkjt.pocketchess"), prefix = true),
@@ -49,6 +71,7 @@ class AppRepository(private val context: Context) {
         CuratedApp(listOf("nonogram", "nonogramcom"), listOf("com.easybrain.nonogram"), prefix = true),
         CuratedApp(listOf("brawlstar"), listOf("com.supercell.brawlstars"), prefix = true),
     )
+
     fun loadApps(): List<LauncherApp> {
         val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
@@ -60,20 +83,27 @@ class AppRepository(private val context: Context) {
             val app = LauncherApp(
                 packageName, label, section,
                 isEntertainment = section == AppSection.ENTERTAINMENT || section == AppSection.GAMES || packageName in distractingPackages,
+                isVault = section == AppSection.VAULT,
             )
             app to order
         }.distinctBy { it.first.packageName }
             .sortedWith(compareBy({ it.second }, { it.first.label.lowercase() }))
             .map { it.first }
     }
+
     private fun classify(packageName: String, label: String): Pair<AppSection, Int> {
-        listOf(AppSection.ESSENTIAL to essentialApps, AppSection.ENTERTAINMENT to entertainmentApps, AppSection.GAMES to gameApps)
-            .forEach { (section, curated) ->
-                val index = curated.indexOfFirst { it.matches(packageName, label) }
-                if (index >= 0) return section to index
-            }
+        listOf(
+            AppSection.VAULT to vaultApps,
+            AppSection.ESSENTIAL to essentialApps,
+            AppSection.ENTERTAINMENT to entertainmentApps,
+            AppSection.GAMES to gameApps,
+        ).forEach { (section, curated) ->
+            val index = curated.indexOfFirst { it.matches(packageName, label) }
+            if (index >= 0) return section to index
+        }
         return AppSection.OTHER to Int.MAX_VALUE
     }
+
     fun openApp(packageName: String) {
         context.packageManager.getLaunchIntentForPackage(packageName)?.let { intent ->
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

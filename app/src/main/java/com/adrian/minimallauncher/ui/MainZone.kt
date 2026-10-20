@@ -1,4 +1,5 @@
 package com.adrian.minimallauncher.ui
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -6,7 +7,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +38,8 @@ import com.adrian.minimallauncher.ui.components.AppList
 import com.adrian.minimallauncher.ui.components.ClockHeader
 import com.adrian.minimallauncher.ui.components.ExpandableSection
 import com.adrian.minimallauncher.ui.widgets.EditableWidgetRow
+import com.adrian.minimallauncher.ui.widgets.HomeWidgets
+
 @Composable
 fun MainZone(
     apps: List<LauncherApp>,
@@ -48,6 +53,8 @@ fun MainZone(
     personalRecords: PersonalRecords,
     personalActions: PersonalRecordActions,
     hiddenSections: Set<String>,
+    sectionOrder: List<String>,
+    homeWidgets: HomeWidgets,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -59,13 +66,32 @@ fun MainZone(
                 Text("⚙︎", fontSize = 24.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        EditableWidgetRow(widgetPlacement, onWidgetPlacementChange, Modifier.weight(1f)) { columnModifier ->
-            SectionsColumn(apps, isAllowed, onOpenApp, onRestrictedApp, personalRecords, personalActions, hiddenSections, spaceName, columnModifier)
+        EditableWidgetRow(widgetPlacement, onWidgetPlacementChange, personalRecords, homeWidgets, Modifier.weight(1f)) { columnModifier ->
+            SectionsColumn(apps, isAllowed, onOpenApp, onRestrictedApp, personalRecords, personalActions, hiddenSections, sectionOrder, spaceName, columnModifier)
         }
     }
 }
+
 private const val VISIBLE_ROWS = 5
 private const val VISIBLE_ROWS_ALL = 8
+
+val SECTION_TITLES = mapOf(
+    "reminders" to "Recordatorios",
+    "notes" to "Notas",
+    "finance" to "Finanzas",
+    "diet" to "Dieta",
+    "apps" to "Apps",
+    "entertainment" to "Entretenimiento",
+    "games" to "Juegos",
+    "all" to "Todas",
+)
+
+private val APP_SECTIONS = mapOf(
+    "apps" to AppSection.ESSENTIAL,
+    "entertainment" to AppSection.ENTERTAINMENT,
+    "games" to AppSection.GAMES,
+)
+
 @Composable
 private fun SectionsColumn(
     apps: List<LauncherApp>,
@@ -75,55 +101,65 @@ private fun SectionsColumn(
     personalRecords: PersonalRecords,
     personalActions: PersonalRecordActions,
     hiddenSections: Set<String>,
+    sectionOrder: List<String>,
     spaceName: String,
     modifier: Modifier,
 ) {
-    var appsExpanded by rememberSaveable { mutableStateOf(true) }
-    var entertainmentExpanded by rememberSaveable { mutableStateOf(false) }
-    var gamesExpanded by rememberSaveable { mutableStateOf(false) }
-    var allAppsExpanded by rememberSaveable { mutableStateOf(false) }
+    var selected by rememberSaveable { mutableStateOf<String?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
-    // Only apps allowed in the current space are listed; anything else is reachable only by searching.
+
     val bySection = apps.filter(isAllowed).groupBy { it.section }
     val searchResults = if (query.isBlank()) emptyList()
-        else apps.filter { it.label.contains(query.trim(), ignoreCase = true) }.sortedBy { it.label.lowercase() }
+    else apps.filter {
+        // Bank apps never show up here; they only open from the Bancos widget.
+        it.label.contains(query.trim(), ignoreCase = true) && !it.isVault
+    }.sortedBy { it.label.lowercase() }
+
     val open: (LauncherApp) -> Unit = { app -> if (isAllowed(app)) onOpenApp(app.packageName) else onRestrictedApp(app) }
     val dimmed = MaterialTheme.colorScheme.onSurfaceVariant
     val normal = MaterialTheme.colorScheme.onSurface
-    val sections = listOf(
-        Triple("Apps", "apps", AppSection.ESSENTIAL),
-        Triple("Entretenimiento", "entertainment", AppSection.ENTERTAINMENT),
-        Triple("Juegos", "games", AppSection.GAMES),
-    )
-    val expanded = mapOf(
-        "apps" to (appsExpanded to { appsExpanded = !appsExpanded }),
-        "entertainment" to (entertainmentExpanded to { entertainmentExpanded = !entertainmentExpanded }),
-        "games" to (gamesExpanded to { gamesExpanded = !gamesExpanded }),
-    )
+
+    val visible = sectionOrder.filter { id ->
+        id !in hiddenSections && APP_SECTIONS[id].let { section -> section == null || bySection[section].orEmpty().isNotEmpty() }
+    }
+    val shown = visible.dropWhile { it != selected }.ifEmpty { visible }
     val listState = rememberLazyListState()
     var searchFocused by remember { mutableStateOf(false) }
-    // The keyboard shrinks the list; keep the search field and its results above it.
+
     LaunchedEffect(searchFocused, query) {
         if (!searchFocused) return@LaunchedEffect
-        delay(250) // Let the keyboard finish resizing the list first.
-        listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+        delay(250)
+        shown.indexOf("all").takeIf { it >= 0 }?.let { listState.animateScrollToItem(it) }
     }
+
     LazyColumn(modifier, listState, contentPadding = PaddingValues(bottom = 32.dp)) {
-        item { PersonalSections(personalRecords, personalActions, spaceName, hiddenSections) }
-        sections.forEach { (title, id, section) ->
-            val sectionApps = bySection[section].orEmpty()
-            if (id !in hiddenSections && sectionApps.isNotEmpty()) item(key = id) {
-                val (isExpanded, toggle) = expanded.getValue(id)
-                ExpandableSection(title, isExpanded, toggle) { AppList(sectionApps, VISIBLE_ROWS, open, { normal }) }
-            }
-        }
-        if ("all" !in hiddenSections) item(key = "all") {
-            ExpandableSection("Todas", allAppsExpanded, { allAppsExpanded = !allAppsExpanded }) {
-                OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(bottom = 8.dp).onFocusChanged { searchFocused = it.isFocused }, label = { Text("Buscar") }, singleLine = true)
-                if (query.isBlank()) {
-                    AppList(bySection[AppSection.OTHER].orEmpty(), VISIBLE_ROWS_ALL, open, { dimmed }, alphabetIndex = true)
-                } else {
-                    AppList(searchResults, VISIBLE_ROWS_ALL, open, { app -> if (isAllowed(app)) normal else dimmed }, emptyText = "Sin resultados")
+        items(shown, key = { it }) { id ->
+            val itemModifier = Modifier.animateItem(fadeInSpec = tween(300), placementSpec = tween(350), fadeOutSpec = tween(200))
+            val isSelected = id == selected
+
+            ExpandableSection(SECTION_TITLES[id] ?: id, isSelected, {
+                selected = if (selected == id) null else id
+                listState.requestScrollToItem(0)
+            }, itemModifier) {
+                when (id) {
+                    in APP_SECTIONS -> AppList(bySection[APP_SECTIONS.getValue(id)].orEmpty(), VISIBLE_ROWS, open, { normal })
+                    "all" -> {
+                        OutlinedTextField(
+                            query, { query = it },
+                            Modifier.fillMaxWidth().padding(bottom = 8.dp).onFocusChanged { searchFocused = it.isFocused },
+                            label = { Text("Buscar") },
+                            singleLine = true,
+                        )
+                        if (query.isBlank()) {
+                            AppList(
+                                bySection[AppSection.OTHER].orEmpty(),
+                                VISIBLE_ROWS_ALL, open, { dimmed }, alphabetIndex = true,
+                            )
+                        } else {
+                            AppList(searchResults, VISIBLE_ROWS_ALL, open, { app -> if (isAllowed(app)) normal else dimmed }, emptyText = "Sin resultados")
+                        }
+                    }
+                    else -> PersonalSectionBody(id, personalRecords, personalActions, spaceName)
                 }
             }
         }

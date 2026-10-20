@@ -20,6 +20,7 @@ data class Space(
         else time >= startsAt || time < endsAt
 
     fun allows(app: LauncherApp): Boolean = when {
+        app.isVault -> true
         app.isEssential -> AppGroup.ESSENTIAL in availableGroups
         app.isEntertainment -> AppGroup.ENTERTAINMENT in availableGroups
         else -> AppGroup.OTHER in availableGroups

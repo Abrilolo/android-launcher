@@ -52,6 +52,8 @@ private fun WidgetPlacement.fitTo(areaHeight: Float): WidgetPlacement {
 fun EditableWidgetRow(
     placement: WidgetPlacement,
     onPlacementChange: (WidgetPlacement) -> Unit,
+    records: com.adrian.minimallauncher.data.PersonalRecords,
+    homeWidgets: HomeWidgets,
     modifier: Modifier = Modifier,
     left: @Composable (Modifier) -> Unit,
 ) {
@@ -66,7 +68,7 @@ fun EditableWidgetRow(
             left(Modifier.weight(1f - fitted.widthFraction).fillMaxHeight())
             Box(Modifier.weight(fitted.widthFraction).fillMaxHeight()) {
                 Box(Modifier.offset(y = fitted.topDp.dp).fillMaxWidth().height(fitted.heightDp.dp)) {
-                    WidgetStack(editing, { editing = true }, Modifier.fillMaxSize())
+                    WidgetStack(records, homeWidgets, editing, { editing = true }, Modifier.fillMaxSize())
                     if (editing) EditDecorations()
                 }
             }

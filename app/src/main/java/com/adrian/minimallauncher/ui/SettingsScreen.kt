@@ -29,15 +29,14 @@ private data class EditableSpace(val source: Space, val start: String, val end: 
 
 @Composable
 fun SettingsScreen(
-    spaces: List<Space>, hiddenSections: Set<String>, pauseSeconds: Int,
-    onSaveSpaces: (List<Space>) -> Unit, onSectionVisibility: (String, Boolean) -> Unit,
+    spaces: List<Space>, hiddenSections: Set<String>, sectionOrder: List<String>, pauseSeconds: Int,
+    onSaveSpaces: (List<Space>) -> Unit, onSectionVisibility: (String, Boolean) -> Unit, onMoveSection: (String, Int) -> Unit,
     onPauseSeconds: (Int) -> Unit, onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onBack)
     var drafts by remember(spaces) { mutableStateOf(spaces.map { EditableSpace(it, it.startsAt.toString(), it.endsAt.toString(), it.availableGroups) }) }
     var pauseText by remember(pauseSeconds) { mutableStateOf(pauseSeconds.toString()) }
-    val sectionNames = listOf("reminders" to "Recordatorios", "notes" to "Notas", "finance" to "Finanzas", "diet" to "Dieta", "apps" to "Apps", "entertainment" to "Entretenimiento", "games" to "Juegos", "all" to "Todas")
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 24.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("CONFIGURACIÓN", style = MaterialTheme.typography.headlineSmall)
@@ -69,11 +68,13 @@ fun SettingsScreen(
         Text("PAUSA PARA APPS", Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(pauseText, { pauseText = it.filter(Char::isDigit).take(3) }, label = { Text("Segundos (0–300)") }, singleLine = true)
         TextButton(onClick = { pauseText.toIntOrNull()?.takeIf { it in 0..300 }?.let(onPauseSeconds) }) { Text("GUARDAR PAUSA") }
-        Text("APARTADOS VISIBLES", Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        sectionNames.forEach { (id, label) ->
+        Text("APARTADOS", Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        sectionOrder.forEachIndexed { index, id ->
             val visible = id !in hiddenSections
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(label)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(SECTION_TITLES[id] ?: id, Modifier.weight(1f))
+                TextButton(onClick = { onMoveSection(id, -1) }, enabled = index > 0) { Text("↑") }
+                TextButton(onClick = { onMoveSection(id, 1) }, enabled = index < sectionOrder.lastIndex) { Text("↓") }
                 TextButton(onClick = { onSectionVisibility(id, !visible) }) { Text(if (visible) "VISIBLE" else "OCULTO") }
             }
         }

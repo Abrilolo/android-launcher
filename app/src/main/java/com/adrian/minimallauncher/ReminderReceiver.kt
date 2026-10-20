@@ -12,7 +12,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.adrian.minimallauncher.data.ReminderScheduler
-import com.adrian.minimallauncher.data.SettingsRepository
+import com.adrian.minimallauncher.data.LauncherDatabase
+import com.adrian.minimallauncher.data.PersonalRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -36,7 +37,7 @@ class ReminderReceiver : BroadcastReceiver() {
                         .setAutoCancel(true)
                         .build())
                 }
-                SettingsRepository(context).reminders.first().firstOrNull { it.id == id }?.let { ReminderScheduler(context).schedule(it) }
+                PersonalRepository(LauncherDatabase.get(context)).reminders.first().firstOrNull { it.id == id }?.let { ReminderScheduler(context).schedule(it) }
             } finally {
                 pending.finish()
             }
@@ -58,7 +59,7 @@ class ReminderBootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            try { SettingsRepository(context).reminders.first().forEach { ReminderScheduler(context).schedule(it) } }
+            try { PersonalRepository(LauncherDatabase.get(context)).reminders.first().forEach { ReminderScheduler(context).schedule(it) } }
             finally { pending.finish() }
         }
     }

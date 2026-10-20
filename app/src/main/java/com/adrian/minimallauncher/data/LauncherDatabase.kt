@@ -1,0 +1,57 @@
+package com.adrian.minimallauncher.data
+
+import android.content.Context
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import com.adrian.minimallauncher.feature.exercise.ExerciseDao
+import com.adrian.minimallauncher.feature.exercise.SetLog
+import kotlinx.coroutines.flow.Flow
+
+/** Everything the user records lives here; preferences stay in [SettingsRepository]. */
+@Database(
+    entities = [NoteRecord::class, ReminderRecord::class, FinanceRecord::class, MealRecord::class, BodyMetricRecord::class, DayCheck::class, SetLog::class],
+    version = 1,
+    exportSchema = false,
+)
+abstract class LauncherDatabase : RoomDatabase() {
+    abstract fun personal(): PersonalDao
+    abstract fun exercise(): ExerciseDao
+
+    companion object {
+        @Volatile private var instance: LauncherDatabase? = null
+
+        fun get(context: Context): LauncherDatabase = instance ?: synchronized(this) {
+            instance ?: Room.databaseBuilder(context.applicationContext, LauncherDatabase::class.java, "launcher.db").build().also { instance = it }
+        }
+    }
+}
+
+@Dao
+interface PersonalDao {
+    @Query("SELECT * FROM notes ORDER BY createdAt DESC") fun notes(): Flow<List<NoteRecord>>
+    @Query("SELECT * FROM reminders ORDER BY hour, minute") fun reminders(): Flow<List<ReminderRecord>>
+    @Query("SELECT * FROM finances ORDER BY createdAt DESC") fun finances(): Flow<List<FinanceRecord>>
+    @Query("SELECT * FROM meals ORDER BY createdAt DESC") fun meals(): Flow<List<MealRecord>>
+    @Query("SELECT * FROM body_metrics ORDER BY createdAt DESC") fun bodyMetrics(): Flow<List<BodyMetricRecord>>
+    @Query("SELECT `key` FROM day_checks WHERE kind = :kind") fun checks(kind: String): Flow<List<String>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertNotes(rows: List<NoteRecord>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertReminders(rows: List<ReminderRecord>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertFinances(rows: List<FinanceRecord>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertMeals(rows: List<MealRecord>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertBodyMetrics(rows: List<BodyMetricRecord>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertChecks(rows: List<DayCheck>)
+
+    @Query("DELETE FROM notes WHERE id = :id") suspend fun deleteNote(id: String)
+    @Query("DELETE FROM reminders WHERE id = :id") suspend fun deleteReminder(id: String)
+    @Query("DELETE FROM finances WHERE id = :id") suspend fun deleteFinance(id: String)
+    @Query("DELETE FROM meals WHERE id = :id") suspend fun deleteMeal(id: String)
+    @Query("DELETE FROM body_metrics WHERE id = :id") suspend fun deleteBodyMetric(id: String)
+    @Query("DELETE FROM day_checks WHERE `key` = :key") suspend fun deleteCheck(key: String)
+    @Query("SELECT COUNT(*) FROM day_checks WHERE `key` = :key") suspend fun hasCheck(key: String): Int
+}
