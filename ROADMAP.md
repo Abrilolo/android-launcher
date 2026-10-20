@@ -4,16 +4,16 @@ Project: Minimal Launcher
 Aspect: Personal  
 Default mode: New Project  
 Execution mode: New Android project  
-Status: Visual polish validated on S24+; next: time-based spaces
-Last updated: 2026-10-19
+Status: Phases 4-8 implemented; S24+ validation pending
+Last updated: 2026-10-20
 
 ## Current Phase
 
-Current phase: Phase 4 - Espacios por horario
+Current phase: Device validation for Phases 5-8
 
 Current objective:
 
-- Mostrar el espacio correspondiente (Mañana, Trabajo, Noche) según la hora.
+- Validar en Samsung Galaxy S24+ la fricción, persistencia, recordatorios y configuración.
 
 ## Phase List
 
@@ -23,11 +23,11 @@ Current objective:
 | Phase 1 - Define MVP | Definir comportamiento verificable | REQUIREMENTS.md, DECISIONS.md | Criterios de aceptación definidos | Complete |
 | Phase 2 - Build Shell | Crear launcher Compose mínimo | Proyecto Android, Manifest, UI base | Compila y puede seleccionarse como Home | Complete |
 | Phase 3 - Visual Polish and Device Validation | Estética blanco y negro y uso real | Tema B/N, reloj y alarma, apartados desplegables, pruebas S24+ | Diseño usable y estable en el dispositivo principal | Complete |
-| Phase 4 - Espacios por horario | Mostrar contenido según la hora | Modelo de espacios, franjas, disponibilidad de apps por espacio | Home muestra el espacio correcto y cambia de franja solo | Current |
-| Phase 5 - Fricción | Hacer incómodo abrir apps restringidas | Sección Restringidas, pantalla de pausa, motivo de apertura | Abrir una app restringida requiere pausa y motivo | Planned |
-| Phase 6 - Notas y recordatorios | Capturar información del día | Notas etiquetadas, recordatorios programados, persistencia local | Notas y recordatorios sobreviven a un reinicio | Planned |
-| Phase 7 - Personalize | Configurar sin editar código | Edición de franjas, apps por espacio, apartados | El usuario adapta el launcher desde ajustes | Future |
-| Phase 8 - Módulos propios | Finanzas y dieta nativas | Registro de gastos y comidas, resúmenes diarios | Cada módulo sustituye a las notas correspondientes | Future |
+| Phase 4 - Espacios por horario | Mostrar contenido según la hora | Modelo de espacios, franjas, disponibilidad de apps por espacio | Home muestra el espacio correcto y cambia de franja solo | Complete |
+| Phase 5 - Fricción | Hacer incómodo abrir apps restringidas | Sección Restringidas, pantalla de pausa, motivo de apertura | Abrir una app restringida requiere pausa y motivo | Implemented; validate |
+| Phase 6 - Notas y recordatorios | Capturar información del día | Notas etiquetadas, recordatorios programados, persistencia local | Notas y recordatorios sobreviven a un reinicio | Implemented; validate |
+| Phase 7 - Personalize | Configurar sin editar código | Edición de franjas, apps por espacio, apartados | El usuario adapta el launcher desde ajustes | Implemented; validate |
+| Phase 8 - Módulos propios | Finanzas y dieta nativas | Registro de gastos y comidas, resúmenes diarios | Cada módulo sustituye a las notas correspondientes | Implemented; validate |
 
 ## Phase 2 - Build Shell
 
@@ -45,6 +45,7 @@ Completion notes:
 
 - Validado en Samsung Galaxy S24+ (2026-10-19): tema B/N, reloj y alarma, apartados, lista de texto y widgets.
 - Se quitaron los indicadores de página (puntos) bajo el widget.
+- APK actualizada e instalada en el Samsung Galaxy S24+ (2026-10-20).
 
 Priority order:
 
@@ -65,10 +66,18 @@ Exit criteria:
 
 ## Phase 4 - Espacios por horario
 
+Implementation notes:
+
+- Añadido modelo `Space` con selección automática por hora y grupos de apps disponibles.
+- Mañana (06-12) muestra apps esenciales; Trabajo (12-18), esenciales y otras; Noche (18-06), todas.
+- El espacio activo aparece sobre el reloj y se actualiza automáticamente cada minuto.
+- La pantalla separada de Entretenimiento se sustituyó por el espacio horario activo.
+- Validado por Adrián en Samsung Galaxy S24+ (2026-10-20).
+
 Deliverables:
 
 - Modelo `Space` (nombre, franja horaria, apps disponibles, apartados).
-- Espacios iniciales: Mañana (06-12), Trabajo (12-18), Noche (18-24).
+- Espacios iniciales: Mañana (06-12), Trabajo (12-18), Noche (18-06, cruza medianoche).
 - Selección del espacio según la hora y actualización al cambiar de franja.
 - Sustituir la zona Entretenimiento por disponibilidad de apps por espacio.
 
@@ -79,6 +88,13 @@ Exit criteria:
 - El cambio de franja ocurre sin reiniciar el launcher.
 
 ## Phase 5 - Fricción
+
+Implementation notes:
+
+- Apps restringidas aparecen atenuadas en una sección plegable.
+- Al seleccionar una app se exige una pausa de 30 segundos y escribir un motivo antes de abrirla.
+- La duración inicial es fija; se hará configurable en la Fase 7.
+- La duración de la pausa y los apartados son configurables desde Configurar.
 
 Deliverables:
 
@@ -96,6 +112,28 @@ Future option:
 - `AccessibilityService` para interceptar aperturas desde notificaciones o recientes. Evaluar solo si la fricción dentro del launcher resulta insuficiente.
 
 ## Phase 6 - Notas y recordatorios
+
+Implementation notes:
+
+- Notas por etiqueta, gastos y comidas persisten localmente en DataStore.
+- Los recordatorios diarios se programan por hora y espacio y se restauran después de reiniciar el dispositivo.
+- Android puede retrasar alarmas inexactas por ahorro de batería; validar puntualidad en el S24+.
+
+## Phase 7 - Personalize
+
+Implementation notes:
+
+- La pantalla Configurar permite editar los horarios y grupos de apps de cada espacio.
+- Los horarios se guardan solo si cubren el día completo sin huecos ni solapamientos.
+- Permite ajustar la duración de pausa y la visibilidad de los apartados.
+
+## Phase 8 - Módulos propios
+
+Implementation notes:
+
+- Finanzas guarda gastos con monto y concepto y muestra el total del día.
+- Dieta guarda comidas y muestra el conteo diario.
+- Los registros persisten localmente y se pueden borrar desde sus apartados.
 
 Deliverables:
 
@@ -127,4 +165,4 @@ Exit criteria:
 
 ## Next Action
 
-Crear el modelo `Space` con los espacios iniciales y seleccionar el activo según la hora.
+Instalar la APK en el S24+ y validar apps restringidas, notas tras reinicio, entrega de recordatorios y personalización de horarios.

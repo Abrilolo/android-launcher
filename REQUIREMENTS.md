@@ -3,8 +3,8 @@
 Project: Minimal Launcher  
 Aspect: Personal  
 Default mode: New Project  
-Status: MVP shell built; contextual scope defined  
-Last updated: 2026-10-19
+Status: Phases 4-8 implemented; device validation pending  
+Last updated: 2026-10-20
 
 ## Project Objective
 
@@ -28,31 +28,43 @@ Target state:
 - ViewModel con clasificación de apps por package name.
 - Apertura de apps mediante Intent.
 
-### Stage B - Visual polish (current)
+### Stage B - Visual polish (complete)
 
 - Estética solo texto, fondo negro, texto blanco, gris para secundario.
 - Reloj y alarma en la parte superior.
 - Apartados desplegables.
 - Área segura y edge-to-edge en el Galaxy S24+.
 
-### Stage C - Espacios por horario
+### Stage C - Espacios por horario (complete)
 
 - Definición de espacios y franjas en código.
 - Selección automática del espacio según la hora.
 - Disponibilidad de apps por espacio (sustituye la zona Entretenimiento).
 
-### Stage D - Fricción para apps restringidas
+### Stage D - Fricción para apps restringidas (implemented)
 
 - Ocultar apps restringidas de la lista principal.
 - Sección "Restringidas" con texto atenuado.
 - Pantalla de pausa con cuenta atrás y hora de disponibilidad.
 - Confirmación escribiendo un motivo.
 
-### Stage E - Notas y recordatorios
+### Stage E - Notas y recordatorios (implemented)
 
 - Notas locales etiquetadas (Finanzas, Dieta, General).
 - Recordatorios programados por espacio (p. ej. "Desayunar").
 - Persistencia local.
+
+### Stage F - Personalización (implemented)
+
+- Editar los horarios y grupos de apps disponibles de cada espacio.
+- Mostrar u ocultar apartados y definir la duración de la pausa.
+- Rechazar horarios con huecos o solapamientos.
+
+### Stage G - Módulos propios (implemented)
+
+- Registrar gastos con monto y concepto y ver el total diario.
+- Registrar comidas y ver el conteo del día.
+- Persistir todos los registros localmente.
 
 ## Excluded Scope
 
@@ -87,14 +99,16 @@ Target state:
 | FR-005 | Un tap debe abrir la app mediante Intent. | La app destino se inicia. | A | Done |
 | FR-006 | La pantalla debe mostrar reloj y próxima alarma. | Hora y alarma visibles arriba. | B | Planned |
 | FR-007 | Los apartados deben poder desplegarse y plegarse. | Tocar ▸ muestra el contenido. | B | Planned |
-| FR-008 | El espacio activo debe elegirse según la hora. | A las 07:00 se muestra Mañana; a las 13:00, Trabajo. | C | Planned |
-| FR-009 | Cada espacio debe definir sus apps disponibles. | Una app restringida no aparece en la lista principal. | C | Planned |
-| FR-010 | El espacio debe actualizarse al cambiar de franja. | Al pasar las 12:00 cambia sin reiniciar. | C | Planned |
-| FR-011 | Las apps restringidas deben aparecer en una sección atenuada. | Texto gris en "Restringidas". | D | Planned |
-| FR-012 | Abrir una app restringida debe mostrar una pausa con cuenta atrás. | No se puede continuar antes de que acabe. | D | Planned |
-| FR-013 | Tras la pausa debe escribirse un motivo para continuar. | Sin texto, el botón de abrir está desactivado. | D | Planned |
-| FR-014 | Deben poder crearse notas etiquetadas. | La nota persiste tras reiniciar. | E | Planned |
-| FR-015 | Deben poder programarse recordatorios. | Llega una notificación a la hora indicada. | E | Planned |
+| FR-008 | El espacio activo debe elegirse según la hora. | A las 07:00 se muestra Mañana; a las 13:00, Trabajo. | C | Implemented |
+| FR-009 | Cada espacio debe definir sus apps disponibles. | Una app restringida no aparece en la lista principal. | C | Implemented |
+| FR-010 | El espacio debe actualizarse al cambiar de franja. | Al pasar las 12:00 cambia sin reiniciar. | C | Implemented |
+| FR-011 | Las apps restringidas deben aparecer en una sección atenuada. | Texto gris en "Restringidas". | D | Implemented |
+| FR-012 | Abrir una app restringida debe mostrar una pausa con cuenta atrás. | No se puede continuar antes de que acabe. | D | Implemented |
+| FR-013 | Tras la pausa debe escribirse un motivo para continuar. | Sin texto, el botón de abrir está desactivado. | D | Implemented |
+| FR-014 | Deben poder crearse notas etiquetadas. | La nota persiste tras reiniciar. | E | Implemented |
+| FR-015 | Deben poder programarse recordatorios. | Llega una notificación diaria ligada a un espacio. | E | Implemented; validate timing |
+| FR-016 | Horarios, disponibilidad de apps y apartados se configuran desde la app. | Los cambios persisten y afectan al launcher. | F | Implemented |
+| FR-017 | Finanzas y dieta guardan registros diarios. | Se muestran gastos y comidas del día con resumen. | G | Implemented |
 
 ## Non-Functional Requirements
 
@@ -126,9 +140,9 @@ Target state:
 | Kotlin | Lenguaje principal | Required | Bajo |
 | Jetpack Compose | UI completa | Required | Bajo |
 | QUERY_ALL_PACKAGES | Consultar apps instaladas | In use | Restricciones de distribución en Play |
-| DataStore o Room | Persistir notas, recordatorios y configuración | Planned (Stage E) | Bajo |
-| AlarmManager / WorkManager | Recordatorios programados | Planned (Stage E) | Optimización de batería de Samsung |
-| POST_NOTIFICATIONS | Mostrar recordatorios | Planned (Stage E) | Bajo |
+| DataStore | Persistir notas, recordatorios, horarios y registros | In use | Bajo |
+| AlarmManager | Recordatorios diarios | In use | Optimización de batería de Samsung |
+| POST_NOTIFICATIONS | Mostrar recordatorios | In use | Bajo |
 | AlarmManager.getNextAlarmClock | Mostrar la próxima alarma | Planned (Stage B) | Bajo |
 
 ## Risks

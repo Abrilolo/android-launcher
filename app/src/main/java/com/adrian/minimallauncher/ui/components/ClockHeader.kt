@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -20,11 +19,11 @@ private val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
 private val dateFormat = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanish)
 private val alarmDayFormat = DateTimeFormatter.ofPattern("EEE HH:mm", spanish)
 @Composable
-fun ClockHeader(modifier: Modifier = Modifier) {
+fun ClockHeader(spaceName: String, now: LocalDateTime, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val now = rememberCurrentMinute()
-    val nextAlarm = remember(now) { nextAlarmText(context, now) }
+    val nextAlarm = nextAlarmText(context, now)
     Column(modifier, Arrangement.spacedBy(4.dp)) {
+        Text(spaceName.uppercase(spanish), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(now.format(timeFormat), style = MaterialTheme.typography.displayLarge)
         Text(now.format(dateFormat).uppercase(spanish), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (nextAlarm != null) {
