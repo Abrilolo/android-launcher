@@ -4,16 +4,19 @@ Project: Minimal Launcher
 Aspect: Personal  
 Default mode: New Project  
 Execution mode: New Android project  
-Status: Phases 4-8 implemented; S24+ validation pending
-Last updated: 2026-10-20
+Status: Phases 9-15 implemented; S24+ validation pending
+Last updated: 2026-10-21
 
 ## Current Phase
 
-Current phase: Device validation for Phases 5-8
+Current phase: Phase 14 - Finanzas y Notas con el diseño del concepto
 
 Current objective:
 
-- Validar en Samsung Galaxy S24+ la fricción, persistencia, recordatorios y configuración.
+- Llevar Finanzas y Notas al diseño de `docs/design/` (gráfica de puntos, nota fijada, etiquetas), igual que se hizo con Ejercicio.
+- En paralelo, validar en el S24+ los módulos de Ejercicio y Bancos y el nuevo inicio.
+
+Design reference: `docs/design/README.md` (concepto en imagen y HTML, capturas de la app y estado de cada pantalla).
 
 ## Phase List
 
@@ -28,6 +31,14 @@ Current objective:
 | Phase 6 - Notas y recordatorios | Capturar información del día | Notas etiquetadas, recordatorios programados, persistencia local | Notas y recordatorios sobreviven a un reinicio | Implemented; validate |
 | Phase 7 - Personalize | Configurar sin editar código | Edición de franjas, apps por espacio, apartados | El usuario adapta el launcher desde ajustes | Implemented; validate |
 | Phase 8 - Módulos propios | Finanzas y dieta nativas | Registro de gastos y comidas, resúmenes diarios | Cada módulo sustituye a las notas correspondientes | Implemented; validate |
+| Phase 9 - Concepto Nothing | Diseño premium y minimalista | Lienzo de diseño, `docs/design/` | Cada aspecto tiene su pantalla de referencia | Complete |
+| Phase 10 - Datos en Room | Base de datos real para todos los registros | `LauncherDatabase`, migración desde DataStore | Los registros sobreviven y se pueden consultar por fecha | Complete |
+| Phase 11 - Módulo Ejercicio | Plan de la guía de Tokio dentro del launcher | Widget, página Hoy/Semana/Ajustes, registro de series | Registrar series con peso y repeticiones y ver la semana | Implemented; validate |
+| Phase 12 - Módulo Bancos | Apps de banco protegidas | Widget, huella o PIN, bloqueo automático | Sin huella no se ven ni se abren las apps de banco | Implemented; validate |
+| Phase 13 - Inicio en cuadrícula | Ver el estado sin abrir nada | Reloj de puntos, 7 tarjetas, ícono de apps, cajón | El inicio responde las preguntas del día de un vistazo | Implemented; validate |
+| Phase 14 - Finanzas y Notas | Páginas propias como en el concepto | Gráfica semanal en puntos, nota fijada, etiquetas | Las dos páginas se ven como `docs/design/` | Implemented; validate |
+| Phase 15 - Módulos y Alarmas | Editar cada aspecto sin código | Pantalla Módulos, ajustes por módulo, agua en Dieta | Cada módulo se configura desde el engranaje | Implemented; validate |
+| Phase 16 - App propia | Juntar los aspectos en un mismo ambiente | Módulos de Gradle reutilizables, respaldo en la nube opcional | Los datos se pueden ver fuera del launcher | Future |
 
 ## Phase 2 - Build Shell
 
@@ -147,6 +158,99 @@ Exit criteria:
 - Las notas y recordatorios persisten tras reiniciar el teléfono.
 - Los recordatorios llegan a tiempo en el S24+.
 
+## Phase 9 - Concepto Nothing
+
+Completion notes:
+
+- Concepto en el lienzo de diseño "Launcher Nothing concepto": inicio, cajón de apps, Bancos, Finanzas, Dieta, Notas, Alarmas, Reloj mundial, Ejercicio (hoy y semana) y Módulos.
+- Copia local en `docs/design/`: imágenes PNG, HTML que se abre en el navegador y capturas de la app real.
+- Ejercicio se diseñó a partir de la guía "Físico de atleta · Tokio · octubre 2026".
+
+## Phase 10 - Datos en Room
+
+Completion notes:
+
+- Notas, recordatorios, gastos, comidas, medidas corporales y hábitos viven en `launcher.db` (Room 2.8.5, KSP).
+- Al primer arranque se copian los registros que había en DataStore; la copia antigua se conserva como respaldo.
+- DataStore queda solo para preferencias (espacios, apartados, pausa, ajustes de módulos).
+
+## Phase 11 - Módulo Ejercicio
+
+Implementation notes:
+
+- Plan A/B/C, cardio, intervalos y descansos de la guía, con técnica y "Cuida" por ejercicio.
+- Cada serie se guarda con peso y repeticiones; la siguiente vez propone la última carga.
+- La sesión se marca hecha al completar todas las series; descanso de 60/90/120 s con vibración.
+- Semana con estado por día, peso promedio de 3 mañanas, cintura semanal y regla de progresión.
+
+Pending validation:
+
+- Usar una sesión completa en el S24+ y revisar que la semana refleje los días hechos.
+
+## Phase 12 - Módulo Bancos
+
+Implementation notes:
+
+- Bancos pasó de apartado a widget; el widget no muestra nombres ni saldos.
+- Huella o PIN del teléfono para abrir; se vuelve a bloquear por tiempo (30/45/60/120 s), al abrir una app o al salir del launcher.
+- Las apps de banco no aparecen en el buscador.
+
+Pending validation:
+
+- Desbloquear con huella en el S24+ y confirmar que las 12 apps detectadas son las correctas.
+
+## Phase 13 - Inicio en cuadrícula
+
+Implementation notes:
+
+- Reloj en matriz de puntos y tarjetas: Alarma, Ejercicio, Gasto hoy, Comidas, Mundo, Bancos y Nota reciente.
+- Cada tarjeta abre su página; las de Finanzas y Notas usan por ahora los formularios anteriores.
+- Ícono de apps (3×3 puntos) abajo al centro; el cajón conserva los apartados, el buscador y el índice.
+- Recordatorios se movieron a la página de Alarmas. Pantalla fija en vertical.
+- Se retiraron el carrusel de widgets y la sección "Restringidas" (lo restringido solo se encuentra buscando).
+
+## Phase 14 - Finanzas y Notas
+
+Deliverables:
+
+- Finanzas: total del día, gráfica de 7 días en puntos, lista de gastos y captura rápida.
+- Notas: nota fijada, filtro por etiqueta y captura que se guarda sola.
+
+Exit criteria:
+
+- Las dos páginas coinciden con `docs/design/concept/png/Finanzas.png` y `Notas.png`.
+
+Implementation notes:
+
+- Finanzas (`feature/finance`): total del día en puntos, 7 días en columnas de 8 puntos (el día con más gasto llena la columna), lista de hoy con borrar y captura de monto + concepto.
+- Notas (`feature/notes`): una nota fijada en tarjeta blanca, filtro por etiqueta (General, Trabajo, Ideas, Finanzas, Dieta), tocar una nota muestra FIJAR / BORRAR y la captura se guarda con la tecla de listo o al salir.
+- Room versión 2: columna `pinned` en `notes` con migración; las notas existentes quedan sin fijar.
+- La tarjeta de nota del inicio muestra la fijada o, si no hay, la más reciente.
+
+## Phase 15 - Módulos y Alarmas
+
+Deliverables:
+
+- Pantalla Módulos: activar o quitar cada widget del inicio y editar sus ajustes (ver `Modulos.png`).
+- Ajustes por módulo: horarios de comida, meta de agua, presupuesto diario, ciudades, tiempo de bloqueo de Bancos.
+- Agua en Dieta.
+
+Implementation notes:
+
+- El engranaje abre Módulos (`ui/ModulesScreen.kt`): interruptor por tarjeta del inicio y editor por módulo; "Apps y espacios" lleva a la configuración anterior (horarios, pausa, apartados).
+- Las tarjetas apagadas no dejan hueco: las demás se recorren en pares.
+- Ajustes guardados en DataStore (`ModuleSettings`): hora y descanso de Ejercicio, presupuesto diario, horarios de comida, meta de agua, ciudades del reloj mundial y bloqueo de Bancos.
+- Finanzas: con presupuesto, la tarjeta muestra "DE $X" y el gasto de hoy se pone en rojo al pasarlo.
+- Dieta: tarjeta de agua con un vaso por barra, guardado como hábito del día (`<fecha>|water_<n>`).
+- Alarmas sigue mostrando solo la siguiente alarma del Reloj: Android no permite a otras apps leer ni encender sus alarmas.
+
+## Phase 16 - App propia
+
+Notes:
+
+- Separar los módulos en módulos de Gradle para reutilizarlos en una app aparte.
+- Respaldo en la nube opcional para ver los datos en otro dispositivo.
+
 ## Validation Questions
 
 - ¿Los espacios por horario reducen aperturas impulsivas?
@@ -165,4 +269,4 @@ Exit criteria:
 
 ## Next Action
 
-Instalar la APK en el S24+ y validar apps restringidas, notas tras reinicio, entrega de recordatorios y personalización de horarios.
+Validar en el S24+ el desbloqueo de Bancos con huella y una sesión completa de Ejercicio. Pendiente menor: la página de la izquierda (Insights) sigue con los horarios de comida fijos, no con los de Módulos.

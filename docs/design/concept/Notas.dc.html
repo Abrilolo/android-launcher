@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Notas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;800&amp;family=Space+Grotesk:wght@400;500&amp;family=Space+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+textarea::placeholder{color:#777}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; padding: 52px 20px 28px; display: flex; flex-direction: column; gap: 22px; overflow: hidden">
+  <a href="Main.dc.html" aria-label="Volver al inicio" style="height: 44px; display: flex; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 2px; color: #9a9a9a">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+    NOTAS
+  </a>
+
+  <div style="border-radius: 26px; background: #fff; color: #000; padding: 20px; display: flex; flex-direction: column; gap: 18px; min-height: 150px; box-sizing: border-box">
+    <div style="display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px">
+      <span>FIJADA</span>
+      <span style="color: #555">GENERAL · HOY</span>
+    </div>
+    <div style="font-size: 24px; line-height: 1.2">Llamar al dentista antes del viernes</div>
+  </div>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+    <sc-for list="{{tags}}" as="t" hint-placeholder-count="4">
+      <button onClick="{{t.pick}}" style="height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1.5px; cursor: pointer">{{t.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; flex-direction: column">
+    <sc-for list="{{notes}}" as="n" hint-placeholder-count="3">
+      <div style="padding: 14px 0; border-bottom: 1px solid #1a1a1a; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">{{n.tag}} · {{n.when}}</div>
+        <div style="font-size: 16px; line-height: 1.35">{{n.text}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <label style="margin-top: auto; display: flex; flex-direction: column; gap: 6px">
+    <span style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">NUEVA NOTA</span>
+    <textarea rows="2" placeholder="Escribe y se guarda sola" style="box-sizing: border-box; border: 1px solid #333; border-radius: 18px; background: #0b0b0b; color: #fff; padding: 14px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; resize: none"></textarea>
+  </label>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { tag: 'TODAS' };
+}
+renderVals() {
+const all = [
+{ tag: 'TRABAJO', when: 'AYER', text: 'Revisar propuesta de la gimbal antes de la junta' },
+{ tag: 'IDEAS', when: 'LUN', text: 'Widget de racha de ejercicio en matriz de puntos' },
+{ tag: 'GENERAL', when: 'DOM', text: 'Comprar pilas para el control' }
+];
+const current = this.state.tag;
+const tags = ['TODAS', 'GENERAL', 'TRABAJO', 'IDEAS'].map((label) => {
+const on = label === current;
+return {
+label: label,
+bg: on ? '#ffffff' : 'transparent',
+fg: on ? '#000000' : '#cfcfcf',
+border: on ? '#ffffff' : '#333333',
+pick: () => this.setState({ tag: label })
+};
+});
+return {
+tags: tags,
+notes: current === 'TODAS' ? all : all.filter((n) => n.tag === current)
+};
+}
+}
+</script>
+</body>
+</html>

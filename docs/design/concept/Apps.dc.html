@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cajón de apps</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;800&amp;family=Space+Grotesk:wght@400;500&amp;family=Space+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+input::placeholder{color:#777}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; padding: 18px 20px 24px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+  <a href="Main.dc.html" aria-label="Cerrar y volver al inicio" style="align-self: center; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 40px">
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: #444"></div>
+    <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 3px; color: #9a9a9a">06:28 · MAÑANA</div>
+  </a>
+
+  <label style="display: flex; align-items: center; gap: 10px; height: 52px; box-sizing: border-box; border: 1px solid #333; border-radius: 26px; padding: 0 18px; background: #0b0b0b">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9a9a9a" stroke-width="1.5" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+    <span style="position: absolute; width: 1px; height: 1px; overflow: hidden">Buscar apps</span>
+    <input value="{{query}}" onChange="{{setQuery}}" placeholder="Buscar en todas" style="flex-grow: 1; min-width: 0; border: 0; background: transparent; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 17px; outline: none"></input>
+  </label>
+
+  <sc-if value="{{browsing}}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; gap: 8px">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+        <button onClick="{{t.pick}}" style="height: 36px; padding: 0 16px; border-radius: 18px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1.5px; cursor: pointer">{{t.label}}</button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <div style="flex-grow: 1; min-height: 0; display: flex; gap: 6px; overflow: hidden">
+    <sc-if value="{{showIndex}}" hint-placeholder-val="{{ false }}">
+      <div style="width: 22px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 0">
+        <sc-for list="{{letters}}" as="l" hint-placeholder-count="20">
+          <div style="font-family: 'Space Mono', monospace; font-size: 10px; text-align: center; color: {{l.color}}">{{l.ch}}</div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+        <button style="height: 54px; flex-shrink: 0; border: 0; background: transparent; color: {{r.color}}; display: flex; align-items: center; justify-content: space-between; padding: 0; font-family: 'Space Grotesk', sans-serif; font-size: 21px; text-align: left; cursor: pointer">
+          <span>{{r.name}}</span>
+          <span style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: #9a9a9a">{{r.tag}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: #9a9a9a; text-align: center">{{footer}}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { tab: 'APPS', query: '' };
+}
+renderVals() {
+const essentials = ['WhatsApp', 'Notes', 'Galería', 'Cámara', 'Chrome', 'Calendario', 'Teléfono', 'Spotify', 'Outlook', 'Ajustes'];
+const others = ['Airalo', 'Amazon', 'Booking', 'Canva', 'ChatGPT', 'Claude', 'Coursera', 'Didi', 'Discord', 'Duolingo', 'GitHub', 'Google Maps', 'Keep', 'LinkedIn', 'Mercado Libre', 'Notion', 'Rappi', 'Teams', 'Uber', 'Zoom'];
+const restricted = ['Netflix', 'Prime Video', 'YouTube', 'Crunchyroll', 'Brawl Stars', 'Among Us', 'Instagram'];
+const q = this.state.query.trim().toLowerCase();
+const tab = this.state.tab;
+let rows;
+let footer;
+if (q) {
+const hits = essentials.concat(others).filter((n) => n.toLowerCase().includes(q)).map((n) => ({ name: n, tag: '', color: '#ffffff' }));
+const locked = restricted.filter((n) => n.toLowerCase().includes(q)).map((n) => ({ name: n, tag: 'PAUSA 30 S', color: '#6a6a6a' }));
+rows = hits.concat(locked);
+footer = rows.length ? 'FUERA DE HORARIO = PAUSA ANTES DE ABRIR' : 'SIN RESULTADOS';
+} else if (tab === 'APPS') {
+rows = essentials.map((n) => ({ name: n, tag: '', color: '#ffffff' }));
+footer = 'OCIO Y JUEGOS VUELVEN A LAS 18:00';
+} else {
+rows = others.map((n) => ({ name: n, tag: '', color: '#cfcfcf' }));
+footer = 'DESLIZA SOBRE LAS LETRAS PARA SALTAR';
+}
+const firsts = others.map((n) => n[0].toUpperCase());
+const letters = 'ABCDEFGHIJKLMNOPQRSTUVWZ'.split('').map((ch) => ({ ch: ch, color: ch === 'C' ? '#d71921' : (firsts.includes(ch) ? '#cfcfcf' : '#3a3a3a') }));
+return {
+query: this.state.query,
+setQuery: (e) => this.setState({ query: e.target.value }),
+browsing: !q,
+showIndex: !q && tab === 'TODAS',
+letters: letters,
+rows: rows.slice(0, 11),
+footer: footer,
+tabs: ['APPS', 'TODAS'].map((label) => {
+const on = label === tab;
+return { label: label, bg: on ? '#ffffff' : 'transparent', fg: on ? '#000000' : '#cfcfcf', border: on ? '#ffffff' : '#333333', pick: () => this.setState({ tab: label }) };
+})
+};
+}
+}
+</script>
+</body>
+</html>

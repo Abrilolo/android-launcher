@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Alarmas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;800&amp;family=Space+Grotesk:wght@400;500&amp;family=Space+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; padding: 52px 20px 28px; display: flex; flex-direction: column; gap: 24px; overflow: hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center">
+    <a href="Main.dc.html" aria-label="Volver al inicio" style="height: 44px; display: flex; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 2px; color: #9a9a9a">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      ALARMAS
+    </a>
+    <button aria-label="Nueva alarma" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #fff; color: #000; font-size: 22px; cursor: pointer">+</button>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">
+      <div style="width: 6px; height: 6px; border-radius: 3px; background: #d71921"></div>
+      SIGUIENTE
+    </div>
+    <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 96px; line-height: 0.9; letter-spacing: -2px">{{nextTime}}</div>
+    <div style="font-size: 14px; color: #cfcfcf">{{nextLine}}</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; border-top: 1px solid #222">
+    <sc-for list="{{alarms}}" as="a" hint-placeholder-count="4">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #1a1a1a">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 34px; line-height: 1; color: {{a.timeColor}}">{{a.time}}</div>
+          <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">{{a.label}} · {{a.days}}</div>
+        </div>
+        <button onClick="{{a.toggle}}" aria-label="{{a.aria}}" aria-pressed="{{a.on}}" style="width: 56px; height: 32px; border-radius: 16px; border: 1px solid {{a.trackBorder}}; background: {{a.track}}; padding: 3px; box-sizing: border-box; display: flex; justify-content: {{a.justify}}; cursor: pointer">
+          <span style="width: 24px; height: 24px; border-radius: 12px; background: {{a.knob}}"></span>
+        </button>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { on: [true, false, true, false] };
+}
+renderVals() {
+const base = [
+{ time: '08:43', label: 'TRABAJO', days: 'L M M J V', inMin: 135 },
+{ time: '07:00', label: 'GIMNASIO', days: 'S', inMin: 1472 },
+{ time: '13:30', label: 'MEDICINA', days: 'DIARIO', inMin: 422 },
+{ time: '10:00', label: 'DESCANSO', days: 'D', inMin: 3092 }
+];
+const on = this.state.on;
+const active = base.map((a, i) => ({ a: a, i: i })).filter((x) => on[x.i]).sort((x, y) => x.a.inMin - y.a.inMin);
+const next = active[0];
+const fmt = (m) => (m >= 60 ? Math.floor(m / 60) + ' h ' : '') + (m % 60) + ' min';
+return {
+nextTime: next ? next.a.time : '--:--',
+nextLine: next ? 'Suena en ' + fmt(next.a.inMin) + ' · ' + next.a.label.toLowerCase() : 'Sin alarmas activas',
+alarms: base.map((a, i) => ({
+time: a.time,
+label: a.label,
+days: a.days,
+on: on[i] ? 'true' : 'false',
+aria: (on[i] ? 'Desactivar' : 'Activar') + ' alarma de las ' + a.time,
+timeColor: on[i] ? '#ffffff' : '#5a5a5a',
+track: on[i] ? '#ffffff' : 'transparent',
+trackBorder: on[i] ? '#ffffff' : '#444444',
+knob: on[i] ? '#000000' : '#5a5a5a',
+justify: on[i] ? 'flex-end' : 'flex-start',
+toggle: () => {
+const n = on.slice();
+n[i] = !n[i];
+this.setState({ on: n });
+}
+}))
+};
+}
+}
+</script>
+</body>
+</html>

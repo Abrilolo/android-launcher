@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Inicio con widgets</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@500;800&amp;family=Space+Grotesk:wght@400;500&amp;family=Space+Mono&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#000}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; padding: 48px 20px 22px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center">
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #9a9a9a">MAÑANA</div>
+    <a href="Modulos.dc.html" aria-label="Módulos y configuración" style="width: 44px; height: 44px; color: #9a9a9a; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+    </a>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 84px; line-height: 0.9; letter-spacing: -2px">06:28</div>
+    <div style="font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 2.5px; color: #9a9a9a">MIÉRCOLES 21 OCT</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+    <a href="Alarmas.dc.html" style="height: 128px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">ALARMA</div>
+        <div style="width: 6px; height: 6px; border-radius: 3px; background: #d71921"></div>
+      </div>
+      <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 38px; line-height: 1">08:43</div>
+      <div style="font-size: 12px; color: #cfcfcf">en 2 h 15 min</div>
+    </a>
+
+    <a href="Ejercicio.dc.html" style="height: 128px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">EJERCICIO</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; color: #9a9a9a">20:35</div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 10px">
+        <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 38px; line-height: 1">B</div>
+        <div style="font-size: 12px; color: #cfcfcf; line-height: 1.2">Piernas, hombros y brazos</div>
+      </div>
+      <div style="display: flex; gap: 4px">
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #fff"></div>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #fff"></div>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #d71921"></div>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #2a2a2a"></div>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #2a2a2a"></div>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #2a2a2a"></div>
+        <div style="flex: 1; height: 4px; border-radius: 2px; background: #2a2a2a"></div>
+      </div>
+    </a>
+
+    <a href="Finanzas.dc.html" style="height: 128px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">GASTO HOY</div>
+      <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 38px; line-height: 1">$245</div>
+      <div style="display: flex; gap: 6px; align-items: flex-end; height: 20px">
+        <div style="width: 6px; height: 8px; border-radius: 3px; background: #3a3a3a"></div>
+        <div style="width: 6px; height: 14px; border-radius: 3px; background: #3a3a3a"></div>
+        <div style="width: 6px; height: 10px; border-radius: 3px; background: #3a3a3a"></div>
+        <div style="width: 6px; height: 20px; border-radius: 3px; background: #3a3a3a"></div>
+        <div style="width: 6px; height: 6px; border-radius: 3px; background: #3a3a3a"></div>
+        <div style="width: 6px; height: 12px; border-radius: 3px; background: #3a3a3a"></div>
+        <div style="width: 6px; height: 16px; border-radius: 3px; background: #fff"></div>
+      </div>
+    </a>
+
+    <a href="Dieta.dc.html" style="height: 128px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">COMIDAS</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; color: #9a9a9a">13:00</div>
+      </div>
+      <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 38px; line-height: 1">0/4</div>
+      <div style="display: flex; gap: 8px; align-items: center">
+        <div style="width: 12px; height: 12px; border-radius: 6px; border: 1.5px solid #d71921; box-sizing: border-box"></div>
+        <div style="width: 12px; height: 12px; border-radius: 6px; border: 1.5px solid #555; box-sizing: border-box"></div>
+        <div style="width: 12px; height: 12px; border-radius: 6px; border: 1.5px solid #555; box-sizing: border-box"></div>
+        <div style="width: 12px; height: 12px; border-radius: 6px; border: 1.5px solid #555; box-sizing: border-box"></div>
+      </div>
+    </a>
+
+    <a href="Reloj.dc.html" style="height: 128px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">MUNDO</div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #cfcfcf">TYO</div>
+          <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 24px">21:28</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #cfcfcf">NYC</div>
+          <div style="font-family: 'Doto', monospace; font-weight: 800; font-size: 24px">08:28</div>
+        </div>
+      </div>
+    </a>
+
+    <a href="Bancos.dc.html" style="height: 128px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">BANCOS</div>
+        <div style="width: 6px; height: 6px; border-radius: 3px; background: #d71921"></div>
+      </div>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><path d="M12 11v3a8 8 0 0 1-1.5 4.5"></path><path d="M8.5 9.5a3.5 3.5 0 0 1 7 0V14a11 11 0 0 1-.7 3.8"></path><path d="M5.5 12V9.5a6.5 6.5 0 0 1 13 0V13"></path><path d="M6 16.5a10 10 0 0 0 .8-2.5"></path><path d="M18.3 16.5c-.2.8-.4 1.6-.8 2.4"></path></svg>
+      <div style="font-size: 12px; color: #cfcfcf">Bloqueado · 8 apps</div>
+    </a>
+
+    <a href="Notas.dc.html" style="grid-column: span 2; height: 84px; box-sizing: border-box; border: 1px solid #222; border-radius: 26px; background: #0b0b0b; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="display: flex; justify-content: space-between">
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #9a9a9a">NOTA FIJADA</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 10px; color: #9a9a9a">3 NOTAS</div>
+      </div>
+      <div style="font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Llamar al dentista antes del viernes</div>
+    </a>
+  </div>
+
+  <a href="Apps.dc.html" style="margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 6px">
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: #444"></div>
+    <div style="font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 3px; color: #9a9a9a">DESLIZA · APPS</div>
+  </a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

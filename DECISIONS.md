@@ -2,7 +2,75 @@
 
 Project: Minimal Launcher  
 Aspect: Personal  
-Last updated: 2026-10-19
+Last updated: 2026-10-21
+
+## 2026-10-21 - Inicio en cuadrícula de widgets y cajón de apps
+
+Type: Product / UX
+Status: Accepted
+Supersedes: inicio con apartados a la izquierda y carrusel de widgets a la derecha; sección "Restringidas"
+
+### Context
+
+El objetivo es ver el estado del día sin abrir nada, con estilo Nothing (negro, matriz de puntos, un solo rojo). El concepto de referencia está en `docs/design/`.
+
+### Decision
+
+- El inicio es un reloj en matriz de puntos y una cuadrícula de tarjetas; cada tarjeta abre la página de su módulo.
+- Las apps viven en un cajón que se abre con un ícono de 3×3 puntos abajo al centro (no con deslizar).
+- Lo que el horario no permite no se muestra: los apartados sin apps permitidas se ocultan y lo restringido solo se encuentra buscando en "Todas", con pausa.
+- El launcher se queda en vertical.
+
+### Impact
+
+- Recordatorios, Notas, Finanzas y Dieta dejan de ser apartados de la lista y se abren desde sus tarjetas.
+- La posición editable del widget deja de usarse.
+
+## 2026-10-21 - El launcher es la app; cada aspecto es un módulo
+
+Type: Architecture
+Status: Accepted
+
+### Context
+
+Se quiere a futuro "una app propia" que junte finanzas, dieta, ejercicio, notas y bancos en un mismo ambiente con sus datos.
+
+### Decision
+
+- No crear una app aparte por ahora: el launcher ya es el ambiente de todo el día.
+- Cada aspecto es un módulo con tres piezas: widget, página y ajustes (`feature/exercise`, `feature/vault`).
+- Se separarán en módulos de Gradle cuando exista una segunda app que los reutilice.
+
+### Alternatives Considered
+
+- App separada que comparta datos con el launcher (descartado por ahora: obliga a sincronizar entre dos apps).
+
+## 2026-10-21 - Room para los registros, DataStore para preferencias
+
+Type: Technical
+Status: Accepted
+Supersedes: registros guardados como texto en DataStore
+
+### Decision
+
+- Todos los registros (notas, recordatorios, gastos, comidas, medidas, hábitos, series de ejercicio) se guardan en Room (`launcher.db`).
+- Los datos que existían en DataStore se copian una sola vez y la copia antigua se conserva.
+
+### Impact
+
+- Permite historial, consultas por fecha y exportar datos más adelante.
+
+## 2026-10-21 - Bancos protegido con la huella o el PIN del teléfono
+
+Type: Product / Security
+Status: Accepted
+
+### Decision
+
+- Las apps de banco solo se abren desde el widget Bancos tras pasar la huella o el PIN del sistema (`BiometricPrompt`).
+- Sin bloqueo de pantalla configurado, Bancos no se abre.
+- Se vuelve a bloquear por tiempo, al abrir una app o al salir del launcher, y nunca aparece en el buscador.
+
 
 ## 2026-10-19 - Launcher contextual por espacios horarios
 

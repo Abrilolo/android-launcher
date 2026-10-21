@@ -8,6 +8,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.adrian.minimallauncher.feature.exercise.ExerciseDao
 import com.adrian.minimallauncher.feature.exercise.SetLog
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
 /** Everything the user records lives here; preferences stay in [SettingsRepository]. */
 @Database(
     entities = [NoteRecord::class, ReminderRecord::class, FinanceRecord::class, MealRecord::class, BodyMetricRecord::class, DayCheck::class, SetLog::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -26,7 +28,17 @@ abstract class LauncherDatabase : RoomDatabase() {
         @Volatile private var instance: LauncherDatabase? = null
 
         fun get(context: Context): LauncherDatabase = instance ?: synchronized(this) {
-            instance ?: Room.databaseBuilder(context.applicationContext, LauncherDatabase::class.java, "launcher.db").build().also { instance = it }
+            instance ?: Room.databaseBuilder(context.applicationContext, LauncherDatabase::class.java, "launcher.db")
+                .addMigrations(MIGRATION_1_2)
+                .build()
+                .also { instance = it }
+        }
+
+        /** Version 2 adds pinned notes; existing notes start unpinned. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+            }
         }
     }
 }
@@ -54,4 +66,8 @@ interface PersonalDao {
     @Query("DELETE FROM body_metrics WHERE id = :id") suspend fun deleteBodyMetric(id: String)
     @Query("DELETE FROM day_checks WHERE `key` = :key") suspend fun deleteCheck(key: String)
     @Query("SELECT COUNT(*) FROM day_checks WHERE `key` = :key") suspend fun hasCheck(key: String): Int
+
+    /** Pins [id] and unpins every other note in one statement. */
+    @Query("UPDATE notes SET pinned = (id = :id)") suspend fun pinOnly(id: String)
+    @Query("UPDATE notes SET pinned = 0 WHERE id = :id") suspend fun unpin(id: String)
 }

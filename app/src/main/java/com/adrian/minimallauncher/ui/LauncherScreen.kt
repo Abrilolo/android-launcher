@@ -23,11 +23,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.adrian.minimallauncher.feature.exercise.ExerciseScreen
+import com.adrian.minimallauncher.feature.finance.FinanceScreen
+import com.adrian.minimallauncher.feature.notes.NotesScreen
 import com.adrian.minimallauncher.feature.exercise.ExerciseViewModel
 import com.adrian.minimallauncher.feature.vault.VaultScreen
 import com.adrian.minimallauncher.feature.vault.unlockVault
 import com.adrian.minimallauncher.ui.theme.LauncherTheme
-import com.adrian.minimallauncher.ui.widgets.HomeWidgets
 import com.adrian.minimallauncher.data.PersonalRecords
 import com.adrian.minimallauncher.data.PersonalRecordActions
 import com.adrian.minimallauncher.viewmodel.LauncherViewModel
@@ -38,7 +39,6 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val apps by viewModel.apps.collectAsState()
     val now by viewModel.currentTime.collectAsState()
     val space by viewModel.currentSpace.collectAsState()
-    val widgetPlacement by viewModel.widgetPlacement.collectAsState()
     val notes by viewModel.notes.collectAsState()
     val reminders by viewModel.reminders.collectAsState()
     val finances by viewModel.finances.collectAsState()
@@ -55,6 +55,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     // Which module page is open; never saved, so Bancos is always locked after the app restarts.
     var openModule by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
+    var drawerOpen by remember { mutableStateOf(false) }
     var restrictedApp by remember { mutableStateOf<com.adrian.minimallauncher.data.LauncherApp?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -73,6 +74,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val personalActions = PersonalRecordActions(
         addNote = viewModel::addNote,
         deleteNote = viewModel::deleteNote,
+        setNotePinned = viewModel::setNotePinned,
         addReminder = { title, hour, minute, spaceName ->
             viewModel.addReminder(title, hour, minute, spaceName)
             if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -95,7 +97,8 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
         if (id == "vault") (context as? FragmentActivity)?.let { activity -> unlockVault(activity) { openModule = "vault" } }
         else openModule = id
     }
-    val homeWidgets = HomeWidgets(exerciseDay, moduleSettings.exerciseStart, vaultApps.size, openModuleById)
+    val homeData = HomeData(personalRecords, exerciseDay, moduleSettings, vaultApps.size)
+    val closeModule = { openModule = null }
 
     LauncherTheme {
         val screenModifier = Modifier
@@ -109,6 +112,8 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 spaces, hiddenSections, sectionOrder, pauseSeconds, viewModel::updateSpaces, viewModel::setSectionVisible, viewModel::moveSection,
                 viewModel::setPauseSeconds, { showSettings = false }, screenModifier,
             )
+        } else if (openModule == "modules") {
+            ModulesScreen(moduleSettings, viewModel::updateModuleSettings, { showSettings = true }, closeModule, screenModifier)
         } else if (openModule == "exercise") {
             val exerciseSettings by exerciseViewModel.settings.collectAsState()
             val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
@@ -121,16 +126,39 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 onSetCompleted = exerciseViewModel::setCompleted,
                 onAddBodyMetric = exerciseViewModel::addBodyMetric,
                 onSaveSettings = exerciseViewModel::saveSettings,
-                onBack = { openModule = null },
+                onBack = closeModule,
                 modifier = screenModifier,
             )
+        } else if (openModule == "alarms") {
+            AlarmsPage(now, personalRecords, personalActions, space.name, closeModule, screenModifier)
+        } else if (openModule == "world") {
+            WorldClockPage(now, moduleSettings.worldZones, closeModule, screenModifier)
+        } else if (openModule == "diet") {
+            DietPage(now, personalRecords, personalActions, moduleSettings, viewModel::setHabit, space.name, closeModule, screenModifier)
+        } else if (openModule == "finance") {
+            FinanceScreen(finances, now, viewModel::addFinance, viewModel::deleteFinance, closeModule, screenModifier)
+        } else if (openModule == "notes") {
+            NotesScreen(notes, viewModel::addNote, viewModel::deleteNote, viewModel::setNotePinned, closeModule, screenModifier)
         } else if (openModule == "vault") {
             VaultScreen(
                 apps = vaultApps,
                 lockSeconds = moduleSettings.vaultLockSeconds,
                 onOpenApp = viewModel::openApp,
                 onLockSecondsChange = viewModel::setVaultLockSeconds,
-                onLock = { openModule = null },
+                onLock = closeModule,
+                modifier = screenModifier,
+            )
+        } else if (blockedApp == null && drawerOpen) {
+            AppDrawer(
+                apps = apps,
+                isAllowed = space::allows,
+                onOpenApp = viewModel::openApp,
+                onRestrictedApp = { restrictedApp = it },
+                hiddenSections = hiddenSections,
+                sectionOrder = sectionOrder,
+                spaceName = space.name,
+                now = now,
+                onClose = { drawerOpen = false },
                 modifier = screenModifier,
             )
         } else if (blockedApp == null) {
@@ -150,21 +178,13 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                         modifier = screenModifier,
                     )
                 } else {
-                    MainZone(
-                        apps = apps,
-                        isAllowed = space::allows,
-                        onOpenApp = viewModel::openApp,
-                        onRestrictedApp = { restrictedApp = it },
-                        widgetPlacement = widgetPlacement,
-                        onWidgetPlacementChange = viewModel::setWidgetPlacement,
+                    HomeGrid(
                         spaceName = space.name,
                         now = now,
-                        hiddenSections = hiddenSections,
-                        sectionOrder = sectionOrder,
-                        homeWidgets = homeWidgets,
-                        onSettings = { showSettings = true },
-                        personalRecords = personalRecords,
-                        personalActions = personalActions,
+                        data = homeData,
+                        onOpenModule = openModuleById,
+                        onOpenDrawer = { drawerOpen = true },
+                        onSettings = { openModule = "modules" },
                         modifier = screenModifier,
                     )
                 }

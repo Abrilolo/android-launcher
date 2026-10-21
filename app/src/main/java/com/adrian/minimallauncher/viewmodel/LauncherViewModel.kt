@@ -19,7 +19,6 @@ import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRepository
 import com.adrian.minimallauncher.data.Space
 import com.adrian.minimallauncher.data.ReminderScheduler
-import com.adrian.minimallauncher.data.WidgetPlacement
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +52,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val pauseSeconds: StateFlow<Int> = settings.pauseSeconds.stateIn(viewModelScope, SharingStarted.Eagerly, 30)
     val currentSpace: StateFlow<Space> = combine(currentTime, spaces) { time, schedule -> Space.at(time, schedule) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, Space.at(LocalDateTime.now()))
-    val widgetPlacement: StateFlow<WidgetPlacement> = settings.widgetPlacement.stateIn(viewModelScope, SharingStarted.Eagerly, WidgetPlacement())
     val notes: StateFlow<List<NoteRecord>> = personal.notes.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val reminders: StateFlow<List<ReminderRecord>> = personal.reminders.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val finances: StateFlow<List<FinanceRecord>> = personal.finances.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -77,9 +75,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun refreshApps() { viewModelScope.launch(Dispatchers.IO) { _apps.value = repository.loadApps() } }
     fun openApp(packageName: String) = repository.openApp(packageName)
-    fun setWidgetPlacement(placement: WidgetPlacement) { viewModelScope.launch { settings.setWidgetPlacement(placement) } }
     fun addNote(category: NoteCategory, text: String) { viewModelScope.launch { personal.addNote(category, text) } }
     fun deleteNote(id: String) { viewModelScope.launch { personal.deleteNote(id) } }
+    fun setNotePinned(id: String, pinned: Boolean) { viewModelScope.launch { personal.setNotePinned(id, pinned) } }
     fun addReminder(title: String, hour: Int, minute: Int, spaceName: String) { viewModelScope.launch { personal.addReminder(title, hour, minute, spaceName) } }
     fun deleteReminder(id: String) { reminderScheduler.cancel(id); viewModelScope.launch { personal.deleteReminder(id) } }
     fun addFinance(amountCents: Long, description: String) { viewModelScope.launch { personal.addFinance(amountCents, description) } }
@@ -93,6 +91,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun updateSpaces(value: List<Space>) { viewModelScope.launch { settings.setSpaces(value) } }
     fun setSectionVisible(section: String, visible: Boolean) { viewModelScope.launch { settings.setSectionVisible(section, visible) } }
     fun moveSection(section: String, delta: Int) { viewModelScope.launch { settings.moveSection(section, delta) } }
-    fun setVaultLockSeconds(seconds: Int) { viewModelScope.launch { settings.setModuleSettings(moduleSettings.value.copy(vaultLockSeconds = seconds)) } }
+    fun setVaultLockSeconds(seconds: Int) = updateModuleSettings { it.copy(vaultLockSeconds = seconds) }
+    fun updateModuleSettings(change: (ModuleSettings) -> ModuleSettings) { viewModelScope.launch { settings.setModuleSettings(change(moduleSettings.value)) } }
+    fun setHabit(key: String, done: Boolean) { viewModelScope.launch { personal.setCheck(key, DayCheck.HABIT, done) } }
     fun setPauseSeconds(seconds: Int) { viewModelScope.launch { settings.setPauseSeconds(seconds) } }
 }

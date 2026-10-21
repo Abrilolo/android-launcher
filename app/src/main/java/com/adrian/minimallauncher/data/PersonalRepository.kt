@@ -20,6 +20,7 @@ class PersonalRepository(private val db: LauncherDatabase) {
 
     suspend fun addNote(category: NoteCategory, text: String) = dao.insertNotes(listOf(NoteRecord(newId(), category, text, now())))
     suspend fun deleteNote(id: String) = dao.deleteNote(id)
+    suspend fun setNotePinned(id: String, pinned: Boolean) = if (pinned) dao.pinOnly(id) else dao.unpin(id)
     suspend fun addReminder(title: String, hour: Int, minute: Int, spaceName: String) = dao.insertReminders(listOf(ReminderRecord(newId(), title, hour, minute, spaceName)))
     suspend fun deleteReminder(id: String) = dao.deleteReminder(id)
     suspend fun addFinance(amountCents: Long, description: String) = dao.insertFinances(listOf(FinanceRecord(newId(), amountCents, description, now())))

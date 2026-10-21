@@ -3,33 +3,39 @@ package com.adrian.minimallauncher.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.Base64
 import java.time.LocalTime
 
-// Where the widget stack sits in the right column: share of the row width, height and top offset in dp.
-data class WidgetPlacement(val widthFraction: Float = 0.45f, val heightDp: Int = 220, val topDp: Int = 0)
-val DEFAULT_SECTION_ORDER = listOf("reminders", "notes", "finance", "diet", "apps", "entertainment", "games", "all")
+val DEFAULT_SECTION_ORDER = listOf("apps", "entertainment", "games", "all")
 private val Context.settings by preferencesDataStore(name = "settings")
 
-/** Per-module preferences edited from each module's settings page. */
+/** Per-module preferences edited from the Módulos page (and each module's own settings). */
 data class ModuleSettings(
     val exerciseStart: LocalTime = LocalTime.of(20, 35),
     val exerciseRestSeconds: Int = 90,
     val vaultLockSeconds: Int = 45,
+    /** Home tiles switched off ("alarms", "exercise", "finance", "diet", "world", "vault", "notes"). */
+    val hiddenTiles: Set<String> = emptySet(),
+    /** One time per meal slot of the Tokyo guide, in slot order. */
+    val mealTimes: List<LocalTime> = DEFAULT_MEAL_TIMES,
+    val waterGoal: Int = 8,
+    /** Daily spending limit; 0 means no budget. */
+    val dailyBudgetCents: Long = 0,
+    /** Cities shown on the world clock, in order; the first two go on the home tile. */
+    val worldZones: List<String> = DEFAULT_WORLD_ZONES,
 )
 
+val DEFAULT_MEAL_TIMES: List<LocalTime> = listOf(LocalTime.of(13, 0), LocalTime.of(16, 30), LocalTime.of(18, 30), LocalTime.of(21, 30))
+val DEFAULT_WORLD_ZONES = listOf("America/Mexico_City", "America/New_York", "Europe/Madrid", "Europe/London", "Asia/Tokyo")
+
 class SettingsRepository(private val context: Context) {
-    private val widthKey = floatPreferencesKey("widget_width")
-    private val heightKey = intPreferencesKey("widget_height")
-    private val topKey = intPreferencesKey("widget_top")
     private val spacesKey = stringPreferencesKey("spaces")
     private val hiddenSectionsKey = stringSetPreferencesKey("hidden_sections")
     private val pauseSecondsKey = intPreferencesKey("pause_seconds")
@@ -37,6 +43,11 @@ class SettingsRepository(private val context: Context) {
     private val exerciseStartKey = stringPreferencesKey("exercise_start")
     private val exerciseRestKey = intPreferencesKey("exercise_rest_seconds")
     private val vaultLockKey = intPreferencesKey("vault_lock_seconds")
+    private val hiddenTilesKey = stringSetPreferencesKey("hidden_tiles")
+    private val mealTimesKey = stringPreferencesKey("meal_times")
+    private val waterGoalKey = intPreferencesKey("water_goal")
+    private val dailyBudgetKey = longPreferencesKey("daily_budget_cents")
+    private val worldZonesKey = stringPreferencesKey("world_zones")
 
     // Records stored here before the Room database; kept untouched as a backup once copied.
     private val notesKey = stringSetPreferencesKey("notes")
@@ -64,6 +75,12 @@ class SettingsRepository(private val context: Context) {
             exerciseStart = prefs[exerciseStartKey]?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: default.exerciseStart,
             exerciseRestSeconds = prefs[exerciseRestKey] ?: default.exerciseRestSeconds,
             vaultLockSeconds = prefs[vaultLockKey] ?: default.vaultLockSeconds,
+            hiddenTiles = prefs[hiddenTilesKey].orEmpty(),
+            mealTimes = prefs[mealTimesKey]?.split(',')?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }
+                ?.takeIf { it.size == default.mealTimes.size } ?: default.mealTimes,
+            waterGoal = prefs[waterGoalKey] ?: default.waterGoal,
+            dailyBudgetCents = prefs[dailyBudgetKey] ?: default.dailyBudgetCents,
+            worldZones = prefs[worldZonesKey]?.split(',')?.filter(String::isNotBlank) ?: default.worldZones,
         )
     }
 
@@ -71,19 +88,6 @@ class SettingsRepository(private val context: Context) {
     private fun normalizeOrder(saved: List<String>) = saved.filter { it in DEFAULT_SECTION_ORDER }.distinct().let { it + (DEFAULT_SECTION_ORDER - it.toSet()) }
     private fun encode(value: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String) = String(Base64.getUrlDecoder().decode(value), Charsets.UTF_8)
-
-    val widgetPlacement: Flow<WidgetPlacement> = context.settings.data.map { prefs ->
-        val default = WidgetPlacement()
-        WidgetPlacement(prefs[widthKey] ?: default.widthFraction, prefs[heightKey] ?: default.heightDp, prefs[topKey] ?: default.topDp)
-    }
-
-    suspend fun setWidgetPlacement(placement: WidgetPlacement) {
-        context.settings.edit {
-            it[widthKey] = placement.widthFraction
-            it[heightKey] = placement.heightDp
-            it[topKey] = placement.topDp
-        }
-    }
 
     suspend fun setSpaces(spaces: List<Space>) {
         context.settings.edit { prefs -> prefs[spacesKey] = spaces.joinToString(";") { space ->
@@ -117,6 +121,11 @@ class SettingsRepository(private val context: Context) {
             it[exerciseStartKey] = value.exerciseStart.toString()
             it[exerciseRestKey] = value.exerciseRestSeconds
             it[vaultLockKey] = value.vaultLockSeconds
+            it[hiddenTilesKey] = value.hiddenTiles
+            it[mealTimesKey] = value.mealTimes.joinToString(",")
+            it[waterGoalKey] = value.waterGoal
+            it[dailyBudgetKey] = value.dailyBudgetCents
+            it[worldZonesKey] = value.worldZones.joinToString(",")
         }
     }
 

@@ -3,13 +3,13 @@ package com.adrian.minimallauncher.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/** At most one note is [pinned]; it is the one the home tile and the top of the notes page show. */
 @Entity(tableName = "notes")
-data class NoteRecord(@PrimaryKey val id: String, val category: NoteCategory, val text: String, val createdAt: Long)
+data class NoteRecord(@PrimaryKey val id: String, val category: NoteCategory, val text: String, val createdAt: Long, val pinned: Boolean = false)
 
+/** Stored by name, so the order here is only the order of the filter chips. */
 enum class NoteCategory(val label: String) {
-    FINANCES("Finanzas"), DIET("Dieta"), GENERAL("General");
-
-    fun next(): NoteCategory = entries[(ordinal + 1) % entries.size]
+    GENERAL("General"), WORK("Trabajo"), IDEAS("Ideas"), FINANCES("Finanzas"), DIET("Dieta"),
 }
 
 @Entity(tableName = "reminders")
@@ -46,6 +46,7 @@ data class PersonalRecords(
 data class PersonalRecordActions(
     val addNote: (NoteCategory, String) -> Unit,
     val deleteNote: (String) -> Unit,
+    val setNotePinned: (String, Boolean) -> Unit = { _, _ -> },
     val addReminder: (String, Int, Int, String) -> Unit,
     val deleteReminder: (String) -> Unit,
     val addFinance: (Long, String) -> Unit,

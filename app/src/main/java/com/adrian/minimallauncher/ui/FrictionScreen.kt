@@ -54,7 +54,7 @@ fun FrictionScreen(
         Text(spaceName.uppercase(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(app.label, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 12.dp))
         Text(
-            if (remainingSeconds > 0) "PAUSA  $remainingSeconds S" else "¿POR QUÉ QUIERES ABRIRLA?",
+            if (remainingSeconds > 0) "PAUSA  $remainingSeconds S" else "¿MOTIVO?",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 24.dp),
@@ -64,7 +64,7 @@ fun FrictionScreen(
             onValueChange = { reason = it },
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             enabled = remainingSeconds == 0,
-            label = { Text("Motivo") },
+            placeholder = { Text("Escribe el motivo...") },
             minLines = 2,
         )
         Button(

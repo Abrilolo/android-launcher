@@ -86,22 +86,22 @@ fun InsightsScreen(
             }
         }
 
-        // Section 1: EJERCICIO (Físico de Atleta - Tokio)
-        InsightCard(title = "EJERCICIO · FÍSICO DE ATLETA") {
+        // Section 1: EJERCICIO
+        InsightCard(title = "EJERCICIO") {
             ExerciseSummary(exerciseDay, onOpenExercise)
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // Section 2: DIETA (Comer fuera con estructura)
-        InsightCard(title = "DIETA · COMER FUERA CON ESTRUCTURA") {
+        // Section 2: DIETA
+        InsightCard(title = "DIETA") {
             DietSection(records, actions, todayStr)
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // Section 3: FINANZAS (Resumen Semanal)
-        InsightCard(title = "FINANZAS · CASHFLOW") {
+        // Section 3: FINANZAS
+        InsightCard(title = "FINANZAS") {
             FinanceSection(records, actions, today)
         }
 
