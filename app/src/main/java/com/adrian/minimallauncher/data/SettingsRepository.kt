@@ -48,6 +48,7 @@ class SettingsRepository(private val context: Context) {
     private val waterGoalKey = intPreferencesKey("water_goal")
     private val dailyBudgetKey = longPreferencesKey("daily_budget_cents")
     private val worldZonesKey = stringPreferencesKey("world_zones")
+    private val lastBackupKey = longPreferencesKey("last_backup_at")
 
     // Records stored here before the Room database; kept untouched as a backup once copied.
     private val notesKey = stringSetPreferencesKey("notes")
@@ -84,6 +85,9 @@ class SettingsRepository(private val context: Context) {
         )
     }
 
+    /** When the last backup file was written, or null if never. */
+    val lastBackupAt = context.settings.data.map { it[lastBackupKey] }
+
     // Drops unknown ids and appends sections added after the order was saved.
     private fun normalizeOrder(saved: List<String>) = saved.filter { it in DEFAULT_SECTION_ORDER }.distinct().let { it + (DEFAULT_SECTION_ORDER - it.toSet()) }
     private fun encode(value: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(Charsets.UTF_8))
@@ -115,6 +119,8 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun setPauseSeconds(seconds: Int) { context.settings.edit { it[pauseSecondsKey] = seconds.coerceIn(0, 300) } }
+
+    suspend fun setLastBackupAt(millis: Long) { context.settings.edit { it[lastBackupKey] = millis } }
 
     suspend fun setModuleSettings(value: ModuleSettings) {
         context.settings.edit {

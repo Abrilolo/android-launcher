@@ -33,6 +33,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
+    // biometric pulls fragment 1.2.5, whose FragmentActivity rejects the request codes of the activity-result API (file pickers).
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.room:room-runtime:2.8.5")
     implementation("androidx.room:room-ktx:2.8.5")
     ksp("androidx.room:room-compiler:2.8.5")

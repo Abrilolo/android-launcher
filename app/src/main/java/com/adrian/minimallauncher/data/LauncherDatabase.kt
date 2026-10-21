@@ -67,6 +67,18 @@ interface PersonalDao {
     @Query("DELETE FROM day_checks WHERE `key` = :key") suspend fun deleteCheck(key: String)
     @Query("SELECT COUNT(*) FROM day_checks WHERE `key` = :key") suspend fun hasCheck(key: String): Int
 
+    // One-shot reads for the backup file.
+    @Query("SELECT * FROM notes") suspend fun allNotes(): List<NoteRecord>
+    @Query("SELECT * FROM reminders") suspend fun allReminders(): List<ReminderRecord>
+    @Query("SELECT * FROM finances") suspend fun allFinances(): List<FinanceRecord>
+    @Query("SELECT * FROM meals") suspend fun allMeals(): List<MealRecord>
+    @Query("SELECT * FROM body_metrics") suspend fun allBodyMetrics(): List<BodyMetricRecord>
+    @Query("SELECT * FROM day_checks") suspend fun allChecks(): List<DayCheck>
+
+    /** After an import two notes may be pinned; keep only the most recent one. */
+    @Query("UPDATE notes SET pinned = (id = (SELECT id FROM notes WHERE pinned = 1 ORDER BY createdAt DESC LIMIT 1))")
+    suspend fun keepNewestPin()
+
     /** Pins [id] and unpins every other note in one statement. */
     @Query("UPDATE notes SET pinned = (id = :id)") suspend fun pinOnly(id: String)
     @Query("UPDATE notes SET pinned = 0 WHERE id = :id") suspend fun unpin(id: String)

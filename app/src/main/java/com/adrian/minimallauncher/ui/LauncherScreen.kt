@@ -113,7 +113,13 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 viewModel::setPauseSeconds, { showSettings = false }, screenModifier,
             )
         } else if (openModule == "modules") {
-            ModulesScreen(moduleSettings, viewModel::updateModuleSettings, { showSettings = true }, closeModule, screenModifier)
+            val lastBackupAt by viewModel.lastBackupAt.collectAsState()
+            val backupMessage by viewModel.backupMessage.collectAsState()
+            ModulesScreen(
+                moduleSettings, viewModel::updateModuleSettings,
+                BackupUi(lastBackupAt, backupMessage, viewModel::exportBackup, viewModel::importBackup),
+                { showSettings = true }, closeModule, screenModifier,
+            )
         } else if (openModule == "exercise") {
             val exerciseSettings by exerciseViewModel.settings.collectAsState()
             val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
@@ -168,13 +174,13 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 if (page == 0) {
-                    InsightsScreen(
-                        records = personalRecords,
-                        actions = personalActions,
+                    WeekSummaryScreen(
                         now = now,
+                        records = personalRecords,
+                        exercise = exerciseDay,
+                        settings = moduleSettings,
+                        onOpenModule = openModuleById,
                         onNavigateHome = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                        exerciseDay = exerciseDay,
-                        onOpenExercise = { openModule = "exercise" },
                         modifier = screenModifier,
                     )
                 } else {

@@ -4,6 +4,26 @@ Project: Minimal Launcher
 Aspect: Personal  
 Last updated: 2026-10-21
 
+## 2026-10-21 - Respaldo como archivo que elige el usuario
+
+Type: Technical / Data
+Status: Accepted
+
+### Context
+
+Todos los datos viven solo en el teléfono; desinstalar o cambiar de teléfono los perdería. La nube (Fase 16) es un paso más grande.
+
+### Decision
+
+- Exportar a un JSON con el selector de archivos del sistema: el usuario decide si va a Descargas, Drive u otro proveedor. No se piden permisos de almacenamiento ni cuentas.
+- Importar fusiona: conserva lo que ya hay en el teléfono y agrega lo que falte (las series se comparan por día, ejercicio y número de serie).
+- Incluye los ajustes de módulos; no incluye espacios, pausa ni apartados.
+
+### Impact
+
+- El formato (`"app": "minimal-launcher"`, `"format": 1`) servirá de base para la sincronización de la Fase 16.
+
+
 ## 2026-10-21 - Inicio en cuadrícula de widgets y cajón de apps
 
 Type: Product / UX

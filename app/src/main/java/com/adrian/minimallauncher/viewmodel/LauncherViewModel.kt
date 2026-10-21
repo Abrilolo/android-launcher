@@ -3,7 +3,9 @@ package com.adrian.minimallauncher.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.adrian.minimallauncher.data.AppRepository
+import com.adrian.minimallauncher.data.BackupRepository
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.DEFAULT_SECTION_ORDER
 import com.adrian.minimallauncher.data.LauncherApp
@@ -34,6 +36,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val repository = AppRepository(application)
     private val settings = SettingsRepository(application)
     private val personal = PersonalRepository(LauncherDatabase.get(application))
+    private val backup = BackupRepository(application, LauncherDatabase.get(application), settings)
     private val reminderScheduler = ReminderScheduler(application)
     private val _apps = MutableStateFlow<List<LauncherApp>>(emptyList())
     val apps: StateFlow<List<LauncherApp>> = _apps
@@ -61,6 +64,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val completedHabits: StateFlow<Set<String>> = personal.completedHabits.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
     val moduleSettings: StateFlow<ModuleSettings> = settings.moduleSettings.stateIn(viewModelScope, SharingStarted.Eagerly, ModuleSettings())
+    val lastBackupAt: StateFlow<Long?> = settings.lastBackupAt.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val _backupMessage = MutableStateFlow<String?>(null)
+    /** Outcome of the last export or import, shown on the backup page. */
+    val backupMessage: StateFlow<String?> = _backupMessage
 
     init {
         refreshApps()
@@ -93,6 +100,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun moveSection(section: String, delta: Int) { viewModelScope.launch { settings.moveSection(section, delta) } }
     fun setVaultLockSeconds(seconds: Int) = updateModuleSettings { it.copy(vaultLockSeconds = seconds) }
     fun updateModuleSettings(change: (ModuleSettings) -> ModuleSettings) { viewModelScope.launch { settings.setModuleSettings(change(moduleSettings.value)) } }
+    fun exportBackup(uri: Uri) {
+        viewModelScope.launch {
+            _backupMessage.value = runCatching { backup.export(uri) }
+                .fold({ "RESPALDO GUARDADO · ${it.records} REGISTROS" }, { "NO SE PUDO GUARDAR: ${it.message.orEmpty().uppercase()}" })
+        }
+    }
+
+    fun importBackup(uri: Uri) {
+        viewModelScope.launch {
+            _backupMessage.value = runCatching { backup.import(uri) }
+                .fold({ if (it.added == 0) "NADA NUEVO · YA TENÍAS TODO" else "IMPORTADO · ${it.added} REGISTROS NUEVOS" }, { "NO SE PUDO IMPORTAR: ${it.message.orEmpty().uppercase()}" })
+        }
+    }
+
     fun setHabit(key: String, done: Boolean) { viewModelScope.launch { personal.setCheck(key, DayCheck.HABIT, done) } }
     fun setPauseSeconds(seconds: Int) { viewModelScope.launch { settings.setPauseSeconds(seconds) } }
 }

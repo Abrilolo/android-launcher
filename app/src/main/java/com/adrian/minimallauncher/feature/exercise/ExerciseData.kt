@@ -38,6 +38,12 @@ interface ExerciseDao {
     @Insert
     suspend fun insert(log: SetLog)
 
+    @Query("SELECT * FROM set_logs")
+    suspend fun allSets(): List<SetLog>
+
+    @Query("SELECT COUNT(*) FROM set_logs WHERE date = :date AND exerciseId = :exerciseId AND setIndex = :setIndex")
+    suspend fun countSet(date: String, exerciseId: String, setIndex: Int): Int
+
     @Query("DELETE FROM set_logs WHERE date = :date AND exerciseId = :exerciseId AND setIndex >= :fromIndex")
     suspend fun deleteFrom(date: String, exerciseId: String, fromIndex: Int)
 }

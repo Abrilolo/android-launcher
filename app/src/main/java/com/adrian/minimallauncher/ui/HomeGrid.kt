@@ -65,6 +65,15 @@ private val TileShape = RoundedCornerShape(26.dp)
 val MEAL_NAMES = listOf("Comida completa", "Proteína + energía", "Colación preentreno", "Cena post entreno")
 fun mealKey(date: LocalDate, index: Int) = "$date|meal_$index"
 
+/** Daily habits from the guide, checked off as "<date>|habit_<id>" (keys kept from the old insights page). */
+val DIET_HABITS = listOf(
+    "walk" to "Caminar 10-15 min después de comer",
+    "no_extras" to "Sin refrescos, azúcar ni frituras",
+    "protein" to "Meta de proteína (~1.6 g/kg)",
+    "sleep" to "Dormir 7-9 h",
+)
+fun habitKey(date: LocalDate, id: String) = "$date|habit_$id"
+
 /** Glass [glass] (1-based) of the day's water, stored as a day habit like the meals. */
 fun waterKey(date: LocalDate, glass: Int) = "$date|water_$glass"
 

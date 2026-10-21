@@ -36,6 +36,8 @@ para trabajar sin depender de él.
 | Finanzas | [png](concept/png/Finanzas.png) · [html](concept/Finanzas.dc.html) | — | Hecho; falta captura en el teléfono |
 | Notas | [png](concept/png/Notas.png) · [html](concept/Notas.dc.html) | — | Hecho; falta captura en el teléfono |
 | Alarmas | [png](concept/png/Alarmas.png) · [html](concept/Alarmas.dc.html) | — | Parcial: muestra la siguiente alarma y abre el Reloj del teléfono |
+| Semana (izquierda del inicio) | — (no está en el concepto) | [captura](app/semana.png) | Hecho |
+| Respaldo (en Módulos) | — | [captura](app/respaldo.png) | Hecho |
 | Módulos (configuración) | [png](concept/png/Modulos.png) · [html](concept/Modulos.dc.html) | [captura](app/modulos.png) | Hecho |
 
 ## Diferencias acordadas con el concepto

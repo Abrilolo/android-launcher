@@ -4,7 +4,7 @@ Project: Minimal Launcher
 Aspect: Personal  
 Default mode: New Project  
 Execution mode: New Android project  
-Status: Phases 9-15 implemented; S24+ validation pending
+Status: Phases 9-15 implemented, plus weekly summary and backup; S24+ validation pending
 Last updated: 2026-10-21
 
 ## Current Phase
@@ -38,6 +38,7 @@ Design reference: `docs/design/README.md` (concepto en imagen y HTML, capturas d
 | Phase 13 - Inicio en cuadrícula | Ver el estado sin abrir nada | Reloj de puntos, 7 tarjetas, ícono de apps, cajón | El inicio responde las preguntas del día de un vistazo | Implemented; validate |
 | Phase 14 - Finanzas y Notas | Páginas propias como en el concepto | Gráfica semanal en puntos, nota fijada, etiquetas | Las dos páginas se ven como `docs/design/` | Implemented; validate |
 | Phase 15 - Módulos y Alarmas | Editar cada aspecto sin código | Pantalla Módulos, ajustes por módulo, agua en Dieta | Cada módulo se configura desde el engranaje | Implemented; validate |
+| Phase 15b - Semana y respaldo | Ver la semana y no perder datos | Resumen semanal a la izquierda del inicio, exportar/importar JSON | La semana se entiende de un vistazo; un respaldo se restaura sin duplicar | Implemented |
 | Phase 16 - App propia | Juntar los aspectos en un mismo ambiente | Módulos de Gradle reutilizables, respaldo en la nube opcional | Los datos se pueden ver fuera del launcher | Future |
 
 ## Phase 2 - Build Shell
@@ -244,6 +245,16 @@ Implementation notes:
 - Dieta: tarjeta de agua con un vaso por barra, guardado como hábito del día (`<fecha>|water_<n>`).
 - Alarmas sigue mostrando solo la siguiente alarma del Reloj: Android no permite a otras apps leer ni encender sus alarmas.
 
+## Phase 15b - Semana y respaldo
+
+Implementation notes:
+
+- La página a la izquierda del inicio pasó de "Insights" a un resumen de la semana (lunes a domingo, `ui/WeekSummaryScreen.kt`): sesiones de ejercicio, gasto con promedio y días sobre presupuesto, comidas/agua/hábitos, peso promedio vs semana anterior, cintura y notas. Cada tarjeta abre su módulo.
+- Los hábitos diarios de la guía (caminar, sin extras, proteína, sueño) se movieron a la página de Dieta; conservan sus claves, así que lo marcado antes sigue contando.
+- Respaldo en Módulos (`data/BackupRepository.kt`): exporta todos los registros y los ajustes de módulos a un JSON en la ubicación que elija el usuario (selector de archivos del sistema, sin permisos). Importar solo agrega lo que falta; reimportar el mismo archivo no duplica.
+- No van en el respaldo: horarios de espacios, pausa y apartados del cajón.
+- Se fijó `androidx.fragment` 1.8.9: la 1.2.5 que traía `biometric` hacía fallar el selector de archivos.
+
 ## Phase 16 - App propia
 
 Notes:
@@ -269,4 +280,4 @@ Notes:
 
 ## Next Action
 
-Validar en el S24+ el desbloqueo de Bancos con huella y una sesión completa de Ejercicio. Pendiente menor: la página de la izquierda (Insights) sigue con los horarios de comida fijos, no con los de Módulos.
+Validar en el S24+ el desbloqueo de Bancos con huella y una sesión completa de Ejercicio. Hacer un respaldo de vez en cuando (Módulos → Respaldo) y guardarlo fuera del teléfono, por ejemplo en Drive.

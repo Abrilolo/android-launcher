@@ -156,6 +156,24 @@ fun DietPage(
             }
         }
         WaterCard(date, settings.waterGoal, records.completedHabits, onSetHabit)
+        SmallLabel("HÁBITOS", Modifier.padding(top = 8.dp))
+        Column {
+            DIET_HABITS.forEach { (id, label) ->
+                val done = habitKey(date, id) in records.completedHabits
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Checkbox) { actions.toggleHabit(habitKey(date, id)) }
+                        .padding(vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = if (done) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                    StatusDot(filled = done, next = false)
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF1A1A1A)))
+            }
+        }
         SmallLabel("QUÉ COMISTE", Modifier.padding(top = 8.dp))
         PersonalSectionBody("diet", records, actions, spaceName)
     }

@@ -1,6 +1,9 @@
 package com.adrian.minimallauncher.ui
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.AlarmClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,7 +43,11 @@ import com.adrian.minimallauncher.feature.ModuleTextField
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.finance.formatPesos
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
+import java.util.Locale
 import java.time.format.DateTimeFormatter
 
 private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
@@ -53,12 +60,14 @@ private val MODULE_NAMES = mapOf(
 
 /**
  * What the gear opens: every module with a switch for its home tile, and its settings when
- * the name is tapped. "Apps y espacios" leads to the existing schedule and sections settings.
+ * the name is tapped. "Apps y espacios" leads to the existing schedule and sections settings;
+ * "Respaldo" exports and imports every record as a file.
  */
 @Composable
 fun ModulesScreen(
     settings: ModuleSettings,
     onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit,
+    backup: BackupUi,
     onAppsAndSpaces: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -68,7 +77,7 @@ fun ModulesScreen(
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         if (current == null) {
             ModuleHeader("INICIO", onBack, Modifier.padding(top = 8.dp))
-            ModuleList(settings, onUpdate, onEdit = { editing = it }, onAppsAndSpaces)
+            ModuleList(settings, onUpdate, backup.lastAt, onEdit = { editing = it }, onAppsAndSpaces)
         } else {
             ModuleHeader("MÓDULOS", { editing = null }, Modifier.padding(top = 8.dp))
             Column(
@@ -76,8 +85,8 @@ fun ModulesScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 SmallLabel("EDITAR")
-                Text(MODULE_NAMES.getValue(current), style = MaterialTheme.typography.headlineSmall)
-                ModuleEditor(current, settings, onUpdate)
+                Text(MODULE_NAMES[current] ?: "Respaldo", style = MaterialTheme.typography.headlineSmall)
+                if (current == BACKUP) BackupEditor(backup) else ModuleEditor(current, settings, onUpdate)
             }
         }
     }
@@ -87,6 +96,7 @@ fun ModulesScreen(
 private fun ColumnScope.ModuleList(
     settings: ModuleSettings,
     onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit,
+    lastBackupAt: Long?,
     onEdit: (String) -> Unit,
     onAppsAndSpaces: () -> Unit,
 ) {
@@ -128,8 +138,45 @@ private fun ColumnScope.ModuleList(
             SmallLabel("›")
         }
         Divider()
+        Row(
+            Modifier.fillMaxWidth().clickable(role = Role.Button) { onEdit(BACKUP) }.padding(vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("Respaldo", style = MaterialTheme.typography.bodyLarge)
+                SmallLabel(lastBackupAt?.let { "ÚLTIMO · ${backupDate(it)}" } ?: "SIN RESPALDO", color = if (lastBackupAt == null) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            SmallLabel("›")
+        }
+        Divider()
         SmallLabel("INTERRUPTOR = TARJETA EN INICIO · TOCA EL NOMBRE PARA EDITAR", Modifier.padding(top = 16.dp))
     }
+}
+
+private const val BACKUP = "backup"
+private val spanish = Locale.forLanguageTag("es")
+
+private fun backupDate(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM · HH:mm", spanish)).uppercase(spanish).replace(".", "")
+
+/** What the backup page needs: when it last ran, the outcome to show, and the two file actions. */
+data class BackupUi(val lastAt: Long?, val message: String?, val onExport: (Uri) -> Unit, val onImport: (Uri) -> Unit)
+
+/** The system file picker chooses where the file goes (Drive, Downloads…), so no storage permission is needed. */
+@Composable
+private fun BackupEditor(backup: BackupUi) {
+    val exportFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(backup.onExport) }
+    val importFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(backup.onImport) }
+    Text(
+        "Guarda en un archivo tus notas, gastos, comidas, hábitos, series de ejercicio, medidas, recordatorios y los ajustes de los módulos.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    SmallLabel(backup.lastAt?.let { "ÚLTIMO RESPALDO · ${backupDate(it)}" } ?: "TODAVÍA NO HAY RESPALDO", color = MaterialTheme.colorScheme.onSurface)
+    ActionLabel("EXPORTAR") { exportFile.launch("launcher-respaldo-${LocalDate.now()}.json") }
+    ActionLabel("IMPORTAR") { importFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+    backup.message?.let { SmallLabel(it, color = if (it.startsWith("NO SE PUDO")) LauncherRed else MaterialTheme.colorScheme.onSurface) }
+    SmallLabel("IMPORTAR NO BORRA NADA: SOLO AGREGA LO QUE FALTE. LOS HORARIOS Y APARTADOS DE APPS NO VAN EN EL RESPALDO.", Modifier.padding(top = 8.dp))
 }
 
 private fun summary(id: String, s: ModuleSettings): String = when (id) {
