@@ -4,10 +4,18 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
+import com.adrian.minimallauncher.data.APPS_DEFAULT_LAYOUT
+import com.adrian.minimallauncher.data.APPS_PAGE
 import com.adrian.minimallauncher.data.AppRepository
 import com.adrian.minimallauncher.data.BackupRepository
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.DEFAULT_SECTION_ORDER
+import com.adrian.minimallauncher.data.DEFAULT_HOME_PAGES
+import com.adrian.minimallauncher.data.DEFAULT_WIDGET_LAYOUT
+import com.adrian.minimallauncher.data.FIRST_WIDGET_PAGE
+import com.adrian.minimallauncher.data.HomePage
+import com.adrian.minimallauncher.data.HomePages
+import com.adrian.minimallauncher.data.PageKind
 import com.adrian.minimallauncher.data.LauncherApp
 import com.adrian.minimallauncher.data.NoteCategory
 import com.adrian.minimallauncher.data.NoteRecord
@@ -15,6 +23,10 @@ import com.adrian.minimallauncher.data.ReminderRecord
 import com.adrian.minimallauncher.data.FinanceRecord
 import com.adrian.minimallauncher.data.MealRecord
 import com.adrian.minimallauncher.data.SettingsRepository
+import com.adrian.minimallauncher.data.fits
+import com.adrian.minimallauncher.data.firstFreeSpot
+import com.adrian.minimallauncher.data.placed
+import com.adrian.minimallauncher.data.WidgetStackConfig
 import com.adrian.minimallauncher.data.DayCheck
 import com.adrian.minimallauncher.data.LauncherDatabase
 import com.adrian.minimallauncher.data.ModuleSettings
@@ -24,7 +36,9 @@ import com.adrian.minimallauncher.data.ReminderScheduler
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,6 +66,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val spaces: StateFlow<List<Space>> = settings.spaces.stateIn(viewModelScope, SharingStarted.Eagerly, Space.all)
     val hiddenSections: StateFlow<Set<String>> = settings.hiddenSections.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
     val sectionOrder: StateFlow<List<String>> = settings.sectionOrder.stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_SECTION_ORDER)
+    val homePages: StateFlow<HomePages> = settings.homePages.stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_HOME_PAGES)
+    val widgetLayouts: StateFlow<Map<String, List<WidgetStackConfig>>> =
+        settings.widgetLayouts.stateIn(viewModelScope, SharingStarted.Eagerly, mapOf(FIRST_WIDGET_PAGE to DEFAULT_WIDGET_LAYOUT.placed(), APPS_PAGE to APPS_DEFAULT_LAYOUT))
     val pauseSeconds: StateFlow<Int> = settings.pauseSeconds.stateIn(viewModelScope, SharingStarted.Eagerly, 30)
     val currentSpace: StateFlow<Space> = combine(currentTime, spaces) { time, schedule -> Space.at(time, schedule) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, Space.at(LocalDateTime.now()))
@@ -116,4 +133,94 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setHabit(key: String, done: Boolean) { viewModelScope.launch { personal.setCheck(key, DayCheck.HABIT, done) } }
     fun setPauseSeconds(seconds: Int) { viewModelScope.launch { settings.setPauseSeconds(seconds) } }
+
+    // Widget stacks are kept per page; every change rewrites that page's list.
+    private fun updatePageLayout(pageId: String, change: (MutableList<WidgetStackConfig>) -> Unit) {
+        val all = widgetLayouts.value.toMutableMap()
+        val stacks = all[pageId].orEmpty().toMutableList()
+        change(stacks)
+        all[pageId] = stacks
+        viewModelScope.launch { settings.setWidgetLayouts(all) }
+    }
+
+    /** Moves a stack to another top-left cell; ignored if it would overlap another widget. */
+    fun moveStackTo(pageId: String, stackId: String, col: Int, row: Int) = updatePageLayout(pageId) { stacks ->
+        val index = stacks.indexOfFirst { it.id == stackId }
+        if (index < 0) return@updatePageLayout
+        val stack = stacks[index]
+        if (stacks.fits(col, row, stack.w, stack.h, ignoreId = stackId)) stacks[index] = stack.copy(col = col, row = row)
+    }
+
+    /** Resizes a stack in place; ignored if the new size would overlap another widget or leave the grid. */
+    fun resizeStack(pageId: String, stackId: String, w: Int, h: Int) = updatePageLayout(pageId) { stacks ->
+        val index = stacks.indexOfFirst { it.id == stackId }
+        if (index < 0) return@updatePageLayout
+        val stack = stacks[index]
+        if (stacks.fits(stack.col, stack.row, w, h, ignoreId = stackId)) stacks[index] = stack.copy(w = w, h = h)
+    }
+
+    /** Drops [draggedId] onto [targetId]: their widgets become one stack at the target's place. */
+    fun mergeStacks(pageId: String, draggedId: String, targetId: String) = updatePageLayout(pageId) { stacks ->
+        val dragged = stacks.firstOrNull { it.id == draggedId } ?: return@updatePageLayout
+        val targetIndex = stacks.indexOfFirst { it.id == targetId }
+        if (targetIndex < 0 || draggedId == targetId) return@updatePageLayout
+        val target = stacks[targetIndex]
+        stacks[targetIndex] = target.copy(widgetIds = (target.widgetIds + dragged.widgetIds).distinct())
+        stacks.remove(dragged)
+    }
+
+    fun removeWidgetFromStack(pageId: String, stackId: String, widgetId: String) = updatePageLayout(pageId) { stacks ->
+        val index = stacks.indexOfFirst { it.id == stackId }
+        if (index >= 0) {
+            val remaining = stacks[index].widgetIds - widgetId
+            if (remaining.isEmpty()) stacks.removeAt(index) else stacks[index] = stacks[index].copy(widgetIds = remaining)
+        }
+    }
+
+    fun addWidgetToStack(pageId: String, stackId: String, widgetId: String) = updatePageLayout(pageId) { stacks ->
+        val index = stacks.indexOfFirst { it.id == stackId }
+        if (index >= 0 && widgetId !in stacks[index].widgetIds) stacks[index] = stacks[index].copy(widgetIds = stacks[index].widgetIds + widgetId)
+    }
+
+    /** Places a widget at [at] when it fits there (dragged from the catalog), else in the first free spot, like One UI's "Añadir". */
+    fun addWidgetAsNewStack(pageId: String, widgetId: String, w: Int, h: Int, at: Pair<Int, Int>? = null) = updatePageLayout(pageId) { stacks ->
+        val (col, row) = at?.takeIf { (c, r) -> stacks.fits(c, r, w, h) } ?: stacks.firstFreeSpot(w, h)
+        stacks.add(WidgetStackConfig("stack_" + System.currentTimeMillis(), listOf(widgetId), span = if (w >= 4) 2 else 1, col = col, row = row, w = w, h = h))
+    }
+
+    private fun savePages(value: HomePages) { viewModelScope.launch { settings.setHomePages(value) } }
+
+    /** Adds an empty widget page at the left or right end and returns its id. */
+    fun addPage(atStart: Boolean): String {
+        val page = HomePage("widgets_" + System.currentTimeMillis(), PageKind.WIDGETS)
+        val current = homePages.value
+        savePages(current.copy(pages = if (atStart) listOf(page) + current.pages else current.pages + page))
+        return page.id
+    }
+
+    /** Removes a page and its widgets. The app list can never be removed: apps only live there. */
+    fun deletePage(pageId: String) {
+        val current = homePages.value
+        val page = current.pages.firstOrNull { it.id == pageId } ?: return
+        if (page.kind == PageKind.APPS) return
+        val remaining = current.pages - page
+        val main = if (current.mainId == pageId) remaining.first { it.kind == PageKind.APPS }.id else current.mainId
+        savePages(HomePages(remaining, main))
+        if (page.kind == PageKind.WIDGETS) {
+            viewModelScope.launch { settings.setWidgetLayouts(widgetLayouts.value - pageId) }
+        }
+    }
+
+    fun setMainPage(pageId: String) = savePages(homePages.value.copy(mainId = pageId))
+
+    /** Puts the week summary back as the first page after it was deleted. */
+    fun restoreWeekPage() {
+        val current = homePages.value
+        if (current.pages.none { it.kind == PageKind.WEEK }) savePages(current.copy(pages = listOf(HomePage("week", PageKind.WEEK)) + current.pages))
+    }
+
+    private val _homePressed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    /** Emits when the home button or gesture is used while the launcher is already open. */
+    val homePressed: SharedFlow<Unit> = _homePressed
+    fun onHomePressed() { _homePressed.tryEmit(Unit) }
 }

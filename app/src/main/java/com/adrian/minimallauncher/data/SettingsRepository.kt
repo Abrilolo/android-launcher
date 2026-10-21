@@ -35,6 +35,53 @@ data class ModuleSettings(
 val DEFAULT_MEAL_TIMES: List<LocalTime> = listOf(LocalTime.of(13, 0), LocalTime.of(16, 30), LocalTime.of(18, 30), LocalTime.of(21, 30))
 val DEFAULT_WORLD_ZONES = listOf("America/Mexico_City", "America/New_York", "Europe/Madrid", "Europe/London", "Asia/Tokyo")
 
+/**
+ * A widget, or a stack of widgets swiped through, on a widget page. It sits at [col],[row] of the
+ * 4-column grid and covers [w]×[h] cells; -1/0 mean "not placed yet" (layouts saved before the grid).
+ * [span] (1 = half width, 2 = full width) is only read to place those old layouts.
+ */
+data class WidgetStackConfig(
+    val id: String,
+    val widgetIds: List<String>,
+    val span: Int = 1,
+    val col: Int = -1,
+    val row: Int = -1,
+    val w: Int = 0,
+    val h: Int = 0,
+)
+
+val DEFAULT_WIDGET_LAYOUT = listOf(
+    WidgetStackConfig("stack_alarms", listOf("alarms"), span = 1),
+    WidgetStackConfig("stack_exercise", listOf("exercise"), span = 1),
+    WidgetStackConfig("stack_finance", listOf("finance"), span = 1),
+    WidgetStackConfig("stack_diet", listOf("diet"), span = 1),
+    WidgetStackConfig("stack_world", listOf("world"), span = 1),
+    WidgetStackConfig("stack_vault", listOf("vault"), span = 1),
+    WidgetStackConfig("stack_notes", listOf("notes"), span = 2),
+)
+
+/** What a home page shows: the week summary, the app list, or a grid of widgets. */
+enum class PageKind {
+    WEEK, APPS, WIDGETS;
+
+    /** Apps has widgets above its list; Semana is a fixed summary. */
+    val hasWidgets: Boolean get() = this != WEEK
+}
+
+data class HomePage(val id: String, val kind: PageKind)
+
+/** The home pages from left to right, and [mainId], the one the home button goes back to. */
+data class HomePages(val pages: List<HomePage>, val mainId: String) {
+    val mainIndex: Int get() = pages.indexOfFirst { it.id == mainId }.coerceAtLeast(0)
+}
+
+const val FIRST_WIDGET_PAGE = "widgets_1"
+const val APPS_PAGE = "apps"
+val DEFAULT_HOME_PAGES = HomePages(
+    listOf(HomePage("week", PageKind.WEEK), HomePage(APPS_PAGE, PageKind.APPS), HomePage(FIRST_WIDGET_PAGE, PageKind.WIDGETS)),
+    mainId = APPS_PAGE,
+)
+
 class SettingsRepository(private val context: Context) {
     private val spacesKey = stringPreferencesKey("spaces")
     private val hiddenSectionsKey = stringSetPreferencesKey("hidden_sections")
@@ -49,6 +96,11 @@ class SettingsRepository(private val context: Context) {
     private val dailyBudgetKey = longPreferencesKey("daily_budget_cents")
     private val worldZonesKey = stringPreferencesKey("world_zones")
     private val lastBackupKey = longPreferencesKey("last_backup_at")
+    // Single-page layout from before home pages existed; read once as the first widget page.
+    private val widgetLayoutKey = stringPreferencesKey("widget_layout")
+    private val widgetLayoutsKey = stringPreferencesKey("widget_layouts")
+    private val homePagesKey = stringPreferencesKey("home_pages")
+    private val homeMainKey = stringPreferencesKey("home_main")
 
     // Records stored here before the Room database; kept untouched as a backup once copied.
     private val notesKey = stringSetPreferencesKey("notes")
@@ -70,6 +122,28 @@ class SettingsRepository(private val context: Context) {
     val hiddenSections = context.settings.data.map { it[hiddenSectionsKey].orEmpty() }
     val pauseSeconds = context.settings.data.map { it[pauseSecondsKey] ?: 30 }
     val sectionOrder = context.settings.data.map { prefs -> normalizeOrder(prefs[sectionOrderKey]?.split(',').orEmpty()) }
+    val homePages = context.settings.data.map { prefs ->
+        val pages = prefs[homePagesKey]?.split(',')?.mapNotNull { entry ->
+            val (id, kind) = entry.split(':').takeIf { it.size == 2 } ?: return@mapNotNull null
+            runCatching { HomePage(id, PageKind.valueOf(kind)) }.getOrNull()
+        }?.takeIf { pages -> pages.any { it.kind == PageKind.APPS } } ?: DEFAULT_HOME_PAGES.pages
+        val main = prefs[homeMainKey]?.takeIf { id -> pages.any { it.id == id } } ?: DEFAULT_HOME_PAGES.mainId
+        HomePages(pages, main)
+    }
+
+    /** Widget stacks of every page that has widgets, by page id. A page with no entry is empty, except Apps, which starts with the clock. */
+    val widgetLayouts = context.settings.data.map { prefs ->
+        val saved = prefs[widgetLayoutsKey]
+        val layouts = if (saved == null) {
+            mapOf(FIRST_WIDGET_PAGE to decodeWidgetLayout(prefs[widgetLayoutKey]))
+        } else {
+            saved.split('|').filter(String::isNotBlank).associate { line ->
+                val pageId = decode(line.substringBefore('='))
+                pageId to decodeStacks(line.substringAfter('=', ""))
+            }
+        }
+        if (APPS_PAGE in layouts) layouts else layouts + (APPS_PAGE to APPS_DEFAULT_LAYOUT)
+    }
     val moduleSettings = context.settings.data.map { prefs ->
         val default = ModuleSettings()
         ModuleSettings(
@@ -92,6 +166,48 @@ class SettingsRepository(private val context: Context) {
     private fun normalizeOrder(saved: List<String>) = saved.filter { it in DEFAULT_SECTION_ORDER }.distinct().let { it + (DEFAULT_SECTION_ORDER - it.toSet()) }
     private fun encode(value: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String) = String(Base64.getUrlDecoder().decode(value), Charsets.UTF_8)
+
+    private fun encodeWidgetLayout(layout: List<WidgetStackConfig>): String {
+        return layout.joinToString(";") { stack ->
+            "${encode(stack.id)}~${stack.span}~${stack.widgetIds.joinToString(",") { encode(it) }}~${stack.col}~${stack.row}~${stack.w}~${stack.h}"
+        }
+    }
+
+    private fun decodeWidgetLayout(encoded: String?): List<WidgetStackConfig> =
+        decodeStacks(encoded.orEmpty()).takeIf { it.isNotEmpty() } ?: DEFAULT_WIDGET_LAYOUT.placed()
+
+    private fun decodeStacks(encoded: String): List<WidgetStackConfig> {
+        if (encoded.isBlank()) return emptyList()
+        return runCatching {
+            encoded.split(';').mapNotNull { row ->
+                val p = row.split('~')
+                if (p.size < 3) null
+                else {
+                    val id = decode(p[0])
+                    val span = p[1].toIntOrNull() ?: 1
+                    val widgets = p[2].split(',').filter(String::isNotBlank).map { decode(it) }
+                    // Grid position and size; missing in layouts saved before the grid.
+                    val grid = p.drop(3).map { it.toIntOrNull() }
+                    if (widgets.isEmpty()) null
+                    else WidgetStackConfig(id, widgets, span, grid.getOrNull(0) ?: -1, grid.getOrNull(1) ?: -1, grid.getOrNull(2) ?: 0, grid.getOrNull(3) ?: 0)
+                }
+            }.placed()
+        }.getOrNull().orEmpty()
+    }
+
+    suspend fun setWidgetLayouts(layouts: Map<String, List<WidgetStackConfig>>) {
+        context.settings.edit { prefs ->
+            // One "<pageId>=<stacks>" entry per page; '|' never appears in Base64url ids or stack encoding.
+            prefs[widgetLayoutsKey] = layouts.entries.joinToString("|") { (pageId, stacks) -> "${encode(pageId)}=${encodeWidgetLayout(stacks)}" }
+        }
+    }
+
+    suspend fun setHomePages(value: HomePages) {
+        context.settings.edit { prefs ->
+            prefs[homePagesKey] = value.pages.joinToString(",") { "${it.id}:${it.kind.name}" }
+            prefs[homeMainKey] = value.mainId
+        }
+    }
 
     suspend fun setSpaces(spaces: List<Space>) {
         context.settings.edit { prefs -> prefs[spacesKey] = spaces.joinToString(";") { space ->

@@ -280,4 +280,7 @@ Notes:
 
 ## Next Action
 
+Lo pendiente y el proceso para trabajar mejoras están en `BACKLOG.md`: pulido vista por vista, validaciones en el teléfono e ideas futuras.
+
+
 Validar en el S24+ el desbloqueo de Bancos con huella y una sesión completa de Ejercicio. Hacer un respaldo de vez en cuando (Módulos → Respaldo) y guardarlo fuera del teléfono, por ejemplo en Drive.

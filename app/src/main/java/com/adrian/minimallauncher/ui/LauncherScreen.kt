@@ -19,6 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.adrian.minimallauncher.data.PageKind
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -50,12 +55,15 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val hiddenSections by viewModel.hiddenSections.collectAsState()
     val pauseSeconds by viewModel.pauseSeconds.collectAsState()
     val sectionOrder by viewModel.sectionOrder.collectAsState()
+    val homePages by viewModel.homePages.collectAsState()
+    val widgetLayouts by viewModel.widgetLayouts.collectAsState()
     val moduleSettings by viewModel.moduleSettings.collectAsState()
     val exerciseDay by exerciseViewModel.day.collectAsState()
     // Which module page is open; never saved, so Bancos is always locked after the app restarts.
     var openModule by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
-    var drawerOpen by remember { mutableStateOf(false) }
+    // A widget just placed that asks for its setup (Mundo, Notas).
+    var setupWidget by remember { mutableStateOf<String?>(null) }
     var restrictedApp by remember { mutableStateOf<com.adrian.minimallauncher.data.LauncherApp?>(null) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -107,12 +115,105 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             .safeDrawingPadding()
         val blockedApp = restrictedApp
 
-        if (showSettings) {
+        LaunchedEffect(Unit) {
+            viewModel.homePressed.collect {
+                showSettings = false
+                setupWidget = null
+                openModule = null
+                restrictedApp = null
+            }
+        }
+
+        HomePagesHost(
+            pages = homePages,
+            layouts = widgetLayouts,
+            homePressed = viewModel.homePressed,
+            data = homeData,
+            now = now,
+            onAddPage = viewModel::addPage,
+            onDeletePage = viewModel::deletePage,
+            onSetMain = viewModel::setMainPage,
+            onRestoreWeek = viewModel::restoreWeekPage,
+            onAddWidget = { pageId, widgetId, stackId, size, at ->
+                if (stackId != null) viewModel.addWidgetToStack(pageId, stackId, widgetId) else viewModel.addWidgetAsNewStack(pageId, widgetId, size.w, size.h, at)
+                if (widgetId in WIDGETS_WITH_SETUP) setupWidget = widgetId
+            },
+            onSettings = { openModule = "modules" },
+        ) { page, pageScope ->
+            when (page.kind) {
+                PageKind.APPS -> AppsPage(
+                    apps = apps,
+                    isAllowed = space::allows,
+                    onOpenApp = viewModel::openApp,
+                    onRestrictedApp = { restrictedApp = it },
+                    hiddenSections = hiddenSections,
+                    sectionOrder = sectionOrder,
+                    space = space,
+                    spaces = spaces,
+                    now = now,
+                    onSettings = { openModule = "modules" },
+                    modifier = screenModifier,
+                    widgets = {
+                        WidgetGridView(
+                            stacks = widgetLayouts[page.id].orEmpty(),
+                            editMode = pageScope.editMode,
+                            data = homeData,
+                            now = now,
+                            onOpenModule = openModuleById,
+                            onEnterEdit = pageScope.enterEdit,
+                            onMove = { stackId, col, row -> viewModel.moveStackTo(page.id, stackId, col, row) },
+                            onResize = { stackId, w, h -> viewModel.resizeStack(page.id, stackId, w, h) },
+                            onMerge = { draggedId, targetId -> viewModel.mergeStacks(page.id, draggedId, targetId) },
+                            onRemoveWidget = { stackId, widgetId -> viewModel.removeWidgetFromStack(page.id, stackId, widgetId) },
+                            onAddToStack = { stackId -> pageScope.openCatalog(stackId) },
+                        )
+                    },
+                    hasClock = widgetLayouts[page.id].orEmpty().any { "clock" in it.widgetIds },
+                    editMode = pageScope.editMode,
+                    onExitEdit = pageScope.exitEdit,
+                )
+                PageKind.WEEK -> WeekSummaryScreen(
+                    now = now,
+                    records = personalRecords,
+                    exercise = exerciseDay,
+                    settings = moduleSettings,
+                    onOpenModule = openModuleById,
+                    onNavigateHome = pageScope.goToMain,
+                    modifier = screenModifier,
+                )
+                PageKind.WIDGETS -> HomeGrid(
+                    spaceName = space.name,
+                    now = now,
+                    data = homeData,
+                    widgetLayout = widgetLayouts[page.id].orEmpty(),
+                    editMode = pageScope.editMode,
+                    onEnterEdit = pageScope.enterEdit,
+                    onOpenModule = openModuleById,
+                    onSettings = { openModule = "modules" },
+                    onMove = { stackId, col, row -> viewModel.moveStackTo(page.id, stackId, col, row) },
+                    onResize = { stackId, w, h -> viewModel.resizeStack(page.id, stackId, w, h) },
+                    onMerge = { draggedId, targetId -> viewModel.mergeStacks(page.id, draggedId, targetId) },
+                    onRemoveWidget = { stackId, widgetId -> viewModel.removeWidgetFromStack(page.id, stackId, widgetId) },
+                    onAddToStack = { stackId -> pageScope.openCatalog(stackId) },
+                    modifier = screenModifier,
+                )
+            }
+        }
+
+        // Swallows touches so nothing reaches the home pages under an open screen.
+        val overlay = Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { } }
+        val setup = setupWidget
+        if (setup != null) Box(overlay) {
+            WidgetSetupScreen(
+                setup, moduleSettings, notes, viewModel::updateModuleSettings,
+                { id -> viewModel.setNotePinned(id, true) }, { setupWidget = null }, screenModifier,
+            )
+        } else if (showSettings) Box(overlay) {
             SettingsScreen(
                 spaces, hiddenSections, sectionOrder, pauseSeconds, viewModel::updateSpaces, viewModel::setSectionVisible, viewModel::moveSection,
                 viewModel::setPauseSeconds, { showSettings = false }, screenModifier,
             )
-        } else if (openModule == "modules") {
+        } else if (openModule == "modules") Box(overlay) {
             val lastBackupAt by viewModel.lastBackupAt.collectAsState()
             val backupMessage by viewModel.backupMessage.collectAsState()
             ModulesScreen(
@@ -120,7 +221,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 BackupUi(lastBackupAt, backupMessage, viewModel::exportBackup, viewModel::importBackup),
                 { showSettings = true }, closeModule, screenModifier,
             )
-        } else if (openModule == "exercise") {
+        } else if (openModule == "exercise") Box(overlay) {
             val exerciseSettings by exerciseViewModel.settings.collectAsState()
             val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
             ExerciseScreen(
@@ -135,17 +236,17 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 onBack = closeModule,
                 modifier = screenModifier,
             )
-        } else if (openModule == "alarms") {
+        } else if (openModule == "alarms") Box(overlay) {
             AlarmsPage(now, personalRecords, personalActions, space.name, closeModule, screenModifier)
-        } else if (openModule == "world") {
+        } else if (openModule == "world") Box(overlay) {
             WorldClockPage(now, moduleSettings.worldZones, closeModule, screenModifier)
-        } else if (openModule == "diet") {
+        } else if (openModule == "diet") Box(overlay) {
             DietPage(now, personalRecords, personalActions, moduleSettings, viewModel::setHabit, space.name, closeModule, screenModifier)
-        } else if (openModule == "finance") {
+        } else if (openModule == "finance") Box(overlay) {
             FinanceScreen(finances, now, viewModel::addFinance, viewModel::deleteFinance, closeModule, screenModifier)
-        } else if (openModule == "notes") {
+        } else if (openModule == "notes") Box(overlay) {
             NotesScreen(notes, viewModel::addNote, viewModel::deleteNote, viewModel::setNotePinned, closeModule, screenModifier)
-        } else if (openModule == "vault") {
+        } else if (openModule == "vault") Box(overlay) {
             VaultScreen(
                 apps = vaultApps,
                 lockSeconds = moduleSettings.vaultLockSeconds,
@@ -154,48 +255,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 onLock = closeModule,
                 modifier = screenModifier,
             )
-        } else if (blockedApp == null && drawerOpen) {
-            AppDrawer(
-                apps = apps,
-                isAllowed = space::allows,
-                onOpenApp = viewModel::openApp,
-                onRestrictedApp = { restrictedApp = it },
-                hiddenSections = hiddenSections,
-                sectionOrder = sectionOrder,
-                spaceName = space.name,
-                now = now,
-                onClose = { drawerOpen = false },
-                modifier = screenModifier,
-            )
-        } else if (blockedApp == null) {
-            val pagerState = rememberPagerState(initialPage = 1, pageCount = { 2 })
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-            ) { page ->
-                if (page == 0) {
-                    WeekSummaryScreen(
-                        now = now,
-                        records = personalRecords,
-                        exercise = exerciseDay,
-                        settings = moduleSettings,
-                        onOpenModule = openModuleById,
-                        onNavigateHome = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
-                        modifier = screenModifier,
-                    )
-                } else {
-                    HomeGrid(
-                        spaceName = space.name,
-                        now = now,
-                        data = homeData,
-                        onOpenModule = openModuleById,
-                        onOpenDrawer = { drawerOpen = true },
-                        onSettings = { openModule = "modules" },
-                        modifier = screenModifier,
-                    )
-                }
-            }
-        } else {
+        } else if (blockedApp != null) Box(overlay) {
             FrictionScreen(
                 blockedApp, space.name, pauseSeconds, { restrictedApp = null },
                 { packageName -> viewModel.openApp(packageName); restrictedApp = null }, screenModifier,

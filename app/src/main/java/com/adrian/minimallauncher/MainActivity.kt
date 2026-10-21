@@ -1,4 +1,5 @@
 package com.adrian.minimallauncher
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
@@ -14,5 +15,11 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { LauncherScreen(viewModel, exerciseViewModel) }
+    }
+
+    // Home button or gesture while the launcher is already showing: go back to the main page.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.onHomePressed()
     }
 }

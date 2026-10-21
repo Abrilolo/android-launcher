@@ -34,7 +34,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextOverflow
 import com.adrian.minimallauncher.data.ModuleSettings
+import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.feature.LauncherRed
 import com.adrian.minimallauncher.feature.ModuleChip
 import com.adrian.minimallauncher.feature.ModuleHeader
@@ -265,6 +268,57 @@ private fun ModuleEditor(id: String, settings: ModuleSettings, onUpdate: ((Modul
             Text("Siempre pide huella o PIN para abrir.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         else -> Text("Sin ajustes. Fija una nota desde Notas para verla en el inicio.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Widgets that ask for their setup right after being placed on a page. */
+val WIDGETS_WITH_SETUP = setOf("world", "notes")
+
+/** Setup shown after placing a widget: Mundo asks which cities, Notas which note to show. */
+@Composable
+fun WidgetSetupScreen(
+    widgetId: String,
+    settings: ModuleSettings,
+    notes: List<NoteRecord>,
+    onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit,
+    onPinNote: (String) -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        ModuleHeader(if (widgetId == "world") "RELOJ MUNDIAL" else "NOTA FIJADA", onDone, Modifier.padding(top = 8.dp))
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (widgetId == "world") {
+                ModuleEditor("world", settings, onUpdate)
+            } else if (notes.isEmpty()) {
+                Text("Todavía no hay notas. Escribe una en Notas y fíjala para verla aquí.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                SmallLabel("ELIGE LA NOTA QUE SE VE EN EL WIDGET")
+                notes.sortedByDescending { it.createdAt }.forEach { note ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable(role = Role.Button) { onPinNote(note.id) }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(note.text, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            SmallLabel(note.category.label.uppercase())
+                        }
+                        if (note.pinned) SmallLabel("FIJADA", Modifier.padding(start = 12.dp), color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+                .height(52.dp)
+                .background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(26.dp))
+                .clickable(role = Role.Button, onClick = onDone),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("LISTO", style = MaterialTheme.typography.labelSmall, color = Color.Black)
+        }
     }
 }
 

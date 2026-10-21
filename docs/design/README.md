@@ -42,8 +42,8 @@ para trabajar sin depender de él.
 
 ## Diferencias acordadas con el concepto
 
-- **Apps:** el concepto abre el cajón deslizando. En la app es un ícono de 3×3 puntos abajo al centro, y el cajón se
-  cierra tocando la barrita de arriba o con Atrás.
+- **Apps:** ya no es un cajón: es la página principal del inicio, con el diseño de `Apps.dc.html`. Los widgets viven
+  en otras páginas. Mantener presionado abre el modo edición de páginas (estilo One UI).
 - **Cajón:** en vez de pestañas Apps/Todas usa los apartados desplegables (Apps, Entretenimiento, Juegos, Todas) con
   buscador e índice alfabético. Lo que el horario no permite no aparece; solo se encuentra buscando en Todas.
 - **Reloj mundial:** se ocultan las ciudades que tienen la misma hora que el teléfono. La primera es Ciudad de México.

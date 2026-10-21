@@ -1,6 +1,8 @@
 package com.adrian.minimallauncher.ui
 
 import android.app.AlarmManager
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,12 +20,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecords
+import com.adrian.minimallauncher.data.WidgetStackConfig
 import com.adrian.minimallauncher.feature.finance.formatPesos
 import com.adrian.minimallauncher.feature.CardFill
 import com.adrian.minimallauncher.feature.CardLine
@@ -47,6 +61,8 @@ import com.adrian.minimallauncher.feature.exercise.ExerciseDay
 import com.adrian.minimallauncher.feature.exercise.ExerciseWidget
 import com.adrian.minimallauncher.feature.vault.VaultWidget
 import com.adrian.minimallauncher.ui.components.DotMatrixText
+import com.adrian.minimallauncher.ui.components.WidgetStackTile
+import com.adrian.minimallauncher.ui.components.WIDGET_LABELS
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -80,6 +96,27 @@ fun waterKey(date: LocalDate, glass: Int) = "$date|water_$glass"
 /** Every home tile, in grid order; "notes" is the full-width one at the end. */
 val HOME_TILES = listOf("alarms", "exercise", "finance", "diet", "world", "vault", "notes")
 
+/** Everything the widget catalog offers: the module tiles plus the big clock, which has no module. */
+val WIDGET_IDS = listOf("clock") + HOME_TILES
+
+/**
+ * Big dot-matrix clock and date, drawn bare (no card) like a native clock widget.
+ * The dots shrink to fit when the widget is half width.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ClockTile(now: LocalDateTime, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+    Column(
+        modifier
+            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
+            .padding(vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+    ) {
+        DotMatrixText(now.format(hhmm), cell = 9.dp)
+        SmallLabel(now.format(DateTimeFormatter.ofPattern("EEEE d MMM", spanish)).uppercase(spanish).replace(".", ""))
+    }
+}
+
 /** Data the home tiles read; each tile opens the module page with the same id. */
 data class HomeData(
     val records: PersonalRecords,
@@ -89,22 +126,33 @@ data class HomeData(
 )
 
 /**
- * Home: clock and a grid of tiles that answer a question without opening anything.
- * Tapping a tile opens its page; the dot-grid icon at the bottom opens the app drawer.
+ * A widget page: clock and the page's widget stacks. Long press (anywhere, handled by the
+ * pages host) turns on edit mode, where each stack shows its own controls.
  */
 @Composable
 fun HomeGrid(
     spaceName: String,
     now: LocalDateTime,
     data: HomeData,
+    widgetLayout: List<WidgetStackConfig>,
+    editMode: Boolean,
+    onEnterEdit: () -> Unit,
     onOpenModule: (String) -> Unit,
-    onOpenDrawer: () -> Unit,
     onSettings: () -> Unit,
+    onMove: (stackId: String, col: Int, row: Int) -> Unit,
+    onResize: (stackId: String, w: Int, h: Int) -> Unit,
+    onMerge: (draggedId: String, targetId: String) -> Unit,
+    onRemoveWidget: (stackId: String, widgetId: String) -> Unit,
+    onAddToStack: (stackId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scroll = rememberScrollState()
+    val scroller = rememberEdgeScroller(scroll)
     Column(
         modifier
             .fillMaxSize()
+            .onGloballyPositioned { scroller.viewport = it }
+            .verticalScroll(scroll)
             .padding(horizontal = 20.dp)
             .padding(top = 8.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -114,64 +162,49 @@ fun HomeGrid(
             // U+FE0E keeps the gear as a monochrome text glyph instead of a color emoji.
             IconButton(onClick = onSettings) { Text("⚙︎", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        // Dot-matrix clock; DotMatrixText shrinks the dots if the time would not fit the width.
-        DotMatrixText(now.format(hhmm), Modifier.padding(vertical = 6.dp), cell = 9.dp)
-        SmallLabel(now.format(DateTimeFormatter.ofPattern("EEEE d MMM", spanish)).uppercase(spanish).replace(".", ""))
-        Spacer(Modifier.height(8.dp))
+        // The big clock is a widget now ("Reloj"), so each page decides whether it has one.
 
-        // Tiles switched off in Módulos leave no gap: the rest move up in pairs.
-        val hidden = data.settings.hiddenTiles
-        HOME_TILES.filter { it != "notes" && it !in hidden }.chunked(2).forEach { pair ->
-            TileRow {
-                pair.forEach { id -> SmallTile(id, now, data, Modifier.weight(1f)) { onOpenModule(id) } }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
-            }
+        if (widgetLayout.isEmpty()) {
+            SmallLabel(
+                if (editMode) "PÁGINA VACÍA · TOCA WIDGETS ABAJO PARA AGREGAR" else "PÁGINA VACÍA · MANTÉN PRESIONADO PARA AGREGAR WIDGETS",
+                Modifier.padding(vertical = 24.dp),
+            )
         }
-        if ("notes" !in hidden) NoteTile(data.records.notes) { onOpenModule("notes") }
-
-        Spacer(Modifier.weight(1f))
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            IconButton(onClick = onOpenDrawer) { AppsIcon(MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
+        WidgetGridView(
+            stacks = widgetLayout,
+            editMode = editMode,
+            data = data,
+            now = now,
+            onOpenModule = onOpenModule,
+            onEnterEdit = onEnterEdit,
+            onMove = onMove,
+            onResize = onResize,
+            onMerge = onMerge,
+            onRemoveWidget = onRemoveWidget,
+            onAddToStack = onAddToStack,
+            scroller = scroller,
+        )
     }
 }
 
-/** 3×3 dots: the "all apps" glyph, in the same gray as the settings gear. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AppsIcon(color: Color) {
-    Canvas(Modifier.size(20.dp).semantics { contentDescription = "Apps" }) {
-        val step = size.width / 3f
-        for (row in 0 until 3) for (col in 0 until 3) {
-            drawCircle(color, step * 0.22f, Offset((col + 0.5f) * step, (row + 0.5f) * step))
-        }
-    }
-}
-
-@Composable
-private fun SmallTile(id: String, now: LocalDateTime, data: HomeData, modifier: Modifier, onClick: () -> Unit) {
-    when (id) {
-        "alarms" -> AlarmTile(now, modifier, onClick)
-        "exercise" -> Tile(modifier, onClick) { ExerciseWidget(data.exercise, data.settings.exerciseStart) }
-        "finance" -> ExpensesTile(data.records, now.toLocalDate(), data.settings.dailyBudgetCents, modifier, onClick)
-        "diet" -> MealsTile(data.records.completedHabits, now, data.settings.mealTimes, modifier, onClick)
-        "world" -> WorldTile(data.settings.worldZones, modifier, onClick)
-        "vault" -> Tile(modifier, onClick) { VaultWidget(data.vaultAppCount) }
-    }
-}
-
-@Composable
-private fun TileRow(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().height(128.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), content = content)
-}
-
-@Composable
-private fun Tile(modifier: Modifier, onClick: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun Tile(
+    modifier: Modifier,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Column(
         modifier
             .fillMaxHeight()
             .background(CardFill, TileShape)
             .border(1.dp, CardLine, TileShape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .combinedClickable(
+                role = Role.Button,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         content = content,
@@ -188,9 +221,9 @@ private fun TileHeader(label: String, trailing: String? = null, dot: Boolean = f
 }
 
 @Composable
-private fun AlarmTile(now: LocalDateTime, modifier: Modifier, onClick: () -> Unit) {
+fun AlarmTile(now: LocalDateTime, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     val next = nextSystemAlarm()
-    Tile(modifier, onClick) {
+    Tile(modifier, onClick, onLongClick) {
         TileHeader("ALARMA", dot = next != null)
         DotMatrixText(next?.format(hhmm) ?: "--:--", cell = 4.dp)
         SmallLabel(next?.let { untilText(now, it) } ?: "SIN ALARMA", maxLines = 1)
@@ -198,15 +231,14 @@ private fun AlarmTile(now: LocalDateTime, modifier: Modifier, onClick: () -> Uni
 }
 
 @Composable
-private fun ExpensesTile(records: PersonalRecords, today: LocalDate, budgetCents: Long, modifier: Modifier, onClick: () -> Unit) {
+fun ExpensesTile(records: PersonalRecords, today: LocalDate, budgetCents: Long, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     val byDay = (6 downTo 0).map { back ->
         val date = today.minusDays(back.toLong())
         records.finances.filter { it.createdAt.toLocalDate() == date }.sumOf { it.amountCents }
     }
     val max = byDay.maxOrNull()?.takeIf { it > 0 } ?: 1L
-    Tile(modifier, onClick) {
+    Tile(modifier, onClick, onLongClick) {
         TileHeader("GASTO HOY", trailing = if (budgetCents > 0) "DE ${formatPesos(budgetCents)}" else null)
-        // Red only once the day's budget is passed.
         val over = budgetCents > 0 && byDay.last() > budgetCents
         DotMatrixText("$${byDay.last() / 100}", cell = 4.dp, color = if (over) LauncherRed else MaterialTheme.colorScheme.onSurface)
         Row(Modifier.height(20.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
@@ -219,11 +251,11 @@ private fun ExpensesTile(records: PersonalRecords, today: LocalDate, budgetCents
 }
 
 @Composable
-private fun MealsTile(habits: Set<String>, now: LocalDateTime, mealTimes: List<LocalTime>, modifier: Modifier, onClick: () -> Unit) {
+fun MealsTile(habits: Set<String>, now: LocalDateTime, mealTimes: List<LocalTime>, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     val date = now.toLocalDate()
     val done = MEAL_NAMES.indices.map { mealKey(date, it) in habits }
     val next = done.indexOf(false)
-    Tile(modifier, onClick) {
+    Tile(modifier, onClick, onLongClick) {
         TileHeader("COMIDAS", trailing = mealTimes.getOrNull(next)?.format(hhmm))
         DotMatrixText("${done.count { it }}/4", cell = 4.dp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -240,8 +272,8 @@ private fun MealsTile(habits: Set<String>, now: LocalDateTime, mealTimes: List<L
 }
 
 @Composable
-private fun WorldTile(zones: List<String>, modifier: Modifier, onClick: () -> Unit) {
-    Tile(modifier, onClick) {
+fun WorldTile(zones: List<String>, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+    Tile(modifier, onClick, onLongClick) {
         TileHeader("MUNDO")
         val cities = remoteCities(zones).take(2)
         if (cities.isEmpty()) SmallLabel("ELIGE CIUDADES EN MÓDULOS")
@@ -255,20 +287,18 @@ private fun WorldTile(zones: List<String>, modifier: Modifier, onClick: () -> Un
 }
 
 @Composable
-private fun NoteTile(notes: List<NoteRecord>, onClick: () -> Unit) {
+fun NoteTile(notes: List<NoteRecord>, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     Column(
         Modifier
-            .fillMaxWidth()
-            .height(84.dp)
+            .fillMaxSize()
             .background(CardFill, TileShape)
             .border(1.dp, CardLine, TileShape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         TileHeader("NOTA FIJADA", trailing = if (notes.isEmpty()) null else "${notes.size} NOTAS")
         Text(
-            // The pinned note wins; with none pinned, the latest one.
             (notes.firstOrNull { it.pinned } ?: notes.firstOrNull())?.text ?: "Sin notas",
             style = MaterialTheme.typography.bodyLarge,
             color = if (notes.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
@@ -280,7 +310,6 @@ private fun NoteTile(notes: List<NoteRecord>, onClick: () -> Unit) {
 
 data class WorldCity(val code: String, val name: String, val zone: ZoneId)
 
-/** Cities that can be picked for the world clock in Módulos. */
 val WORLD_CITIES = listOf(
     WorldCity("CDMX", "Ciudad de México", ZoneId.of("America/Mexico_City")),
     WorldCity("NYC", "Nueva York", ZoneId.of("America/New_York")),
@@ -294,14 +323,12 @@ val WORLD_CITIES = listOf(
     WorldCity("SEL", "Seúl", ZoneId.of("Asia/Seoul")),
 )
 
-/** The chosen cities, in their order, minus those on the phone's own time: that one is already the big clock. */
 fun remoteCities(zones: List<String>): List<WorldCity> {
     val here = ZonedDateTime.now().offset
     return zones.mapNotNull { id -> WORLD_CITIES.firstOrNull { it.zone.id == id } }
         .filter { ZonedDateTime.now(it.zone).offset != here }
 }
 
-/** Next alarm set in the phone's clock app, if any. */
 @Composable
 fun nextSystemAlarm(): LocalDateTime? {
     val alarmManager = LocalContext.current.getSystemService(AlarmManager::class.java)
