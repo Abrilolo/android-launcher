@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.data.ModuleSettings
+import com.adrian.minimallauncher.data.MealKind
+import com.adrian.minimallauncher.data.MealSlot
 import com.adrian.minimallauncher.data.PersonalRecords
 import com.adrian.minimallauncher.data.WidgetStackConfig
 import com.adrian.minimallauncher.feature.finance.formatPesos
@@ -61,6 +63,10 @@ import com.adrian.minimallauncher.feature.exercise.ExerciseDay
 import com.adrian.minimallauncher.feature.exercise.ExerciseWidget
 import com.adrian.minimallauncher.feature.vault.VaultWidget
 import com.adrian.minimallauncher.ui.components.DotMatrixText
+import com.adrian.minimallauncher.ui.components.DotActivation
+import com.adrian.minimallauncher.ui.components.DotIcons
+import com.adrian.minimallauncher.ui.components.DotIcon
+import androidx.compose.foundation.layout.BoxWithConstraints
 import com.adrian.minimallauncher.ui.components.WidgetStackTile
 import com.adrian.minimallauncher.ui.components.WIDGET_LABELS
 import java.time.Duration
@@ -77,9 +83,8 @@ private val spanish = Locale.forLanguageTag("es")
 private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
 private val TileShape = RoundedCornerShape(26.dp)
 
-/** The four meal slots of the Tokyo guide; times come from the Dieta settings. Checked off as day habits ("<date>|meal_<i>"). */
-val MEAL_NAMES = listOf("Comida completa", "Proteína + energía", "Colación preentreno", "Cena post entreno")
-fun mealKey(date: LocalDate, index: Int) = "$date|meal_$index"
+/** A meal (see ModuleSettings.meals) checked off as a day habit, "<date>|meal_<id>". */
+fun mealKey(date: LocalDate, id: String) = "$date|meal_$id"
 
 /** Daily habits from the guide, checked off as "<date>|habit_<id>" (keys kept from the old insights page). */
 val DIET_HABITS = listOf(
@@ -96,8 +101,8 @@ fun waterKey(date: LocalDate, glass: Int) = "$date|water_$glass"
 /** Every home tile, in grid order; "notes" is the full-width one at the end. */
 val HOME_TILES = listOf("alarms", "exercise", "finance", "diet", "world", "vault", "notes")
 
-/** Everything the widget catalog offers: the module tiles plus the big clock, which has no module. */
-val WIDGET_IDS = listOf("clock") + HOME_TILES
+/** Everything the widget catalog offers: the module tiles plus the big clock and the water glasses (part of Dieta). */
+val WIDGET_IDS = listOf("clock", "water") + HOME_TILES
 
 /**
  * Big dot-matrix clock and date, drawn bare (no card) like a native clock widget.
@@ -250,22 +255,97 @@ fun ExpensesTile(records: PersonalRecords, today: LocalDate, budgetCents: Long, 
     }
 }
 
+/**
+ * Dieta on the home grid, in the same dot language as its page. Half width: the next meal big, its time in red and the
+ * meal count. Full width: every meal with its time, main meals bigger than snacks. Water has its own widget.
+ */
 @Composable
-fun MealsTile(habits: Set<String>, now: LocalDateTime, mealTimes: List<LocalTime>, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+fun MealsTile(habits: Set<String>, now: LocalDateTime, meals: List<MealSlot>, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     val date = now.toLocalDate()
-    val done = MEAL_NAMES.indices.map { mealKey(date, it) in habits }
+    val done = meals.map { mealKey(date, it.id) in habits }
     val next = done.indexOf(false)
+    val count = done.count { it }
+    val red = mapOf('/' to LauncherRed)
     Tile(modifier, onClick, onLongClick) {
-        TileHeader("COMIDAS", trailing = mealTimes.getOrNull(next)?.format(hhmm))
-        DotMatrixText("${done.count { it }}/4", cell = 4.dp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            done.forEachIndexed { i, isDone ->
-                val ring = when {
-                    isDone -> MaterialTheme.colorScheme.onSurface
-                    i == next -> LauncherRed
-                    else -> Color(0xFF555555)
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            if (maxWidth > 220.dp) {
+                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                        SmallLabel("COMIDAS", color = LauncherRed)
+                        DotMatrixText("$count/${meals.size}", cell = 3.dp, accents = red, reveal = count)
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                        meals.forEachIndexed { i, meal ->
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                DotIcon(DotIcons.meal(meal.icon), done[i], null, size = if (meal.kind == MealKind.MAIN) 38.dp else 28.dp, activation = mealActivation(meal.icon))
+                                SmallLabel(
+                                    meal.time.format(hhmm),
+                                    color = when {
+                                        done[i] -> MaterialTheme.colorScheme.onSurface
+                                        i == next -> LauncherRed
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
-                Box(Modifier.size(12.dp).background(if (isDone) ring else Color.Transparent, CircleShape).border(1.5.dp, ring, CircleShape))
+            } else {
+                val nextMeal = meals.getOrNull(next)
+                Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                        SmallLabel(nextMeal?.time?.format(hhmm) ?: "LISTO", color = LauncherRed)
+                        DotMatrixText("$count/${meals.size}", cell = 3.dp, accents = red, reveal = count)
+                    }
+                    DotIcon(
+                        DotIcons.meal(nextMeal?.icon ?: "comida"), nextMeal == null, null, size = 64.dp,
+                        activation = mealActivation(nextMeal?.icon ?: "comida"),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** How a container is called on screen and which icon it uses. */
+fun waterIcon(container: String) = if (container == "termo") DotIcons.termo else DotIcons.vaso
+fun waterUnit(container: String) = if (container == "termo") "TERMO" else "VASO"
+
+/** "750 ML" or "1.5 L". */
+fun formatMl(ml: Int) = if (ml >= 1000) "${"%.1f".format(Locale.US, ml / 1000f).removeSuffix(".0")} L" else "$ml ML"
+
+/**
+ * The day's water as its own widget: one glass (or thermos) per goal step, the count in dots and, underneath, how much
+ * each one holds and how much is drunk so far. Tapping opens Dieta, where the glasses are marked.
+ */
+@Composable
+fun WaterTile(habits: Set<String>, now: LocalDateTime, settings: ModuleSettings, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+    val date = now.toLocalDate()
+    val goal = settings.waterGoal
+    val water = (1..goal).count { waterKey(date, it) in habits }
+    Tile(modifier, onClick, onLongClick) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // Two rows when the tile is half width, so the glasses stay big enough to read.
+            val rows = if (maxWidth > 220.dp || goal <= 4) 1 else 2
+            val perRow = (goal + rows - 1) / rows
+            val gap = 4.dp
+            val glass = minOf(30.dp, (maxWidth - gap * (perRow - 1)) / perRow)
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                    SmallLabel("AGUA", color = LauncherRed)
+                    DotMatrixText("$water/$goal", cell = 3.dp, accents = mapOf('/' to LauncherRed), reveal = water)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                    (1..goal).chunked(perRow).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                            row.forEach { g -> DotIcon(waterIcon(settings.waterContainer), g <= water, null, size = glass, activation = DotActivation.Water) }
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    SmallLabel(formatMl(settings.waterGlassMl))
+                    SmallLabel(formatMl(water * settings.waterGlassMl), color = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
     }

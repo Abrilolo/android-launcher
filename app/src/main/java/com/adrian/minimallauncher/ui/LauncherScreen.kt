@@ -12,6 +12,9 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.adrian.minimallauncher.ui.components.LocalReactions
+import com.adrian.minimallauncher.ui.components.rememberReactions
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,6 +112,8 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val closeModule = { openModule = null }
 
     LauncherTheme {
+    // Vibration and other feedback for actions, on unless turned off in Módulos.
+    CompositionLocalProvider(LocalReactions provides rememberReactions(moduleSettings.haptics)) {
         val screenModifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -213,13 +218,16 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 spaces, hiddenSections, sectionOrder, pauseSeconds, viewModel::updateSpaces, viewModel::setSectionVisible, viewModel::moveSection,
                 viewModel::setPauseSeconds, { showSettings = false }, screenModifier,
             )
-        } else if (openModule == "modules") Box(overlay) {
+        } else if (openModule == "modules" || openModule?.startsWith("settings:") == true) Box(overlay) {
             val lastBackupAt by viewModel.lastBackupAt.collectAsState()
             val backupMessage by viewModel.backupMessage.collectAsState()
+            // "settings:<module>" comes from a module's gear: it opens straight to that module's settings and back returns to it.
+            val fromModule = openModule?.removePrefix("settings:")?.takeIf { it != openModule }
             ModulesScreen(
                 moduleSettings, viewModel::updateModuleSettings,
                 BackupUi(lastBackupAt, backupMessage, viewModel::exportBackup, viewModel::importBackup),
-                { showSettings = true }, closeModule, screenModifier,
+                { showSettings = true }, if (fromModule != null) ({ openModule = fromModule }) else closeModule, screenModifier,
+                initialEditing = fromModule,
             )
         } else if (openModule == "exercise") Box(overlay) {
             val exerciseSettings by exerciseViewModel.settings.collectAsState()
@@ -241,9 +249,9 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
         } else if (openModule == "world") Box(overlay) {
             WorldClockPage(now, moduleSettings.worldZones, closeModule, screenModifier)
         } else if (openModule == "diet") Box(overlay) {
-            DietPage(now, personalRecords, personalActions, moduleSettings, viewModel::setHabit, space.name, closeModule, screenModifier)
+            DietPage(now, personalRecords, personalActions, moduleSettings, viewModel::setHabit, { openModule = "settings:diet" }, closeModule, screenModifier)
         } else if (openModule == "finance") Box(overlay) {
-            FinanceScreen(finances, now, viewModel::addFinance, viewModel::deleteFinance, closeModule, screenModifier)
+            FinanceScreen(finances, now, viewModel::addFinance, viewModel::deleteFinance, { openModule = "settings:finance" }, closeModule, screenModifier)
         } else if (openModule == "notes") Box(overlay) {
             NotesScreen(notes, viewModel::addNote, viewModel::deleteNote, viewModel::setNotePinned, closeModule, screenModifier)
         } else if (openModule == "vault") Box(overlay) {
@@ -261,5 +269,6 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 { packageName -> viewModel.openApp(packageName); restrictedApp = null }, screenModifier,
             )
         }
+    }
     }
 }

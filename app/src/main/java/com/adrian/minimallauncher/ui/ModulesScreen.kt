@@ -2,11 +2,13 @@ package com.adrian.minimallauncher.ui
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.AlarmClock
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +38,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextOverflow
+import com.adrian.minimallauncher.data.MealKind
+import com.adrian.minimallauncher.data.MealSlot
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.feature.LauncherRed
@@ -45,6 +49,8 @@ import com.adrian.minimallauncher.feature.ModuleSwitch
 import com.adrian.minimallauncher.feature.ModuleTextField
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.finance.formatPesos
+import com.adrian.minimallauncher.ui.components.DotIcon
+import com.adrian.minimallauncher.ui.components.DotIcons
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -74,15 +80,19 @@ fun ModulesScreen(
     onAppsAndSpaces: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opened from a module's gear: show its settings right away, and back leaves instead of going to the list. */
+    initialEditing: String? = null,
 ) {
-    var editing by rememberSaveable { mutableStateOf<String?>(null) }
+    var editing by rememberSaveable { mutableStateOf(initialEditing) }
     val current = editing
+    val closeEditor = { if (initialEditing != null) onBack() else editing = null }
+    BackHandler(onBack = if (current != null) closeEditor else onBack)
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         if (current == null) {
             ModuleHeader("INICIO", onBack, Modifier.padding(top = 8.dp))
             ModuleList(settings, onUpdate, backup.lastAt, onEdit = { editing = it }, onAppsAndSpaces)
         } else {
-            ModuleHeader("MÓDULOS", { editing = null }, Modifier.padding(top = 8.dp))
+            ModuleHeader("MÓDULOS", closeEditor, Modifier.padding(top = 8.dp))
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -130,6 +140,14 @@ private fun ColumnScope.ModuleList(
             }
             Divider()
         }
+        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("Vibración", style = MaterialTheme.typography.bodyLarge)
+                SmallLabel("AL MARCAR, GUARDAR O TERMINAR")
+            }
+            ModuleSwitch(settings.haptics, { on -> onUpdate { it.copy(haptics = on) } }, "Vibración")
+        }
+        Divider()
         Row(
             Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onAppsAndSpaces).padding(vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -186,7 +204,11 @@ private fun summary(id: String, s: ModuleSettings): String = when (id) {
     "alarms" -> "RELOJ DEL TELÉFONO"
     "exercise" -> "GUÍA TOKIO · ${s.exerciseStart.format(hhmm)}"
     "finance" -> if (s.dailyBudgetCents > 0) "PRESUPUESTO ${formatPesos(s.dailyBudgetCents)} AL DÍA" else "SIN PRESUPUESTO"
-    "diet" -> "4 TIEMPOS · DESDE ${s.mealTimes.first().format(hhmm)} · ${s.waterGoal} VASOS"
+    "diet" -> listOfNotNull(
+        "${s.meals.size} COMIDAS",
+        s.mealTimes.minOrNull()?.let { "DESDE ${it.format(hhmm)}" },
+        "${s.waterGoal} × ${formatMl(s.waterGlassMl)}",
+    ).joinToString(" · ")
     "world" -> "${s.worldZones.size} CIUDADES"
     "vault" -> "HUELLA O PIN · ${s.vaultLockSeconds} S"
     else -> "FIJA UNA NOTA PARA VERLA AQUÍ"
@@ -225,26 +247,8 @@ private fun ModuleEditor(id: String, settings: ModuleSettings, onUpdate: ((Modul
             SmallLabel("VACÍO = SIN PRESUPUESTO. AL PASARLO, EL GASTO DE HOY SE PONE EN ROJO.")
         }
         "diet" -> {
-            var drafts by remember(settings.mealTimes) { mutableStateOf(settings.mealTimes.map { it.format(hhmm) }) }
-            SmallLabel("HORARIOS")
-            MEAL_NAMES.forEachIndexed { index, name ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    ModuleTextField(
-                        drafts[index], { value -> drafts = drafts.toMutableList().also { it[index] = value.take(5) } }, "HH:mm",
-                        Modifier.weight(0.6f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                }
-            }
-            val parsed = drafts.map { runCatching { LocalTime.parse(it) }.getOrNull() }
-            if (parsed.all { it != null }) {
-                ActionLabel("GUARDAR HORARIOS") { onUpdate { it.copy(mealTimes = parsed.filterNotNull()) } }
-            } else {
-                SmallLabel("USA EL FORMATO HH:mm", color = LauncherRed)
-            }
-            SmallLabel("META DE AGUA · VASOS AL DÍA", Modifier.padding(top = 8.dp))
-            ChipRow(listOf(6, 8, 10, 12), settings.waterGoal, { "$it" }) { goal -> onUpdate { it.copy(waterGoal = goal) } }
+            MealsEditor(settings.meals) { meals -> onUpdate { it.copy(meals = meals) } }
+            WaterEditor(settings, onUpdate)
         }
         "world" -> {
             SmallLabel("LAS DOS PRIMERAS VAN EN LA TARJETA DEL INICIO")
@@ -322,6 +326,79 @@ fun WidgetSetupScreen(
     }
 }
 
+/** A meal being edited; the time stays text until it is saved. */
+private data class MealDraft(val id: String, val name: String, val time: String, val kind: MealKind, val icon: String)
+
+/**
+ * Every meal of the day: name, time, whether it is a main meal (drawn bigger) or a snack, and its icon (tap it to
+ * change). Meals can be added and removed; saving sorts them by time.
+ */
+@Composable
+private fun MealsEditor(meals: List<MealSlot>, onSave: (List<MealSlot>) -> Unit) {
+    var drafts by remember(meals) { mutableStateOf(meals.map { MealDraft(it.id, it.name, it.time.format(hhmm), it.kind, it.icon) }) }
+    val icons = DotIcons.meals.keys.toList()
+    fun change(index: Int, update: (MealDraft) -> MealDraft) {
+        drafts = drafts.toMutableList().also { it[index] = update(it[index]) }
+    }
+    SmallLabel("COMIDAS · TOCA EL ICONO PARA CAMBIARLO")
+    drafts.forEachIndexed { index, draft ->
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                DotIcon(
+                    DotIcons.meal(draft.icon), done = true, contentDescription = "Icono de ${draft.name}",
+                    modifier = Modifier.clickable(role = Role.Button) {
+                        change(index) { it.copy(icon = icons[(icons.indexOf(it.icon) + 1) % icons.size]) }
+                    },
+                    size = if (draft.kind == MealKind.MAIN) 40.dp else 30.dp,
+                )
+                ModuleTextField(draft.name, { value -> change(index) { it.copy(name = value.take(30)) } }, "Nombre", Modifier.weight(1f))
+                ModuleTextField(
+                    draft.time, { value -> change(index) { it.copy(time = value.take(5)) } }, "HH:mm",
+                    Modifier.weight(0.45f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+                Text(
+                    "×",
+                    Modifier
+                        .clickable(role = Role.Button) { drafts = drafts.filterIndexed { i, _ -> i != index } }
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            ChipRow(listOf(MealKind.MAIN, MealKind.SNACK), draft.kind, { if (it == MealKind.MAIN) "FUERTE" else "SNACK" }) { kind ->
+                change(index) { it.copy(kind = kind) }
+            }
+        }
+        Divider()
+    }
+    ActionLabel("+ AGREGAR COMIDA") {
+        drafts = drafts + MealDraft("m${System.currentTimeMillis()}", "", "", MealKind.SNACK, "snack")
+    }
+    val parsed = drafts.map { d -> runCatching { LocalTime.parse(d.time) }.getOrNull()?.let { MealSlot(d.id, d.name.trim(), it, d.kind, d.icon) } }
+    when {
+        parsed.any { it == null } -> SmallLabel("USA EL FORMATO HH:mm", color = LauncherRed)
+        parsed.any { it!!.name.isBlank() } -> SmallLabel("CADA COMIDA NECESITA NOMBRE", color = LauncherRed)
+        else -> ActionLabel("GUARDAR COMIDAS") { onSave(parsed.filterNotNull().sortedBy { it.time }) }
+    }
+}
+
+/** Water: what it is drunk from, how much that holds and how many a day; the day's total is shown below. */
+@Composable
+private fun WaterEditor(settings: ModuleSettings, onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit) {
+    SmallLabel("AGUA · RECIPIENTE", Modifier.padding(top = 8.dp))
+    ChipRow(listOf("vaso", "termo"), settings.waterContainer, ::waterUnit) { container -> onUpdate { it.copy(waterContainer = container) } }
+    SmallLabel("LE CABEN · ML")
+    ChipRow(listOf(250, 355, 500, 750, 1000), settings.waterGlassMl, { "$it" }) { ml -> onUpdate { it.copy(waterGlassMl = ml) } }
+    SmallLabel("CUÁNTOS AL DÍA")
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        ModuleChip("−", false) { onUpdate { it.copy(waterGoal = (it.waterGoal - 1).coerceAtLeast(1)) } }
+        Text("${settings.waterGoal}", style = MaterialTheme.typography.titleLarge)
+        ModuleChip("+", false) { onUpdate { it.copy(waterGoal = (it.waterGoal + 1).coerceAtMost(20)) } }
+        SmallLabel("= ${formatMl(settings.waterGoal * settings.waterGlassMl)} AL DÍA", color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
 @Composable
 private fun TimeField(value: LocalTime, onSave: (LocalTime) -> Unit) {
     var text by remember(value) { mutableStateOf(value.format(hhmm)) }
@@ -333,7 +410,7 @@ private fun TimeField(value: LocalTime, onSave: (LocalTime) -> Unit) {
 
 @Composable
 private fun <T> ChipRow(options: List<T>, selected: T, label: (T) -> String, onPick: (T) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { option -> ModuleChip(label(option), option == selected) { onPick(option) } }
     }
 }

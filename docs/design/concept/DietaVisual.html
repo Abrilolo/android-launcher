@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dieta visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { width: 390px; min-height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .red { color: var(--red); } .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .meals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  button.icon { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: inherit; }
+  .time { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+  .time.next { color: var(--red); } .time.done { color: #fff; }
+  .status { text-align: center; min-height: 40px; display: flex; flex-direction: column; gap: 4px; }
+  .status .name { font-size: 15px; }
+  .glasses { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: 12px; }
+  .habits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .cap { font-size: 11px; line-height: 1.25; color: var(--muted); text-align: center; min-height: 42px; }
+  .done .cap { color: #fff; }
+  .plus { width: 48px; height: 48px; border-radius: 24px; background: #fff; color: #000; display: grid; place-items: center; font-size: 26px; border: 0; }
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; }
+  .w22 { width: 170px; height: 154px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+  .w42 { height: 154px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+</style>
+</head>
+<body>
+<h2>DIETA · BOCETO (TOCA COMIDAS, VASOS Y HÁBITOS)</h2>
+
+<div class="phone">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="label red">COMIDAS</div>
+    <div id="count"></div>
+  </div>
+  <div class="meals" id="meals"></div>
+  <div class="status" id="status"></div>
+
+  <div class="card">
+    <div class="row"><div class="label red">AGUA</div><div id="waterCount"></div></div>
+    <div class="glasses" id="glasses"></div>
+  </div>
+
+  <div>
+    <div class="label red" style="margin-bottom:12px">HÁBITOS</div>
+    <div class="habits" id="habits"></div>
+  </div>
+
+  <div class="row" style="margin-top:auto">
+    <div class="label muted">2 ANOTADAS</div>
+    <button class="plus" aria-label="Anotar qué comiste">+</button>
+  </div>
+</div>
+
+<div class="side">
+  <div class="label" style="color:#777">WIDGET 2×2</div>
+  <div class="card w22" id="w22"></div>
+  <div class="label" style="color:#777">WIDGET 4×2</div>
+  <div class="card w42" id="w42"></div>
+
+  <div class="card note">
+    <b>Dos estados, una animación</b><br><br>
+    · <b>Sin marcar:</b> el ícono completo en gris visible.<br>
+    · <b>Al tocarlo:</b> una sola animación corta (los puntos se prenden de abajo hacia arriba; lo rojo sale al final, como el vapor de la cena) y se queda quieto.<br>
+    · <b>Marcado:</b> blanco con sus detalles en rojo.<br>
+    · <b>Agua:</b> el vaso se llena fila por fila al tocarlo.<br>
+    · <b>Hábitos:</b> se prenden igual.<br>
+    · <b>Conteo:</b> se redibuja una vez cuando cambia; nada parpadea.<br>
+    · La siguiente comida se distingue por su hora en rojo.<br><br>
+    Cena: tu diseño. Comida y snack: tus diseños. Colación: manzana con hoja roja (puedes mandarme la tuya).
+  </div>
+</div>
+
+<script>
+// '#' blanco · 'r' rojo · 'o' relleno blanco (solo cuando está marcado) · '.' vacío. Sin marcar, todo es gris.
+const ICONS = {
+  comida: [
+    "...............",
+    "..#.#.#..##....",
+    "..#.#.#.###....",
+    "..#.#.#.###....",
+    "..#.#.#.###....",
+    "...###..###....",
+    "....#....##....",
+    "....#.....#....",
+    "....#.....#....",
+    "....#.....#....",
+    "....#.....#....",
+    "....#.....#....",
+    "....#.....#....",
+    "....#.....#....",
+    "....#.....#...."],
+  snack: [
+    "...............",
+    "...............",
+    "...............",
+    "...#####.rrr...",
+    "..##....#..rr..",
+    "..#....r#...rr.",
+    ".##...r.#....r.",
+    ".##...r.#....r.",
+    ".##...rr.....r.",
+    "..#....#r...rr.",
+    "..#..##.rr..r..",
+    "...###...rrr...",
+    ".####......rrr.",
+    ".....######....",
+    "......####....."],
+  colacion: [
+    ".......#.......",
+    "......#.rrrr...",
+    "...####.####...",
+    "..#....#....#..",
+    ".#...........#.",
+    ".#...........#.",
+    ".#...........#.",
+    ".#...........#.",
+    ".#...........#.",
+    ".#...........#.",
+    "..#.........#..",
+    "...#.......#...",
+    "....##...##....",
+    "......###......",
+    "..............."],
+  // 's' vapor rojo y 'w' vapor blanco: al marcarla suben en ondas (prendido / negro) y luego se quedan.
+  cena: [
+    "...s...........",
+    "...s...........",
+    "s..w.......s..s",
+    "s.....rrr..s..w",
+    ".w....rrr..w.s.",
+    ".s..#######..w.",
+    "...#########.s.",
+    "..##.......##..",
+    ".##.........##.",
+    ".#...........#.",
+    ".#...........#.",
+    "##...........##",
+    "###############",
+    ".rrrrrrrrrrrrr.",
+    "..............."],
+  vaso: [
+    "##...........##",
+    ".#ooooooooooo#.",
+    ".#ooooooooooo#.",
+    "..#ooooooooo#..",
+    "..#ooooooooo#..",
+    "..#ooooooooo#..",
+    "..#ooooooooo#..",
+    "...#ooooooo#...",
+    "...#ooooooo#...",
+    "...#ooooooo#...",
+    "...#ooooooo#...",
+    "....#ooooo#....",
+    "....#ooooo#....",
+    "....#######....",
+    "..............."],
+  pasos:     [".##......","#oo#.....","#oo#.....",".##......","......##.",".....#oo#",".....#oo#","......##.","........."],
+  sinAzucar: ["..#####..",".#.....#.","#.....#.#","#....#..#","#...#...#","#..#....#","#.#.....#",".#.....#.","..#####.."],
+  huevo:     ["...###...","..#ooo#..",".#ooooo#.",".#ooooo#.","#ooooooo#","#ooooooo#","#ooooooo#",".#ooooo#.","..#####.."],
+  cama:      [".........","#........","#.##.....","#.##oooo.","#########","#.......#","#.......#",".........","........."],
+};
+
+const DIGITS = {
+  '0':["#####","#...#","#...#","#...#","#...#","#...#","#####"], '1':["..#..",".##..","..#..","..#..","..#..","..#..",".###."],
+  '2':["#####","....#","....#","#####","#....","#....","#####"], '3':["#####","....#","....#",".####","....#","....#","#####"],
+  '4':["#...#","#...#","#...#","#####","....#","....#","....#"], '5':["#####","#....","#....","#####","....#","....#","#####"],
+  '6':["#####","#....","#....","#####","#...#","#...#","#####"], '7':["#####","....#","...#.","..#..","..#..","..#..","..#.."],
+  '8':["#####","#...#","#...#","#####","#...#","#...#","#####"], '9':["#####","#...#","#...#","#####","....#","....#","#####"],
+  '/':["....#","....#","...#.","..#..",".#...","#....","#...."],
+};
+
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C', dark: '#1C1C1C', none: 'transparent' };
+const isRed = c => c === 'r' || c === 's';
+
+function colorsFor(grid, done) {
+  return grid.map(line => [...line].map(c => {
+    if (c === '.') return null;
+    if (!done) return c === 'o' ? C.none : C.gray;
+    return isRed(c) ? C.red : C.white;
+  }));
+}
+
+// Animaciones de activación por cuadros: se reproducen una vez al marcar y terminan en el estado quieto.
+const running = new Map();
+function paint(id, grid, colors, size) {
+  const el = document.getElementById(id); if (!el) return;
+  const rows = grid.length, cols = grid[0].length, step = size / Math.max(rows, cols), r = step * 0.38;
+  let svg = `<svg width="${cols * step}" height="${rows * step}" aria-hidden="true">`;
+  colors.forEach((line, y) => line.forEach((col, x) => {
+    if (col !== null) svg += `<circle cx="${(x + .5) * step}" cy="${(y + .5) * step}" r="${r}" fill="${col}"/>`;
+  }));
+  el.innerHTML = svg + '</svg>';
+  memory.set(id, colors.flat());
+}
+function play(id, name, size, frames, ms, frameFn) {
+  clearInterval(running.get(id));
+  const grid = ICONS[name]; let f = 0;
+  const t = setInterval(() => {
+    paint(id, grid, frameFn(grid, f), size);
+    if (++f >= frames) { clearInterval(t); running.delete(id); paint(id, grid, colorsFor(grid, true), size); }
+  }, ms);
+  running.set(id, t);
+}
+
+// Cena: la campana se prende de abajo hacia arriba y después el vapor sube en ondas (prendido / negro), dos veces.
+function cenaFrame(grid, f) {
+  const rows = grid.length;
+  return grid.map((line, y) => [...line].map(c => {
+    if (c === '.') return null;
+    if (c === 's' || c === 'w') {
+      const p = (f - 5) - (7 - y);
+      return p >= 0 && p % 4 < 2 ? (c === 's' ? C.red : C.white) : C.dark;
+    }
+    return f >= (rows - 1 - y) * 0.35 ? (c === 'r' ? C.red : C.white) : C.gray;
+  }));
+}
+
+// Vaso: el agua sube con la superficie ondulando y al final se asienta.
+function aguaFrame(grid, f) {
+  const level = 12 * Math.min(1, (f + 1) / 9);
+  const amp = f < 9 ? 1 : Math.max(0, (15 - f) / 6) * 1.5;
+  return grid.map((line, y) => [...line].map((c, x) => {
+    if (c === '.') return null;
+    if (c !== 'o') return C.white;
+    const wave = Math.round(Math.sin(f * 1.4 + x * 0.8) * amp);
+    return (13 - y) <= level + wave ? C.white : C.dark;
+  }));
+}
+
+// Al cambiar, cada punto pasa del color anterior al nuevo con un retraso: al prender, de abajo hacia arriba y lo rojo
+// al final (el vapor sube después del plato); al apagar, todo a la vez. Una sola vez, sin bucles.
+const memory = new Map();
+function drawDots(id, grid, colors, size, sweep = 'up') {
+  const el = document.getElementById(id); if (!el) return;
+  const rows = grid.length, cols = grid[0].length, step = size / Math.max(rows, cols), r = step * 0.38;
+  const prev = memory.get(id), flat = colors.flat();
+  let svg = `<svg width="${cols * step}" height="${rows * step}" aria-hidden="true">`;
+  colors.forEach((line, y) => line.forEach((col, x) => {
+    if (col === null) return;
+    const k = y * cols + x, from = prev ? prev[k] : col;
+    const turningOn = from !== col && col !== C.gray && col !== C.none;
+    let delay = 0;
+    if (turningOn) delay = sweep === 'up'
+      ? (rows - 1 - y) * 28 + (col === C.red ? rows * 22 : 0)
+      : x * 12;
+    svg += `<circle cx="${(x + .5) * step}" cy="${(y + .5) * step}" r="${r}" fill="${from || C.none}" data-to="${col}" style="transition: fill .14s ${delay}ms"/>`;
+  }));
+  el.innerHTML = svg + '</svg>';
+  memory.set(id, flat);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll('circle[data-to]').forEach(c => c.setAttribute('fill', c.dataset.to))));
+}
+
+const drawIcon = (id, name, done, size) => drawDots(id, ICONS[name], colorsFor(ICONS[name], done), size);
+
+function drawText(id, text, size) {
+  const glyphs = [...text].map(ch => DIGITS[ch]);
+  const grid = Array.from({ length: 7 }, (_, y) => glyphs.map(g => g[y]).join('.'));
+  const colors = grid.map(line => [...line].map((c, x) => c !== '#' ? null : (text[Math.floor(x / 6)] === '/' ? C.red : C.white)));
+  drawDots(id, grid, colors, size * grid[0].length / 7, 'right');
+}
+
+const meals = [
+  { name: 'Comida completa', icon: 'comida', at: '13:00', done: true },
+  { name: 'Proteína + energía', icon: 'snack', at: '16:30', done: false },
+  { name: 'Colación preentreno', icon: 'colacion', at: '18:30', done: false },
+  { name: 'Cena post entreno', icon: 'cena', at: '21:30', done: false },
+];
+const habits = [
+  { icon: 'pasos', text: 'Caminar 10-15 min después de comer', done: true },
+  { icon: 'sinAzucar', text: 'Sin refrescos, azúcar ni frituras', done: false },
+  { icon: 'huevo', text: 'Meta de proteína (~1.6 g/kg)', done: false },
+  { icon: 'cama', text: 'Dormir 7-9 h', done: false },
+];
+const goal = 8; let water = 3;
+
+function layout() {
+  document.getElementById('meals').innerHTML = meals.map((m, i) =>
+    `<button class="icon" onclick="toggleMeal(${i})" aria-label="${m.name} ${m.at}"><span id="meal${i}"></span><span class="time" id="t${i}">${m.at}</span></button>`).join('');
+  document.getElementById('glasses').innerHTML = Array.from({ length: goal }, (_, i) =>
+    `<button class="icon" onclick="tapGlass(${i})" aria-label="Vaso ${i + 1} de ${goal}"><span id="g${i}"></span></button>`).join('');
+  document.getElementById('habits').innerHTML = habits.map((h, i) =>
+    `<button class="icon" id="hb${i}" onclick="toggleHabit(${i})" aria-label="${h.text}"><span id="h${i}"></span><span class="cap">${h.text}</span></button>`).join('');
+  document.getElementById('w22').innerHTML = `<div class="row"><span class="label red" id="w22t"></span><span id="w22c"></span></div>
+    <div class="row" style="align-items:flex-end"><span id="w22i"></span><span id="w22w"></span></div>`;
+  document.getElementById('w42').innerHTML = `<div class="row"><span class="label red">COMIDAS</span><span id="w42c"></span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr)">${meals.map((m, i) => `<div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span id="w42m${i}"></span><span class="time" id="w42t${i}" style="font-size:10px">${m.at}</span></div>`).join('')}</div>
+    <div style="display:flex;gap:3px;justify-content:center">${Array.from({ length: goal }, (_, i) => `<span id="w42g${i}"></span>`).join('')}</div>`;
+}
+
+function render() {
+  const done = meals.filter(m => m.done).length, next = meals.findIndex(m => !m.done);
+  drawText('count', `${done}/4`, 44);
+  meals.forEach((m, i) => {
+    drawIcon(`meal${i}`, m.icon, m.done, 58);
+    const cls = 'time' + (m.done ? ' done' : i === next ? ' next' : '');
+    document.getElementById(`t${i}`).className = cls;
+    drawIcon(`w42m${i}`, m.icon, m.done, 40);
+    document.getElementById(`w42t${i}`).className = cls;
+  });
+  document.getElementById('status').innerHTML = next < 0
+    ? `<span class="label red">DÍA COMPLETO</span>`
+    : `<span class="name">${meals[next].name}</span><span class="label red">${meals[next].at}</span>`;
+
+  drawText('waterCount', `${water}/${goal}`, 22);
+  for (let i = 0; i < goal; i++) {
+    drawIcon(`g${i}`, 'vaso', i < water, 34);
+    drawIcon(`w42g${i}`, 'vaso', i < water, 14);
+  }
+  habits.forEach((h, i) => {
+    document.getElementById(`hb${i}`).className = 'icon' + (h.done ? ' done' : '');
+    drawIcon(`h${i}`, h.icon, h.done, 40);
+  });
+
+  document.getElementById('w22t').textContent = next < 0 ? 'LISTO' : meals[next].at;
+  drawText('w22c', `${done}/4`, 14);
+  drawIcon('w22i', next < 0 ? 'comida' : meals[next].icon, next < 0, 70);
+  drawText('w22w', `${water}/${goal}`, 12);
+}
+
+function toggleMeal(i) {
+  meals[i].done = !meals[i].done; render();
+  if (meals[i].done && meals[i].icon === 'cena') play(`meal${i}`, 'cena', 58, 22, 70, cenaFrame);
+}
+function tapGlass(i) {
+  const before = water; water = (i === water - 1) ? i : i + 1; render();
+  for (let g = before; g < water; g++) setTimeout(() => play(`g${g}`, 'vaso', 34, 16, 60, aguaFrame), (g - before) * 90);
+}
+function toggleHabit(i) { habits[i].done = !habits[i].done; render(); }
+
+layout(); render();
+</script>
+</body>
+</html>

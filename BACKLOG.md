@@ -80,6 +80,30 @@ Ajustes pedidos (2026-10-21), probados en el teléfono; por validar contigo:
 - [x] El buscador de apps solo aparece en la pestaña TODAS.
 - [x] 3. Cuadrícula libre de 4 columnas: arrastrar a cualquier celda libre, asa de la esquina para cambiar de tamaño (solo tamaños válidos), soltar sobre otro widget del mismo tamaño para hacer pila. Probado en el teléfono; por validar contigo.
 
+### Finanzas
+
+Pedido (2026-10-21), probado en el teléfono; por validar contigo:
+
+- [x] Quitar el encabezado "‹ FINANZAS": regresar ya se hace con el gesto de Samsung.
+- [x] "GASTO HOY" y "ÚLTIMOS 7 DÍAS" en el rojo del launcher.
+- [x] El punto decimal del total en rojo.
+- [x] Los montos de la lista en letra normal, no en puntos.
+- [x] Abajo solo el botón "+"; al tocarlo aparecen Monto y Concepto.
+- [x] Arreglo visto al probar: al abrir el teclado la pantalla se movía de más y los campos quedaban arriba, encima de la lista. Ahora quedan justo sobre el teclado (`windowSoftInputMode="adjustResize"`; afecta a todos los campos de texto del launcher).
+
+### Lenguaje visual (todas las vistas)
+
+Pedido (2026-10-22): menos gris difícil de ver, más rojo para lo importante, iconos y vectores estilo Nothing en lugar de texto, que el dibujo diga el dato, y reacciones al guardar, marcar, borrar o editar.
+
+- [x] Plan escrito en `docs/design/PLAN_VISUAL.md` y aprobado: iconos de puntos + línea, icono + número, vibración activa con opción a apagar, empezar por Dieta.
+- [~] Bases. Hecho: iconos de puntos que se llenan (`ui/components/DotIcon.kt`, primeros 9: plato, pesa, manzana, luna, vaso, pasos, sin azúcar, huevo, cama); reacciones (`ui/components/Reactions.kt`: vibración corta, doble y de error; latido; rebote), interruptor de Vibración en Módulos (también va en el respaldo); gris secundario más claro (#B0B0B0). Falta: iconos de línea y medidores (anillo y barra), que se harán con las vistas que los usan.
+- [~] Dieta programada según el boceto aprobado (`ui/DietPage.kt`, widget en `ui/HomeGrid.kt`): sin encabezado, conteo en puntos con "/" rojo, comidas con tus íconos (comida, snack, cena) y manzana, la hora de la siguiente en rojo; gris visible sin marcar; al marcar una sola animación (cena: vapor en ondas; vasos: agua que se mueve; lo demás se prende de abajo hacia arriba); hábitos con ícono; "qué comiste" tras el botón +. Compila; **falta probar en el teléfono** (no estaba conectado).
+- [x] Regla para todo lo que sigue: nada parpadea en bucle; gris visible, una animación al tocar y quieto (memoria del proyecto y `docs/design/PLAN_VISUAL.md`).
+- [~] Dieta personalizable: comidas que se agregan, quitan y editan desde el engrane (nombre, hora, FUERTE o SNACK, ícono); las fuertes se ven más grandes y los snacks más chicos, en filas de 4. Agua: cuántos al día, VASO o TERMO y cuánto le cabe (250–1000 ml); abajo de los vasos se ve la medida y lo tomado del total. Snack nuevo: barra de chocolate que se muerde al marcar. Compila; **falta probar en el teléfono** (estaba bloqueado).
+- [~] Widget "Agua" aparte (los vasos ya no van en el widget de Dieta). Tocarlo abre Dieta.
+- [~] Engrane arriba en Dieta y Finanzas que abre los ajustes de ese módulo (atrás regresa al módulo). **Regla: toda vista lleva su engrane.**
+- [ ] Vistas, una por una: Dieta, Finanzas, Inicio, Alarmas, Reloj mundial, Notas, Ejercicio, Bancos, Semana, Módulos/ajustes/pausa.
+
 ## Por validar en el teléfono
 
 - [ ] Bancos: desbloquear con huella y revisar que las 12 apps sean las correctas (se cambió la librería `fragment`, que también muestra el diálogo de huella).

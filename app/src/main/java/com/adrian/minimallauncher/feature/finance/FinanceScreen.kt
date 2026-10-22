@@ -1,6 +1,12 @@
 package com.adrian.minimallauncher.feature.finance
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import com.adrian.minimallauncher.feature.LauncherRed
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,9 +40,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.FinanceRecord
-import com.adrian.minimallauncher.feature.ModuleCard
-import com.adrian.minimallauncher.feature.ModuleHeader
 import com.adrian.minimallauncher.feature.ModuleTextField
+import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.components.DotMatrixText
 import java.math.BigDecimal
@@ -65,6 +70,7 @@ fun FinanceScreen(
     now: LocalDateTime,
     onAdd: (Long, String) -> Unit,
     onDelete: (String) -> Unit,
+    onSettings: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,20 +80,34 @@ fun FinanceScreen(
     val totals = byDay.map { list -> list.sumOf { it.amountCents } }
     val todayRecords = byDay.last()
 
+    // No header: going back is the phone's back gesture.
+    BackHandler(onBack = onBack)
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-        ModuleHeader("FINANZAS", onBack, Modifier.padding(top = 8.dp))
         Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp),
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 24.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallLabel("GASTO HOY")
-                DotMatrixText(formatPesos(totals.last()), cell = 8.dp)
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                    SmallLabel("GASTO HOY", color = LauncherRed)
+                    SettingsGear(onSettings)
+                }
+                DotMatrixText(formatPesos(totals.last()), cell = 8.dp, accents = mapOf('.' to LauncherRed))
                 SmallLabel("${todayRecords.size} REGISTROS · SEMANA ${formatPesos(totals.sum())}", color = MaterialTheme.colorScheme.onSurface)
             }
-            ModuleCard {
-                SmallLabel("ÚLTIMOS 7 DÍAS")
-                WeekDots(days, totals, today)
+            Column(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF222222)))
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SmallLabel("ÚLTIMOS 7 DÍAS", color = LauncherRed)
+                    WeekDots(days, totals, today)
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF222222)))
             }
             if (todayRecords.isEmpty()) {
                 SmallLabel("SIN GASTOS HOY")
@@ -101,7 +121,7 @@ fun FinanceScreen(
     }
 }
 
-/** One column per day: the busiest day fills all eight dots, today is white and the rest gray. */
+/** One column per day: the busiest day fills all eight dots, today is white, other days light gray and empty dots dark gray. */
 @Composable
 private fun WeekDots(days: List<LocalDate>, totals: List<Long>, today: LocalDate) {
     val max = totals.maxOrNull()?.takeIf { it > 0 } ?: 1L
@@ -112,9 +132,9 @@ private fun WeekDots(days: List<LocalDate>, totals: List<Long>, today: LocalDate
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (row in DOT_ROWS downTo 1) {
                     val color = when {
-                        row > filled -> Color(0xFF161616)
+                        row > filled -> Color(0xFF4A4A4A)
                         isToday -> MaterialTheme.colorScheme.onSurface
-                        else -> Color(0xFF5A5A5A)
+                        else -> Color(0xFFA8A8A8)
                     }
                     Box(Modifier.size(9.dp).background(color, CircleShape))
                 }
@@ -135,7 +155,7 @@ private fun ExpenseRow(record: FinanceRecord, onDelete: (String) -> Unit) {
             Text(record.description, style = MaterialTheme.typography.bodyLarge)
             SmallLabel(Instant.ofEpochMilli(record.createdAt).atZone(ZoneId.systemDefault()).format(hhmm))
         }
-        DotMatrixText(formatPesos(record.amountCents), cell = 3.dp)
+        Text(formatPesos(record.amountCents), style = MaterialTheme.typography.bodyLarge)
         Text(
             "×",
             Modifier
@@ -149,41 +169,54 @@ private fun ExpenseRow(record: FinanceRecord, onDelete: (String) -> Unit) {
     Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF1A1A1A)))
 }
 
-/** Amount and concept side by side; the white + (or the keyboard's done key) saves. */
+/**
+ * Only the white + until it is tapped; then Monto and Concepto appear (Monto focused) and the
+ * + (or the keyboard's done key) saves and folds the row away again. Back folds it without saving.
+ */
 @Composable
 private fun QuickEntry(onAdd: (Long, String) -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
     var amount by rememberSaveable { mutableStateOf("") }
     var concept by rememberSaveable { mutableStateOf("") }
+    val amountFocus = remember { FocusRequester() }
+    val close = {
+        open = false
+        amount = ""
+        concept = ""
+    }
     val save = {
         val cents = runCatching { BigDecimal(amount.replace(',', '.')).movePointRight(2).longValueExact() }.getOrNull()
         if (cents != null && cents > 0 && concept.isNotBlank()) {
             onAdd(cents, concept.trim())
-            amount = ""
-            concept = ""
+            close()
         }
     }
+    BackHandler(enabled = open, onBack = close)
+    LaunchedEffect(open) { if (open) amountFocus.requestFocus() }
     Row(
         Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ModuleTextField(
-            amount, { value -> amount = value.filter { it.isDigit() || it == '.' || it == ',' }.take(10) }, "Monto",
-            Modifier.width(104.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-        )
-        ModuleTextField(
-            concept, { concept = it.take(60) }, "Concepto",
-            Modifier.weight(1f),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { save() }),
-        )
+        if (open) {
+            ModuleTextField(
+                amount, { value -> amount = value.filter { it.isDigit() || it == '.' || it == ',' }.take(10) }, "Monto",
+                Modifier.width(104.dp).focusRequester(amountFocus),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+            )
+            ModuleTextField(
+                concept, { concept = it.take(60) }, "Concepto",
+                Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { save() }),
+            )
+        }
         Box(
             Modifier
                 .size(48.dp)
                 .background(MaterialTheme.colorScheme.onSurface, CircleShape)
-                .clickable(role = Role.Button, onClick = save)
-                .semantics { contentDescription = "Registrar gasto" },
+                .clickable(role = Role.Button) { if (open) save() else open = true }
+                .semantics { contentDescription = if (open) "Registrar gasto" else "Agregar gasto" },
             contentAlignment = Alignment.Center,
         ) {
             Text("+", style = MaterialTheme.typography.headlineSmall, color = Color.Black)

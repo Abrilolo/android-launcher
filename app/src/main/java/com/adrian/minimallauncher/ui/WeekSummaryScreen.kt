@@ -1,5 +1,6 @@
 package com.adrian.minimallauncher.ui
 
+import com.adrian.minimallauncher.data.MealSlot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,7 +82,7 @@ fun WeekSummaryScreen(
 
         ExerciseCard(week, today, exercise) { onOpenModule("exercise") }
         FinanceCard(week, elapsed, today, records, settings.dailyBudgetCents) { onOpenModule("finance") }
-        DietCard(week, today, elapsed, records, settings.waterGoal) { onOpenModule("diet") }
+        DietCard(week, today, elapsed, records, settings.meals, settings.waterGoal) { onOpenModule("diet") }
         BodyCard(monday, records) { onOpenModule("exercise") }
         NotesCard(monday, records) { onOpenModule("notes") }
     }
@@ -170,22 +171,22 @@ private fun FinanceCard(week: List<LocalDate>, elapsed: List<LocalDate>, today: 
 }
 
 @Composable
-private fun DietCard(week: List<LocalDate>, today: LocalDate, elapsed: List<LocalDate>, records: PersonalRecords, waterGoal: Int, onClick: () -> Unit) {
+private fun DietCard(week: List<LocalDate>, today: LocalDate, elapsed: List<LocalDate>, records: PersonalRecords, mealSlots: List<MealSlot>, waterGoal: Int, onClick: () -> Unit) {
     val habits = records.completedHabits
-    val meals = elapsed.sumOf { day -> MEAL_NAMES.indices.count { mealKey(day, it) in habits } }
+    val meals = elapsed.sumOf { day -> mealSlots.count { mealKey(day, it.id) in habits } }
     val water = elapsed.sumOf { day -> (1..waterGoal).count { waterKey(day, it) in habits } }
     val dailyHabits = elapsed.sumOf { day -> DIET_HABITS.count { (id, _) -> habitKey(day, id) in habits } }
     SummaryCard("DIETA · LO QUE VA DE LA SEMANA", onClick) {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-            Stat("COMIDAS", "$meals/${elapsed.size * MEAL_NAMES.size}")
+            Stat("COMIDAS", "$meals/${elapsed.size * mealSlots.size}")
             Stat("AGUA", "$water/${elapsed.size * waterGoal}")
             Stat("HÁBITOS", "$dailyHabits/${elapsed.size * DIET_HABITS.size}")
         }
-        // One column of four dots per day: a filled dot per meal checked off.
+        // One column of dots per day, one per meal: filled when checked off.
         DayColumns(week, today) { day ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                MEAL_NAMES.indices.forEach { index ->
-                    val done = mealKey(day, index) in habits
+                mealSlots.forEach { meal ->
+                    val done = mealKey(day, meal.id) in habits
                     Box(Modifier.size(8.dp).background(if (done) MaterialTheme.colorScheme.onSurface else Color(0xFF222222), CircleShape))
                 }
             }

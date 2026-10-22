@@ -12,7 +12,7 @@ para trabajar sin depender de él.
 
 ## Sistema visual
 
-- Fondo negro puro. Texto blanco; secundario en gris `#9A9A9A`.
+- Fondo negro puro. Texto blanco; secundario en gris claro `#B0B0B0` (en la app; antes `#8A8A8A`). Gris medio `#4A4A4A` solo para lo vacío o pendiente. Ver `PLAN_VISUAL.md`.
 - Un solo acento, rojo `#D71921`, y solo para "activo", "siguiente" o "atención". Nunca decorativo.
 - Números en matriz de puntos. Etiquetas en mayúsculas espaciadas. Texto corrido en sans.
   En la app: `DotMatrixText` para los números y `labelSmall` para las etiquetas.

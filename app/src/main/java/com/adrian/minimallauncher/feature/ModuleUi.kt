@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /** The single accent: only for "active", "next" or "attention". */
 val LauncherRed = Color(0xFFD71921)
@@ -166,4 +167,21 @@ fun ModuleChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         SmallLabel(label, color = if (selected) Color.Black else MaterialTheme.colorScheme.onSurface)
     }
+}
+
+/**
+ * The gear at the top of every module view: it opens that module's settings. Same glyph as the home and apps gear.
+ */
+@Composable
+fun SettingsGear(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        "⚙︎",
+        modifier
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Ajustes" }
+            .padding(8.dp),
+        fontSize = 22.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }

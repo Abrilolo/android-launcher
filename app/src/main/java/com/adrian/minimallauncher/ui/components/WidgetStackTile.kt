@@ -46,6 +46,7 @@ import com.adrian.minimallauncher.ui.HomeData
 import com.adrian.minimallauncher.ui.MealsTile
 import com.adrian.minimallauncher.ui.NoteTile
 import com.adrian.minimallauncher.ui.Tile
+import com.adrian.minimallauncher.ui.WaterTile
 import com.adrian.minimallauncher.ui.WorldTile
 import com.adrian.minimallauncher.feature.exercise.ExerciseWidget
 import com.adrian.minimallauncher.feature.vault.VaultWidget
@@ -55,6 +56,7 @@ private val TileShape = RoundedCornerShape(26.dp)
 
 val WIDGET_LABELS = mapOf(
     "clock" to "Reloj",
+    "water" to "Agua",
     "alarms" to "Alarma",
     "exercise" to "Ejercicio",
     "finance" to "Finanzas",
@@ -271,7 +273,9 @@ fun WidgetContent(
         "alarms" -> AlarmTile(now, fillMod, onClick, onLongClick)
         "exercise" -> Tile(fillMod, onClick, onLongClick) { ExerciseWidget(data.exercise, data.settings.exerciseStart) }
         "finance" -> ExpensesTile(data.records, now.toLocalDate(), data.settings.dailyBudgetCents, fillMod, onClick, onLongClick)
-        "diet" -> MealsTile(data.records.completedHabits, now, data.settings.mealTimes, fillMod, onClick, onLongClick)
+        "diet" -> MealsTile(data.records.completedHabits, now, data.settings.meals, fillMod, onClick, onLongClick)
+        // Water is part of Dieta: its glasses are marked there.
+        "water" -> WaterTile(data.records.completedHabits, now, data.settings, fillMod, { onOpenModule("diet") }, onLongClick)
         "world" -> WorldTile(data.settings.worldZones, fillMod, onClick, onLongClick)
         "vault" -> Tile(fillMod, onClick, onLongClick) { VaultWidget(data.vaultAppCount) }
         "notes" -> NoteTile(data.records.notes, onClick, onLongClick)

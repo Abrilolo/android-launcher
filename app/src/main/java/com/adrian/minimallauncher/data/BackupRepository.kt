@@ -91,10 +91,13 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
         .put("exerciseRestSeconds", exerciseRestSeconds)
         .put("vaultLockSeconds", vaultLockSeconds)
         .put("hiddenTiles", JSONArray(hiddenTiles.toList()))
-        .put("mealTimes", JSONArray(mealTimes.map { it.toString() }))
+        .put("meals", JSONArray(meals.map { JSONObject().put("id", it.id).put("name", it.name).put("time", it.time.toString()).put("kind", it.kind.name).put("icon", it.icon) }))
         .put("waterGoal", waterGoal)
+        .put("waterGlassMl", waterGlassMl)
+        .put("waterContainer", waterContainer)
         .put("dailyBudgetCents", dailyBudgetCents)
         .put("worldZones", JSONArray(worldZones))
+        .put("haptics", haptics)
 
     private fun JSONObject.toModuleSettings(): ModuleSettings {
         val default = ModuleSettings()
@@ -104,10 +107,18 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             exerciseRestSeconds = optInt("exerciseRestSeconds", default.exerciseRestSeconds),
             vaultLockSeconds = optInt("vaultLockSeconds", default.vaultLockSeconds),
             hiddenTiles = strings("hiddenTiles")?.toSet() ?: default.hiddenTiles,
-            mealTimes = strings("mealTimes")?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }?.takeIf { it.size == default.mealTimes.size } ?: default.mealTimes,
+            // Older backups only have the four meal times.
+            meals = runCatching {
+                array("meals").map { MealSlot(it.getString("id"), it.getString("name"), LocalTime.parse(it.getString("time")), MealKind.valueOf(it.getString("kind")), it.getString("icon")) }
+            }.getOrNull()?.takeIf { it.isNotEmpty() }
+                ?: strings("mealTimes")?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }?.takeIf { it.size == DEFAULT_MEAL_TIMES.size }?.let { defaultMeals(it) }
+                ?: default.meals,
             waterGoal = optInt("waterGoal", default.waterGoal),
+            waterGlassMl = optInt("waterGlassMl", default.waterGlassMl),
+            waterContainer = optString("waterContainer", default.waterContainer),
             dailyBudgetCents = optLong("dailyBudgetCents", default.dailyBudgetCents),
             worldZones = strings("worldZones") ?: default.worldZones,
+            haptics = optBoolean("haptics", default.haptics),
         )
     }
 

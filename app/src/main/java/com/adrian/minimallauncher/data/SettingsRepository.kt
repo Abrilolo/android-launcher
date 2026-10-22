@@ -23,16 +23,41 @@ data class ModuleSettings(
     val vaultLockSeconds: Int = 45,
     /** Home tiles switched off ("alarms", "exercise", "finance", "diet", "world", "vault", "notes"). */
     val hiddenTiles: Set<String> = emptySet(),
-    /** One time per meal slot of the Tokyo guide, in slot order. */
-    val mealTimes: List<LocalTime> = DEFAULT_MEAL_TIMES,
+    /** The day's meals, in order; the user can add, remove and edit them. */
+    val meals: List<MealSlot> = DEFAULT_MEALS,
+    /** How many containers of water a day, how much each holds and what it is ("vaso" or "termo"). */
     val waterGoal: Int = 8,
+    val waterGlassMl: Int = 250,
+    val waterContainer: String = "vaso",
     /** Daily spending limit; 0 means no budget. */
     val dailyBudgetCents: Long = 0,
     /** Cities shown on the world clock, in order; the first two go on the home tile. */
     val worldZones: List<String> = DEFAULT_WORLD_ZONES,
-)
+    /** Short vibrations when marking, saving or finishing something. */
+    val haptics: Boolean = true,
+) {
+    val mealTimes: List<LocalTime> get() = meals.map { it.time }
+}
+
+/** Main meals are drawn bigger than snacks. */
+enum class MealKind { MAIN, SNACK }
+
+/**
+ * One meal of the day. [id] keys its "done" mark ("<date>|meal_<id>"), so renaming or moving it keeps the history;
+ * the four default ids are "0".."3", the keys the meals had when they were fixed. [icon] is a DotIcons name.
+ */
+data class MealSlot(val id: String, val name: String, val time: LocalTime, val kind: MealKind, val icon: String)
 
 val DEFAULT_MEAL_TIMES: List<LocalTime> = listOf(LocalTime.of(13, 0), LocalTime.of(16, 30), LocalTime.of(18, 30), LocalTime.of(21, 30))
+
+/** The Tokyo guide's four meals, with the user's names. */
+fun defaultMeals(times: List<LocalTime> = DEFAULT_MEAL_TIMES) = listOf(
+    MealSlot("0", "Comida completa", times[0], MealKind.MAIN, "comida"),
+    MealSlot("1", "Proteína + energía", times[1], MealKind.SNACK, "snack"),
+    MealSlot("2", "Colación preentreno", times[2], MealKind.SNACK, "colacion"),
+    MealSlot("3", "Cena post entreno", times[3], MealKind.MAIN, "cena"),
+)
+val DEFAULT_MEALS = defaultMeals()
 val DEFAULT_WORLD_ZONES = listOf("America/Mexico_City", "America/New_York", "Europe/Madrid", "Europe/London", "Asia/Tokyo")
 
 /**
@@ -93,8 +118,12 @@ class SettingsRepository(private val context: Context) {
     private val hiddenTilesKey = stringSetPreferencesKey("hidden_tiles")
     private val mealTimesKey = stringPreferencesKey("meal_times")
     private val waterGoalKey = intPreferencesKey("water_goal")
+    private val mealSlotsKey = stringPreferencesKey("meals")
+    private val waterGlassMlKey = intPreferencesKey("water_glass_ml")
+    private val waterContainerKey = stringPreferencesKey("water_container")
     private val dailyBudgetKey = longPreferencesKey("daily_budget_cents")
     private val worldZonesKey = stringPreferencesKey("world_zones")
+    private val hapticsKey = booleanPreferencesKey("haptics")
     private val lastBackupKey = longPreferencesKey("last_backup_at")
     // Single-page layout from before home pages existed; read once as the first widget page.
     private val widgetLayoutKey = stringPreferencesKey("widget_layout")
@@ -151,11 +180,17 @@ class SettingsRepository(private val context: Context) {
             exerciseRestSeconds = prefs[exerciseRestKey] ?: default.exerciseRestSeconds,
             vaultLockSeconds = prefs[vaultLockKey] ?: default.vaultLockSeconds,
             hiddenTiles = prefs[hiddenTilesKey].orEmpty(),
-            mealTimes = prefs[mealTimesKey]?.split(',')?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }
-                ?.takeIf { it.size == default.mealTimes.size } ?: default.mealTimes,
+            // Before meals could be edited only their four times were saved; those become the default meals' times.
+            meals = prefs[mealSlotsKey]?.let(::decodeMeals)
+                ?: prefs[mealTimesKey]?.split(',')?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }
+                    ?.takeIf { it.size == DEFAULT_MEAL_TIMES.size }?.let { defaultMeals(it) }
+                ?: default.meals,
             waterGoal = prefs[waterGoalKey] ?: default.waterGoal,
+            waterGlassMl = prefs[waterGlassMlKey] ?: default.waterGlassMl,
+            waterContainer = prefs[waterContainerKey] ?: default.waterContainer,
             dailyBudgetCents = prefs[dailyBudgetKey] ?: default.dailyBudgetCents,
             worldZones = prefs[worldZonesKey]?.split(',')?.filter(String::isNotBlank) ?: default.worldZones,
+            haptics = prefs[hapticsKey] ?: default.haptics,
         )
     }
 
@@ -166,6 +201,16 @@ class SettingsRepository(private val context: Context) {
     private fun normalizeOrder(saved: List<String>) = saved.filter { it in DEFAULT_SECTION_ORDER }.distinct().let { it + (DEFAULT_SECTION_ORDER - it.toSet()) }
     private fun encode(value: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String) = String(Base64.getUrlDecoder().decode(value), Charsets.UTF_8)
+
+    private fun encodeMeals(meals: List<MealSlot>) =
+        meals.joinToString("|") { "${encode(it.id)}~${encode(it.name)}~${it.time}~${it.kind}~${it.icon}" }
+
+    private fun decodeMeals(encoded: String): List<MealSlot>? = runCatching {
+        encoded.split('|').filter(String::isNotBlank).map { row ->
+            val p = row.split('~')
+            MealSlot(decode(p[0]), decode(p[1]), LocalTime.parse(p[2]), MealKind.valueOf(p[3]), p[4])
+        }
+    }.getOrNull()
 
     private fun encodeWidgetLayout(layout: List<WidgetStackConfig>): String {
         return layout.joinToString(";") { stack ->
@@ -244,10 +289,13 @@ class SettingsRepository(private val context: Context) {
             it[exerciseRestKey] = value.exerciseRestSeconds
             it[vaultLockKey] = value.vaultLockSeconds
             it[hiddenTilesKey] = value.hiddenTiles
-            it[mealTimesKey] = value.mealTimes.joinToString(",")
+            it[mealSlotsKey] = encodeMeals(value.meals)
             it[waterGoalKey] = value.waterGoal
+            it[waterGlassMlKey] = value.waterGlassMl
+            it[waterContainerKey] = value.waterContainer
             it[dailyBudgetKey] = value.dailyBudgetCents
             it[worldZonesKey] = value.worldZones.joinToString(",")
+            it[hapticsKey] = value.haptics
         }
     }
 

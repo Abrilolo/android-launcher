@@ -11,7 +11,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 val LauncherBlack = Color(0xFF000000)
 val LauncherWhite = Color(0xFFFFFFFF)
-val LauncherGray = Color(0xFF8A8A8A)
+// Secondary text: light enough to read without effort (raised from #8A8A8A, see docs/design/PLAN_VISUAL.md).
+val LauncherGray = Color(0xFFB0B0B0)
 val LauncherDim = Color(0xFF4A4A4A)
 private val colors = darkColorScheme(
     primary = LauncherWhite,
