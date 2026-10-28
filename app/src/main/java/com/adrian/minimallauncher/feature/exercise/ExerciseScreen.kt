@@ -352,8 +352,6 @@ private fun RestTimer(left: Int, length: Int, onPick: (Int) -> Unit, onToggle: (
 @Composable
 private fun WeekTab(day: ExerciseDay, bodyMetrics: List<BodyMetricRecord>, onAddBodyMetric: (String, Float) -> Unit) {
     val monday = day.date.minusDays(day.date.dayOfWeek.value - 1L)
-    val strengthDays = TokyoGuide.week.count { it.kind != SessionKind.REST }
-    val doneCount = day.weekDone.count { TokyoGuide.sessionFor(it).kind != SessionKind.REST }
     var picked by rememberSaveable(day.date) { mutableIntStateOf(day.date.dayOfWeek.value - 1) }
 
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
@@ -361,7 +359,6 @@ private fun WeekTab(day: ExerciseDay, bodyMetrics: List<BodyMetricRecord>, onAdd
             SmallLabel("ESTA SEMANA · GUÍA TOKIO")
             Text("3 fuerza · 2 condición · 2 descanso", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        DotMatrixText("$doneCount/$strengthDays", cell = 5.dp)
     }
 
     Column {

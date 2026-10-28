@@ -43,6 +43,7 @@ fun AppList(
     visibleRows: Int,
     onClick: (LauncherApp) -> Unit,
     colorFor: @Composable (LauncherApp) -> Color,
+    lockedFor: (LauncherApp) -> Boolean = { false },
     alphabetIndex: Boolean = false,
     emptyText: String? = null,
 ) {
@@ -65,7 +66,7 @@ fun AppList(
         }
         LazyColumn(Modifier.weight(1f).fillMaxHeight(), listState) {
             itemsIndexed(apps, key = { _, app -> app.packageName }) { _, app ->
-                AppTextItem(app.label, { onClick(app) }, colorFor(app))
+                AppTextItem(app.label, { onClick(app) }, colorFor(app), lockedFor(app))
             }
         }
     }

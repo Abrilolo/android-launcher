@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Widget de Rutinas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; color: #777; }
+  .home { width: 390px; background: #000; border-radius: 36px; padding: 40px 24px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-sizing: border-box; cursor: pointer; }
+  .w22 { width: 164px; height: 164px; position: relative; display: grid; place-items: center; }
+  .w42 { width: 342px; height: 164px; display: grid; grid-template-columns: 140px 1fr; align-items: center; padding: 0 18px 0 6px; }
+  .w41 { width: 342px; height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; }
+  .num { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+  .num.red { color: var(--red); } .num.white { color: #fff; }
+  .stack { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .phases { display: flex; gap: 10px; align-items: center; }
+  .right { display: flex; flex-direction: column; gap: 16px; }
+  .chain { display: flex; align-items: center; gap: 0; }
+  .chain .link { width: 8px; height: 1.5px; background: #333; }
+  .chain .link.done { background: #F5F5F5; }
+  .chain .cell { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .chain .dot { width: 5px; height: 5px; border-radius: 3px; margin-bottom: 4px; }
+  .notes { display: flex; gap: 14px; align-items: flex-end; }
+  .aspect { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ticks { display: flex; flex-direction: column-reverse; gap: 2px; }
+  .ticks i { width: 10px; height: 2px; border-radius: 1px; background: #F5F5F5; }
+  .ticks.focus i { background: var(--red); }
+  .rem { display: flex; gap: 14px; justify-content: flex-start; }
+  .controls { width: 390px; display: flex; flex-direction: column; gap: 16px; }
+  .ctl { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .ctl input[type=range] { width: 100%; accent-color: #D71921; }
+  .ctl .row { display: flex; justify-content: space-between; align-items: center; }
+  .ctl button { background: none; border: 1px solid #333; border-radius: 10px; color: var(--muted); font: 11px 'Space Mono', monospace; letter-spacing: 1px; padding: 6px 10px; cursor: pointer; }
+  .ctl button.on { background: #1C1C1C; color: #fff; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+</head>
+<body>
+<h2>WIDGET DE RUTINAS · BOCETO (MUEVE LA HORA)</h2>
+
+<div class="home">
+  <div class="label">2×2</div>
+  <div class="card w22" id="w22" aria-label="Widget 2×2"></div>
+  <div class="label">4×2</div>
+  <div class="card w42" id="w42" aria-label="Widget 4×2"></div>
+  <div class="label">4×1</div>
+  <div class="card w41" id="w41" aria-label="Widget 4×1"></div>
+</div>
+
+<div class="controls">
+  <div class="ctl">
+    <div class="row"><span class="label">HORA DE PRUEBA</span><span class="num white" id="clock"></span></div>
+    <input type="range" id="t" min="360" max="1410" step="5" value="790" aria-label="Hora de prueba">
+    <div class="presets" id="presets"></div>
+    <div class="row"><span class="label">PAGO SIN REGISTRAR</span><button id="pay" onclick="togglePay()">NO</button></div>
+  </div>
+  <div class="ctl note">
+    <b>Un widget que cambia solo con la hora</b><br>
+    Muestra lo más urgente primero:<br>
+    1. <b>Pago sin registrar:</b> tarjeta con detalle rojo y el monto. Al tocarlo se abre el registro.<br>
+    2. <b>Comida cerca</b> (30 min antes): el plato y un anillo que se cierra mientras se acerca; la hora en rojo. Al tocarlo se abre Dieta.<br>
+    3. <b>Entrenar cerca:</b> la pesa con el mismo anillo. Al tocarlo se abre Ejercicio.<br>
+    4. <b>Lo que sigue en la fase:</b> el ícono de la acción y su hora. Al tocarlo se marca.<br><br>
+    <b>Por tamaño</b><br>
+    · <b>2×2:</b> solo lo más urgente.<br>
+    · <b>4×2:</b> lo más urgente a la izquierda; a la derecha, los <b>recordatorios de la fase actual</b> en orden de hora: sus acciones con hora (agua, caminar, colación) y los recordatorios ligados a esa fase (campana). Hasta 4; el siguiente con su hora en rojo, los hechos en blanco. En una fase en orden (casa) es la cadena.<br>
+    · <b>4×1:</b> las fases del día (la actual con su rojo) y, a la derecha, lo más urgente con su hora.<br><br>
+    <b>Recordatorios por fase:</b> cada recordatorio pertenece a una fase y solo aparece, y solo suena, mientras esa fase está activa.<br><br>
+    Sin texto ni contadores. Al cambiar lo que muestra, el ícono nuevo se dibuja una vez. Tocar el resto del widget abre Rutinas; mantenerlo presionado lo edita, como los demás.
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  inicio:     { main: 'M2 18h4a6 6 0 0 1 12 0h4', red: 'M12 4v3M5 8l2 2M19 8l-2 2' },
+  traslado:   { main: 'M7 20v-2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1v2M4 11h16', red: 'M8 14.5h.01M16 14.5h.01' },
+  trabajo:    { main: 'M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7h4.5A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-10A1.5 1.5 0 0 1 4.5 7H9', red: 'M10.5 12.5h3' },
+  salida:     { main: 'M13 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H13', red: 'M10 12h10M17 9l3 3-3 3' },
+  casa:       { main: 'M5 20V10l7-6 7 6v10H5', red: 'M10 20v-5h4v5' },
+  agua:       { main: 'M5 4h14l-2 16H7L5 4', red: 'M6 10h12' },
+  caminar:    { main: 'M7 3c2 0 3 2.2 3 5s-1 5-3 5-3-2.2-3-5 1-5 3-5', red: 'M17 10c2 0 3 2.2 3 5s-1 5-3 5-3-2.2-3-5 1-5 3-5' },
+  colacion:   { main: 'M12 7.5C10 6 5 6 5 12s4 9.5 7 8c3 1.5 7-2 7-8s-5-6-7-4.5', red: 'M12 7.5c0-2 1-3.5 3-4.5' },
+  musica:     { main: 'M9 18V5l11-2v13', red: 'M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M20 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0' },
+  podcast:    { main: 'M9 6a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0V6', red: 'M5 11a7 7 0 0 0 14 0M12 18v3' },
+  whatsapp:   { main: 'M4 20l1.4-4.2A8 8 0 1 1 8.6 19z', red: 'M8.5 12h.01M12 12h.01M15.5 12h.01' },
+  pendientes: { main: 'M6 3h9l4 4v14H6V3', red: 'M9 12h6M9 16h4' },
+  ordenar:    { main: 'M3 8l9-4 9 4v9l-9 4-9-4V8l9 4 9-4', red: 'M12 12v9' },
+  descanso:   { main: 'M6 3h12M17 3c0 6-10 8-10 18M7 3c0 6 10 8 10 18M6 21h12', red: 'M10 18h4' },
+  gimnasio:   { main: 'M3 10v4M6 7v10M18 7v10M21 10v4', red: 'M6 12h12' },
+  dormir:     { main: 'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z', red: 'M17 3v3M15.5 4.5h3' },
+  plato:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M16 12a4 4 0 1 1-8 0a4 4 0 1 1 8 0' },
+  pago:       { main: 'M3 6h18v12H3V6', red: 'M3 10h18M7 15h3' },
+  escuela:    { main: 'M4 5h7a1 1 0 0 1 1 1v14a1 1 0 0 0-1-1H4zM20 5h-7a1 1 0 0 0-1 1v14a1 1 0 0 1 1-1h7z', red: 'M15 9h2' },
+  hoja:       { main: 'M5 19C5 10 10 5 19 5c0 9-5 14-14 14z', red: 'M5 19l8-8' },
+  campana:    { main: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4l2-2', red: 'M10 21h4' },
+};
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C' };
+function icon(name, state, size, animate = false) {
+  const ic = ICONS[name];
+  const main = state === 'off' ? C.gray : C.white, red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const st = document.createElement('style');
+st.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}';
+document.head.appendChild(st);
+
+// Anillo de cuenta regresiva: se cierra mientras se acerca la hora.
+function ring(size, fraction, red) {
+  const r = size / 2 - 3;
+  return `<svg width="${size}" height="${size}" style="position:absolute" aria-hidden="true"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#1C1C1C" stroke-width="2"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${red ? C.red : C.white}" stroke-width="2" stroke-linecap="round" pathLength="1" stroke-dasharray="${fraction} 1" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`;
+}
+
+const hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const at = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+
+// Ejemplo con las horas de hoy: comidas de Dieta, entreno de la guía (20:35) y las fases.
+const MEALS = [{ at: '13:00' }, { at: '16:30' }, { at: '18:30' }, { at: '21:30' }];
+const TRAINING = '20:35';
+const phases = [
+  { id: 'inicio', from: '06:00', to: '07:00', actions: [{ type: 'agua', at: '06:15' }, { type: 'caminar' }, { type: 'podcast' }], reminders: [{ at: '06:40' }] },
+  { id: 'traslado', from: '07:00', to: '09:00', actions: [{ type: 'musica' }, { type: 'podcast' }] },
+  { id: 'trabajo', from: '09:00', to: '18:00', actions: [{ type: 'agua', at: '10:00' }, { type: 'agua', at: '12:00' }, { type: 'caminar', at: '12:05' }, { type: 'colacion', at: '13:30' }, { type: 'agua', at: '14:00' }, { type: 'agua', at: '16:00' }], reminders: [{ at: '11:30' }, { at: '15:00' }] },
+  { id: 'salida', from: '18:00', to: '19:00', actions: [{ type: 'pendientes' }, { type: 'whatsapp' }], reminders: [{ at: '18:30' }] },
+  { id: 'casa', from: '19:00', to: '23:30', ordered: true, actions: [{ type: 'ordenar' }, { type: 'agua' }, { type: 'descanso' }, { type: 'gimnasio' }, { type: 'dormir' }] },
+];
+let pay = false, last = '';
+
+function state(t) {
+  const pi = phases.findIndex(p => t >= at(p.from) && t < at(p.to));
+  const phase = phases[Math.max(pi, 0)];
+  // Las acciones con hora ya pasada cuentan como hechas en el ejemplo, menos la que toca ahora.
+  const acts = phase.actions.map(a => ({ ...a, done: a.at ? at(a.at) < t - 30 : false }));
+  if (phase.ordered) { const k = Math.max(0, Math.min(acts.length - 1, Math.floor((t - at(phase.from)) / 50))); acts.forEach((a, i) => a.done = i < k); }
+  // Lo que sigue: el primer recordatorio sin hacer de la fase (acciones con hora y recordatorios ligados), por hora.
+  const timed = [
+    ...acts.filter(a => a.at).map(a => ({ type: a.type, at: a.at, done: a.done })),
+    ...(phase.reminders || []).map(r => ({ type: 'campana', at: r.at, done: at(r.at) < t - 30 })),
+  ].sort((x, y) => at(x.at) - at(y.at));
+  const next = phase.ordered
+    ? acts.find(a => !a.done)
+    : timed.find(r => !r.done) || acts.find(a => !a.done && !a.at && !['musica', 'podcast', 'whatsapp', 'pendientes'].includes(a.type));
+  let pick;
+  if (pay) pick = { kind: 'pago', icon: 'pago', num: '$85' };
+  else {
+    const meal = MEALS.map(m => ({ ...m, left: at(m.at) - t })).find(m => m.left >= 0 && m.left <= 30);
+    const train = at(TRAINING) - t;
+    if (meal) pick = { kind: 'comida', icon: 'plato', num: meal.at, ring: 1 - meal.left / 30 };
+    else if (train >= 0 && train <= 30) pick = { kind: 'entreno', icon: 'gimnasio', num: TRAINING, ring: 1 - train / 30 };
+    else if (next) pick = { kind: 'paso', icon: next.type, num: next.at || '' };
+    else pick = { kind: 'fase', icon: phase.id, num: phase.from };
+  }
+  return { pi: Math.max(pi, 0), phase, acts, next, pick };
+}
+
+function pickView(p, size, animate) {
+  const hasRing = p.ring !== undefined;
+  const box = size + 28;
+  return `<div class="stack"><div style="position:relative;width:${box}px;height:${box}px;display:grid;place-items:center">${hasRing ? ring(box, p.ring, p.ring > 0.75) : ''}${icon(p.icon, 'now', size, animate)}</div>${p.num ? `<span class="num ${p.kind === 'pago' || hasRing ? 'red' : 'white'}">${p.num}</span>` : ''}</div>`;
+}
+
+function render() {
+  const t = +document.getElementById('t').value;
+  document.getElementById('clock').textContent = hm(t);
+  const s = state(t);
+  const key = s.pick.kind + s.pick.icon;
+  const animate = key !== last; last = key;
+
+  document.getElementById('w22').innerHTML = pickView(s.pick, 56, animate);
+
+  document.getElementById('w42').innerHTML = `${pickView(s.pick, 44, animate)}<div class="right">${reminders(s, t)}</div>`;
+
+  const strip = phases.map((p, i) => icon(p.id, i < s.pi ? 'done' : i === s.pi ? 'now' : 'off', 24)).join('');
+  document.getElementById('w41').innerHTML = `<div class="phases">${strip}</div><div style="display:flex;align-items:center;gap:10px">${icon(s.pick.icon, 'now', 26, animate)}${s.pick.num ? `<span class="num ${s.pick.kind === 'pago' || s.pick.ring !== undefined ? 'red' : 'white'}">${s.pick.num}</span>` : ''}</div>`;
+}
+
+// Recordatorios de la fase actual: sus acciones con hora y los recordatorios ligados a esa fase, en orden.
+// Se ven hasta 4, desde el último hecho; el siguiente lleva su hora en rojo. En casa (en orden) es la cadena.
+function reminders(s, t) {
+  if (s.phase.ordered) {
+    return `<div class="chain">${s.acts.map((a, i) =>
+      (i ? `<span class="link ${s.acts[i - 1].done && a.done ? 'done' : ''}"></span>` : '') +
+      `<span class="cell"><span class="dot" style="background:${a === s.next ? C.red : 'transparent'}"></span>${icon(a.type, a.done ? 'now' : 'off', 24)}</span>`).join('')}</div>`;
+  }
+  const list = [
+    ...s.acts.filter(a => a.at).map(a => ({ icon: a.type, at: a.at, done: a.done })),
+    ...(s.phase.reminders || []).map(r => ({ icon: 'campana', at: r.at, done: at(r.at) < t - 30 })),
+  ].sort((a, b) => at(a.at) - at(b.at));
+  if (!list.length) return '';
+  const firstOpen = Math.max(0, list.findIndex(r => !r.done));
+  const from = Math.max(0, Math.min(firstOpen - 1, list.length - 4));
+  return `<div class="rem">${list.slice(from, from + 4).map(r => {
+    const isNext = list.indexOf(r) === firstOpen && !r.done;
+    return `<span class="stack">${icon(r.icon, r.done ? 'now' : isNext ? 'done' : 'off', 28)}<span class="num ${r.done ? 'white' : isNext ? 'red' : ''}">${r.at}</span></span>`;
+  }).join('')}</div>`;
+}
+
+function togglePay() { pay = !pay; const b = document.getElementById('pay'); b.textContent = pay ? 'SÍ' : 'NO'; b.className = pay ? 'on' : ''; render(); }
+const presets = [['06:20', 'inicio'], ['07:45', 'traslado'], ['11:55', 'trabajo'], ['12:45', 'comida cerca'], ['18:20', 'salida'], ['20:15', 'entrenar cerca'], ['21:00', 'casa']];
+document.getElementById('presets').innerHTML = presets.map(([h, l]) => `<button onclick="document.getElementById('t').value=${at(h)};render()">${h} ${l.toUpperCase()}</button>`).join('');
+document.getElementById('t').addEventListener('input', render);
+render();
+</script>
+</body>
+</html>

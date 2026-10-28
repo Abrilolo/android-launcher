@@ -27,6 +27,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,10 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -69,18 +74,22 @@ import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.GRID_COLUMNS
 import com.adrian.minimallauncher.data.GridSize
 import com.adrian.minimallauncher.data.HomePage
-import com.adrian.minimallauncher.data.sizesFor
+import com.adrian.minimallauncher.data.catalogSizesFor
 import com.adrian.minimallauncher.data.HomePages
 import com.adrian.minimallauncher.data.PageKind
 import com.adrian.minimallauncher.data.WidgetStackConfig
 import com.adrian.minimallauncher.feature.CardFill
 import com.adrian.minimallauncher.feature.CardLine
-import com.adrian.minimallauncher.feature.LauncherRed
 import com.adrian.minimallauncher.feature.ModuleHeader
 import com.adrian.minimallauncher.feature.ModuleTextField
 import com.adrian.minimallauncher.feature.SmallLabel
+import com.adrian.minimallauncher.ui.components.GearLineIcon
 import com.adrian.minimallauncher.ui.components.WIDGET_LABELS
 import com.adrian.minimallauncher.ui.components.WidgetContent
+import com.adrian.minimallauncher.ui.components.widgetCard
+import com.adrian.minimallauncher.data.defaultBgAlpha
+import com.adrian.minimallauncher.feature.ai.LocalAiReplay
+import androidx.compose.runtime.mutableStateMapOf
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -117,11 +126,17 @@ val LocalWidgetCarry = compositionLocalOf<WidgetCarry?> { null }
 /** Id of the page a composable is drawn in. */
 val LocalPageId = compositionLocalOf<String?> { null }
 
+/** Marked true by a widget when a pointer goes down on it, so only empty space triggers full-page edit mode. */
+val LocalTouchOnWidget = compositionLocalOf { booleanArrayOf(false) }
+
+/** Stack currently selected in place on a page (showing its corner resize frame and 3-action popup). */
+val LocalSelectedStack = compositionLocalOf { mutableStateOf<String?>(null) }
+
 /**
  * The home screen as a row of pages, Samsung style. The main page is shown first and the
- * home button returns to it. Long press anywhere enters edit mode: pages shrink, each gets
- * a house (make it the main page) and a trash can, both ends get a "+" to add a widget page,
- * and a bottom bar offers Widgets and Ajustes.
+ * home button returns to it. Long press on empty space enters full-page edit mode: pages shrink,
+ * each gets a house (make it the main page) and a trash can, both ends get a "+" to add a widget
+ * page, and a bottom bar offers Widgets and Ajustes. Long-pressing a widget opens its in-place menu.
  */
 @Composable
 fun HomePagesHost(
@@ -136,6 +151,7 @@ fun HomePagesHost(
     onRestoreWeek: () -> Unit,
     onAddWidget: (pageId: String, widgetId: String, stackId: String?, size: GridSize, at: Pair<Int, Int>?) -> Unit,
     onSettings: () -> Unit,
+    overlayOpen: Boolean = false,
     pageContent: @Composable (HomePage, PageScope) -> Unit,
 ) {
     var editMode by rememberSaveable { mutableStateOf(false) }
@@ -153,6 +169,11 @@ fun HomePagesHost(
     val density = LocalDensity.current
     val pageCount by rememberUpdatedState(list.size)
 
+    // Times each page was landed on; its assistant widgets animate on every arrival.
+    val arrivals = remember { mutableStateMapOf<String, Int>() }
+    val settledId = list.getOrNull(pagerState.settledPage - offset)?.id
+    LaunchedEffect(settledId) { settledId?.let { arrivals[it] = (arrivals[it] ?: 0) + 1 } }
+
     LaunchedEffect(pagerState.currentPage, editMode, list) {
         list.getOrNull(pagerState.currentPage - offset)?.let { currentId = it.id }
     }
@@ -168,7 +189,11 @@ fun HomePagesHost(
             pagerState.animateScrollToPage(pages.mainIndex)
         }
     }
-    BackHandler(enabled = editMode && catalogTarget == null) { editMode = false }
+    // On the home screen itself, back does nothing (and edge swipes are excluded so Samsung's back gesture doesn't fire).
+    val atRootHome = !overlayOpen && !editMode && catalogTarget == null
+    BackHandler(enabled = !overlayOpen && catalogTarget == null) {
+        if (editMode) editMode = false
+    }
     SideEffect { carry?.pageId = currentId }
     // Holding a carried widget at the screen edge turns the page, like dragging an icon on Samsung.
     LaunchedEffect(carry) {
@@ -204,6 +229,7 @@ fun HomePagesHost(
     Box(
         Modifier
             .fillMaxSize()
+            .then(if (atRootHome) Modifier.systemGestureExclusion() else Modifier)
             .background(MaterialTheme.colorScheme.background)
             .onGloballyPositioned { hostCoords = it }
             .onSizeChanged { hostWidth = it.width },
@@ -219,7 +245,14 @@ fun HomePagesHost(
                 key = { index -> list.getOrNull(index - offset)?.id ?: if (index == 0) "add_start" else "add_end" },
             ) { index ->
                 val page = list.getOrNull(index - offset)
-                CompositionLocalProvider(LocalPageId provides page?.id) {
+                val touchOnWidget = remember { booleanArrayOf(false) }
+                val selectedStack = remember { mutableStateOf<String?>(null) }
+                CompositionLocalProvider(
+                    LocalPageId provides page?.id,
+                    LocalAiReplay provides (page?.id?.let { arrivals[it] } ?: 0),
+                    LocalTouchOnWidget provides touchOnWidget,
+                    LocalSelectedStack provides selectedStack,
+                ) {
                 when {
                     page == null -> AddPageSlot(atStart = index == 0) {
                         val id = onAddPage(index == 0)
@@ -235,14 +268,13 @@ fun HomePagesHost(
                             list.getOrNull(index - 1)?.let { currentId = it.id } ?: list.getOrNull(index + 1)?.let { currentId = it.id }
                             onDeletePage(page.id)
                         },
-                        // Only widget pages stay interactive (their stacks have edit controls); a tap on the others leaves edit mode.
                         // Pages with widgets stay interactive (their stacks have edit controls; Apps covers its list itself).
                         // A tap on Semana leaves edit mode.
                         onTapPage = if (page.kind.hasWidgets) null else ({ editMode = false }),
                     ) {
                         pageContent(page, PageScope(true, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
                     }
-                    else -> Box(Modifier.fillMaxSize().longPressAnywhere(enterEdit)) {
+                    else -> Box(Modifier.fillMaxSize().longPressOnEmptySpace(touchOnWidget, { selectedStack.value = null }, enterEdit)) {
                         pageContent(page, PageScope(false, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
                     }
                 }
@@ -311,11 +343,20 @@ fun HomePagesHost(
                     .offset { IntOffset((origin.x - width.toPx() / 2).roundToInt(), (origin.y - height.toPx() / 2).roundToInt()) }
                     .width(width)
                     .height(height)
-                    // See-through, so the outline of where it will land shows underneath.
-                    .graphicsLayer { alpha = 0.6f; scaleX = 1.04f; scaleY = 1.04f }
+                    // See-through with shadow, so the outline of where it will land shows underneath.
+                    .graphicsLayer {
+                        alpha = 0.72f
+                        scaleX = 1.05f
+                        scaleY = 1.05f
+                        shadowElevation = 22.dp.toPx()
+                        shape = RoundedCornerShape(26.dp)
+                    }
                     .border(2.dp, Color.White, RoundedCornerShape(26.dp)),
             ) {
-                WidgetContent(held.widgetId, data, now, {}, {})
+                val bg = defaultBgAlpha(listOf(held.widgetId))
+                Box(Modifier.fillMaxSize().widgetCard(bg)) {
+                    WidgetContent(held.widgetId, data, now, {}, {}, padded = bg > 0f)
+                }
             }
         }
     }
@@ -324,13 +365,19 @@ fun HomePagesHost(
 private data class CatalogTarget(val pageId: String, val stackId: String?)
 
 /**
- * Long press anywhere on the page, even over a list item or a widget. Once it fires, the rest of
- * the touch is swallowed so the item under the finger is not also opened on release.
+ * Long press on any empty space of the page (including the app list or headers), but NOT when the
+ * finger goes down on a widget (which sets [touchOnWidget] during the Initial pass and opens its own
+ * in-place popup menu instead).
  */
-fun Modifier.longPressAnywhere(onLongPress: () -> Unit): Modifier = pointerInput(Unit) {
+fun Modifier.longPressOnEmptySpace(touchOnWidget: BooleanArray, onTouchEmpty: () -> Unit, onLongPress: () -> Unit): Modifier = pointerInput(touchOnWidget) {
+    val latestEmpty = onTouchEmpty
     val latest = onLongPress
     awaitEachGesture {
+        touchOnWidget[0] = false
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        // Wait for the Main pass of the down event so child widgets have set touchOnWidget[0] = true if touched.
+        awaitPointerEvent(PointerEventPass.Main)
+        if (!touchOnWidget[0]) latestEmpty()
         // Null means the finger stayed down and still past the timeout: a long press.
         val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
             var ended = false
@@ -340,7 +387,8 @@ fun Modifier.longPressAnywhere(onLongPress: () -> Unit): Modifier = pointerInput
             }
             true
         }
-        if (released == null) {
+        // Only enter full-page edit mode if the touch was NOT on a widget.
+        if (released == null && !touchOnWidget[0]) {
             latest()
             do {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -406,7 +454,7 @@ private fun AddPageSlot(atStart: Boolean, onAdd: () -> Unit) {
             Canvas(Modifier.fillMaxSize()) {
                 drawRoundRect(
                     Color(0xFF444444),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()),
+                    cornerRadius = CornerRadius(28.dp.toPx()),
                     style = Stroke(1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 12f))),
                 )
             }
@@ -421,24 +469,84 @@ private fun AddPageSlot(atStart: Boolean, onAdd: () -> Unit) {
 @Composable
 private fun EditToolbar(weekDeleted: Boolean, onWidgets: () -> Unit, onSettings: () -> Unit, onRestoreWeek: () -> Unit, onDone: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ToolbarAction("WIDGETS", onWidgets)
-        ToolbarAction("AJUSTES", onSettings)
-        if (weekDeleted) ToolbarAction("+ SEMANA", onRestoreWeek)
-        ToolbarAction("LISTO", onDone, highlight = true)
+        ToolbarAction("WIDGETS", onWidgets) { GridToolbarIcon(it) }
+        ToolbarAction("AJUSTES", onSettings) { GearLineIcon(it, Modifier.size(20.dp)) }
+        if (weekDeleted) ToolbarAction("SEMANA", onRestoreWeek) { PlusToolbarIcon(it) }
+        ToolbarAction("LISTO", onDone, highlight = true) { CheckToolbarIcon(it) }
     }
 }
 
 @Composable
-private fun ToolbarAction(label: String, onClick: () -> Unit, highlight: Boolean = false) {
-    SmallLabel(
-        label,
-        Modifier.clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp, vertical = 14.dp),
-        color = if (highlight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun ToolbarAction(
+    label: String,
+    onClick: () -> Unit,
+    highlight: Boolean = false,
+    icon: @Composable (Color) -> Unit,
+) {
+    val color = if (highlight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        icon(color)
+        SmallLabel(label, color = color)
+    }
+}
+
+/** 2×2 rounded squares: Widgets catalog. */
+@Composable
+private fun GridToolbarIcon(color: Color) {
+    Canvas(Modifier.size(20.dp)) {
+        val stroke = 1.8.dp.toPx()
+        val cell = size.width * 0.36f
+        val gap = size.width * 0.14f
+        val start = (size.width - cell * 2 - gap) / 2f
+        val cr = CornerRadius(2.5.dp.toPx())
+        for (r in 0..1) for (c in 0..1) {
+            drawRoundRect(
+                color,
+                Offset(start + c * (cell + gap), start + r * (cell + gap)),
+                Size(cell, cell),
+                cr,
+                Stroke(stroke),
+            )
+        }
+    }
+}
+
+/** 2-dp line checkmark: Listo. */
+@Composable
+private fun CheckToolbarIcon(color: Color) {
+    Canvas(Modifier.size(20.dp)) {
+        val stroke = 2.dp.toPx()
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.16f, h * 0.54f)
+            lineTo(w * 0.42f, h * 0.78f)
+            lineTo(w * 0.86f, h * 0.24f)
+        }
+        drawPath(path, color, style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+/** 2-dp line plus: Restore Semana page. */
+@Composable
+private fun PlusToolbarIcon(color: Color) {
+    Canvas(Modifier.size(20.dp)) {
+        val stroke = 1.8.dp.toPx()
+        val m = size.width * 0.2f
+        drawLine(color, Offset(m, center.y), Offset(size.width - m, center.y), stroke, StrokeCap.Round)
+        drawLine(color, Offset(center.x, m), Offset(center.x, size.height - m), stroke, StrokeCap.Round)
+    }
 }
 
 /** Outline house; filled when it is the main page. */
@@ -528,7 +636,7 @@ private fun WidgetCatalog(
             if (widgets.isEmpty()) SmallLabel("SIN RESULTADOS", Modifier.padding(vertical = 16.dp))
             widgets.forEach { (id, label) ->
                 // Joining a stack takes the stack's size, so there is only one layout to pick.
-                val sizes = if (addingToStack) sizesFor(id).take(1) else sizesFor(id)
+                val sizes = if (addingToStack) catalogSizesFor(id).take(1) else catalogSizesFor(id)
                 Row(
                     Modifier.fillMaxWidth().clickable(role = Role.Button) { openId = if (openId == id) null else id }.padding(vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -551,13 +659,15 @@ private fun WidgetCatalog(
                             ) {
                                 // Same proportions as on the page: w of 4 columns, h rows of GRID_CELL_HEIGHT.
                                 var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+                                val bg = defaultBgAlpha(listOf(id))
                                 Box(
                                     Modifier
                                         .fillMaxWidth(size.w / GRID_COLUMNS.toFloat())
                                         .height(GRID_CELL_HEIGHT * size.h + GRID_GAP * (size.h - 1))
+                                        .widgetCard(bg)
                                         .onGloballyPositioned { coords = it },
                                 ) {
-                                    WidgetContent(id, data, now, {}, {})
+                                    WidgetContent(id, data, now, {}, {}, padded = bg > 0f)
                                     // Live preview under a cover: a tap selects the layout; holding it picks the widget
                                     // up to drop it on a page (not when joining a stack, which already has its place).
                                     Box(

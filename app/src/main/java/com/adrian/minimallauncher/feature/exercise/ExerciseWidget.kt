@@ -1,5 +1,7 @@
 package com.adrian.minimallauncher.feature.exercise
 
+import com.adrian.minimallauncher.ui.components.DotIcons
+import com.adrian.minimallauncher.ui.components.DotIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +28,7 @@ import java.time.LocalTime
 fun ExerciseWidget(day: ExerciseDay, start: LocalTime) {
     val session = day.session
     Column(Modifier.fillMaxSize(), Arrangement.SpaceBetween) {
-        SmallLabel("EJERCICIO")
+        DotIcon(DotIcons.pesa, done = true, contentDescription = "Ejercicio", size = 26.dp)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             // The status sits next to the big code: the widget column is too narrow for it beside the label.
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {

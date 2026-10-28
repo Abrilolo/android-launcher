@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="forced_mode_label">Registro obligatorio</string>
+    <string name="forced_mode_description">Cuando hay un pago o un registro pendiente, regresa al launcher hasta que lo guardes. Solo mira qué app está al frente; no lee lo que hay en la pantalla.</string>
+</resources>

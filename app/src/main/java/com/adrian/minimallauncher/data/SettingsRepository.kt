@@ -3,6 +3,7 @@ package com.adrian.minimallauncher.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -29,12 +30,31 @@ data class ModuleSettings(
     val waterGoal: Int = 8,
     val waterGlassMl: Int = 250,
     val waterContainer: String = "vaso",
+    /** The hours the day's water is spread over; each container gets its turn in between. */
+    val waterFrom: LocalTime = LocalTime.of(8, 0),
+    val waterTo: LocalTime = LocalTime.of(22, 0),
     /** Daily spending limit; 0 means no budget. */
     val dailyBudgetCents: Long = 0,
     /** Cities shown on the world clock, in order; the first two go on the home tile. */
     val worldZones: List<String> = DEFAULT_WORLD_ZONES,
     /** Short vibrations when marking, saving or finishing something. */
     val haptics: Boolean = true,
+    /** Assistants on the 4×1 "Asistentes IA" widget, in order ("claude", "chatgpt", "gemini"). */
+    val aiApps: List<String> = listOf("claude", "chatgpt", "gemini"),
+    /** Share of stability income (after fixed costs) kept as savings; the rest is the extras bag. */
+    val savingPct: Int = 10,
+    /** Daily food goals; 0 means no goal. */
+    val kcalGoal: Int = 0,
+    val proteinGoalG: Int = 0,
+    val carbsGoalG: Int = 0,
+    val fatGoalG: Int = 0,
+    val fiberGoalG: Int = 0,
+    /** Body goals: weight to reach and height for the BMI (IMC); 0 means not set. Weight itself is a body metric. */
+    val weightGoalKg: Float = 0f,
+    val heightCm: Float = 0f,
+    /** Who gets the "ya salí" WhatsApp at salida (international digits, e.g. "5215512345678") and its text. */
+    val whatsappPhone: String = "",
+    val whatsappText: String = "Ya salí de la oficina",
 ) {
     val mealTimes: List<LocalTime> get() = meals.map { it.time }
 }
@@ -73,7 +93,12 @@ data class WidgetStackConfig(
     val row: Int = -1,
     val w: Int = 0,
     val h: Int = 0,
+    /** Opacity of the card behind the widgets: 0 = only the content shows, 1 = solid card. */
+    val bgAlpha: Float = defaultBgAlpha(widgetIds),
 )
+
+/** The clock sits bare on the page; every other widget starts on a solid card. */
+fun defaultBgAlpha(widgetIds: List<String>): Float = if (widgetIds == listOf("clock")) 0f else 1f
 
 val DEFAULT_WIDGET_LAYOUT = listOf(
     WidgetStackConfig("stack_alarms", listOf("alarms"), span = 1),
@@ -121,9 +146,22 @@ class SettingsRepository(private val context: Context) {
     private val mealSlotsKey = stringPreferencesKey("meals")
     private val waterGlassMlKey = intPreferencesKey("water_glass_ml")
     private val waterContainerKey = stringPreferencesKey("water_container")
+    private val waterFromKey = stringPreferencesKey("water_from")
+    private val waterToKey = stringPreferencesKey("water_to")
     private val dailyBudgetKey = longPreferencesKey("daily_budget_cents")
     private val worldZonesKey = stringPreferencesKey("world_zones")
     private val hapticsKey = booleanPreferencesKey("haptics")
+    private val aiAppsKey = stringPreferencesKey("ai_apps")
+    private val savingPctKey = intPreferencesKey("saving_pct")
+    private val kcalGoalKey = intPreferencesKey("kcal_goal")
+    private val proteinGoalKey = intPreferencesKey("protein_goal_g")
+    private val carbsGoalKey = intPreferencesKey("carbs_goal_g")
+    private val fatGoalKey = intPreferencesKey("fat_goal_g")
+    private val fiberGoalKey = intPreferencesKey("fiber_goal_g")
+    private val weightGoalKey = floatPreferencesKey("weight_goal_kg")
+    private val heightKey = floatPreferencesKey("height_cm")
+    private val whatsappPhoneKey = stringPreferencesKey("whatsapp_phone")
+    private val whatsappTextKey = stringPreferencesKey("whatsapp_text")
     private val lastBackupKey = longPreferencesKey("last_backup_at")
     // Single-page layout from before home pages existed; read once as the first widget page.
     private val widgetLayoutKey = stringPreferencesKey("widget_layout")
@@ -188,9 +226,22 @@ class SettingsRepository(private val context: Context) {
             waterGoal = prefs[waterGoalKey] ?: default.waterGoal,
             waterGlassMl = prefs[waterGlassMlKey] ?: default.waterGlassMl,
             waterContainer = prefs[waterContainerKey] ?: default.waterContainer,
+            waterFrom = prefs[waterFromKey]?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: default.waterFrom,
+            waterTo = prefs[waterToKey]?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: default.waterTo,
             dailyBudgetCents = prefs[dailyBudgetKey] ?: default.dailyBudgetCents,
             worldZones = prefs[worldZonesKey]?.split(',')?.filter(String::isNotBlank) ?: default.worldZones,
             haptics = prefs[hapticsKey] ?: default.haptics,
+            aiApps = prefs[aiAppsKey]?.split(',')?.filter(String::isNotBlank) ?: default.aiApps,
+            savingPct = prefs[savingPctKey] ?: default.savingPct,
+            kcalGoal = prefs[kcalGoalKey] ?: default.kcalGoal,
+            proteinGoalG = prefs[proteinGoalKey] ?: default.proteinGoalG,
+            carbsGoalG = prefs[carbsGoalKey] ?: default.carbsGoalG,
+            fatGoalG = prefs[fatGoalKey] ?: default.fatGoalG,
+            fiberGoalG = prefs[fiberGoalKey] ?: default.fiberGoalG,
+            weightGoalKg = prefs[weightGoalKey] ?: default.weightGoalKg,
+            heightCm = prefs[heightKey] ?: default.heightCm,
+            whatsappPhone = prefs[whatsappPhoneKey] ?: default.whatsappPhone,
+            whatsappText = prefs[whatsappTextKey] ?: default.whatsappText,
         )
     }
 
@@ -214,7 +265,7 @@ class SettingsRepository(private val context: Context) {
 
     private fun encodeWidgetLayout(layout: List<WidgetStackConfig>): String {
         return layout.joinToString(";") { stack ->
-            "${encode(stack.id)}~${stack.span}~${stack.widgetIds.joinToString(",") { encode(it) }}~${stack.col}~${stack.row}~${stack.w}~${stack.h}"
+            "${encode(stack.id)}~${stack.span}~${stack.widgetIds.joinToString(",") { encode(it) }}~${stack.col}~${stack.row}~${stack.w}~${stack.h}~${stack.bgAlpha}"
         }
     }
 
@@ -231,10 +282,11 @@ class SettingsRepository(private val context: Context) {
                     val id = decode(p[0])
                     val span = p[1].toIntOrNull() ?: 1
                     val widgets = p[2].split(',').filter(String::isNotBlank).map { decode(it) }
-                    // Grid position and size; missing in layouts saved before the grid.
+                    // Grid position, size and opacity; missing in layouts saved before.
                     val grid = p.drop(3).map { it.toIntOrNull() }
+                    val alpha = p.getOrNull(7)?.toFloatOrNull() ?: defaultBgAlpha(widgets)
                     if (widgets.isEmpty()) null
-                    else WidgetStackConfig(id, widgets, span, grid.getOrNull(0) ?: -1, grid.getOrNull(1) ?: -1, grid.getOrNull(2) ?: 0, grid.getOrNull(3) ?: 0)
+                    else WidgetStackConfig(id, widgets, span, grid.getOrNull(0) ?: -1, grid.getOrNull(1) ?: -1, grid.getOrNull(2) ?: 0, grid.getOrNull(3) ?: 0, alpha)
                 }
             }.placed()
         }.getOrNull().orEmpty()
@@ -293,9 +345,22 @@ class SettingsRepository(private val context: Context) {
             it[waterGoalKey] = value.waterGoal
             it[waterGlassMlKey] = value.waterGlassMl
             it[waterContainerKey] = value.waterContainer
+            it[waterFromKey] = value.waterFrom.toString()
+            it[waterToKey] = value.waterTo.toString()
             it[dailyBudgetKey] = value.dailyBudgetCents
             it[worldZonesKey] = value.worldZones.joinToString(",")
             it[hapticsKey] = value.haptics
+            it[aiAppsKey] = value.aiApps.joinToString(",")
+            it[savingPctKey] = value.savingPct.coerceIn(0, 100)
+            it[kcalGoalKey] = value.kcalGoal
+            it[proteinGoalKey] = value.proteinGoalG
+            it[carbsGoalKey] = value.carbsGoalG
+            it[fatGoalKey] = value.fatGoalG
+            it[fiberGoalKey] = value.fiberGoalG
+            it[weightGoalKey] = value.weightGoalKg
+            it[heightKey] = value.heightCm
+            it[whatsappPhoneKey] = value.whatsappPhone
+            it[whatsappTextKey] = value.whatsappText
         }
     }
 

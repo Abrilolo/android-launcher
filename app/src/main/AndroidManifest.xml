@@ -3,12 +3,16 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Geofences for casa and oficina: precise location, and background so they fire with the launcher closed. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <application
         android:allowBackup="true"
         android:label="Minimal Launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.MinimalLauncher">
-        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:screenOrientation="portrait"
+        <activity android:name=".MainActivity" android:clearTaskOnLaunch="true" android:stateNotNeeded="true" android:exported="true" android:launchMode="singleTask" android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -17,7 +21,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Photos taken for an assistant's chat are shared to it from here. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+        <!-- Forced registration mode: sends any other app home while a payment is pending. Off until the user enables it in Accesibilidad. -->
+        <service
+            android:name=".ForcedModeService"
+            android:exported="false"
+            android:label="@string/forced_mode_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/forced_mode_service" />
+        </service>
         <receiver android:name=".ReminderReceiver" android:exported="false" />
+        <receiver android:name=".data.routine.GeofenceReceiver" android:exported="false" />
         <receiver android:name=".ReminderBootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

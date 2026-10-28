@@ -75,6 +75,26 @@ Cómo se aplica en el resto:
 - **Reloj mundial:** el sol o la luna de cada ciudad se prende o se apaga según amanezca o anochezca allá.
 - **Semana:** al abrirla, los días se prenden en orden; los que faltan quedan apagados.
 
+## Íconos de trazo continuo (2026-10-28)
+
+El usuario cambia los íconos de puntos estilo Nothing por **íconos de una sola línea continua**: "limitan mucho las animaciones". Siguen siendo minimalistas y usan la misma paleta. Referencia: `concept/RutinasVisual.html`.
+
+- Trazo de 1.75 en una rejilla de 24, con puntas y uniones redondas, más un detalle rojo opcional.
+- Falta = todo gris (#5C5C5C) · hecho = blanco · activo o marcado = blanco con su detalle rojo.
+- Al tocarlo, la línea se dibuja una vez de principio a fin y el detalle rojo sale al final. Luego se queda quieto.
+- **No cambian** los íconos animados de los asistentes IA (`AiDotIcon`).
+- Los números pueden seguir en puntos (`DotMatrixText`).
+
+## Sin texto en la vista (2026-10-28)
+
+Mientras se usa una vista o un widget, no hay etiquetas: solo íconos, horas y números. Lo que sigue se ve por color. Los nombres aparecen solo al editar (lápiz) o en los ajustes (engrane). La descripción para lectores de pantalla se mantiene.
+
+## Sin contadores "N/M" (2026-10-28)
+
+Regla del usuario: **nunca** mostrar contadores como "6/6", "1/3", "2/4" o "3/8", ni en vistas, ni en widgets, ni en bocetos. El avance se lee en los íconos y puntos: hecho en blanco, falta en gris, lo siguiente con su hora o su punto en rojo.
+
+Quitados de la app el 2026-10-28: `ui/DietPage.kt` (comidas y agua), `ui/WeekSummaryScreen.kt` (entrenos; comidas, agua y hábitos pasan a 10 puntos proporcionales) y `feature/exercise/ExerciseScreen.kt` (sesiones de la semana).
+
 ## Engrane en cada vista (2026-10-22)
 
 Toda vista de módulo lleva arriba a la derecha el engrane (`SettingsGear` en `feature/ModuleUi.kt`). Abre directo los ajustes de ese módulo y atrás regresa a la vista. Ya está en Dieta y Finanzas; las demás lo reciben cuando se pulan.

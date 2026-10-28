@@ -1,5 +1,10 @@
 package com.adrian.minimallauncher.ui
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.ui.components.DotIcons
+import com.adrian.minimallauncher.ui.components.DotIcon
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -137,16 +142,27 @@ fun AppsPage(
                     AppList(
                         shown, rows, open,
                         colorFor = { app -> if (isAllowed(app)) normal else dimmed },
+                        lockedFor = { app -> !isAllowed(app) },
                         alphabetIndex = !searching && current == "all",
                         emptyText = if (searching) "Sin resultados" else "Nada disponible en este espacio",
                     )
                 }
-                val footer = when {
-                    searching && shown.any { !isAllowed(it) } -> "FUERA DE HORARIO = PAUSA ANTES DE ABRIR"
-                    !searching -> leisureBackAt(space, spaces, now)?.let { "OCIO Y JUEGOS VUELVEN A LAS ${it.format(hhmm)}" }
-                    else -> null
+                val backAt = if (searching) null else leisureBackAt(space, spaces, now)
+                if (searching && shown.any { !isAllowed(it) }) {
+                    SmallLabel("FUERA DE HORARIO = PAUSA ANTES DE ABRIR", Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp))
+                } else if (backAt != null) {
+                    // An hourglass and the hour in red: when leisure and games come back.
+                    Row(
+                        Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp)
+                            .semantics(mergeDescendants = true) { contentDescription = "Ocio y juegos vuelven a las ${backAt.format(hhmm)}" },
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        DotIcon(DotIcons.relojArena, done = true, contentDescription = null, size = 22.dp)
+                        SmallLabel("OCIO")
+                        SmallLabel(backAt.format(hhmm), color = LauncherRed)
+                    }
                 }
-                if (footer != null) SmallLabel(footer, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp))
             }
             // While editing only the widgets respond; a tap on the list leaves edit mode.
             if (editMode) Box(Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { onExitEdit() } })

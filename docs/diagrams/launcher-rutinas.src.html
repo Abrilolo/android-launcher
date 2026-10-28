@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="es" data-register="blueprint">
+<head>
+<title>La hora elige la rutina y la rutina manda en el launcher</title>
+<link rel="stylesheet" href="kit.css" data-ve-kit>
+<style>
+.toc{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--border);padding:var(--s-2) 0;margin-bottom:var(--s-6);overflow-x:auto;scrollbar-width:none;mask-image:linear-gradient(90deg,#000 90%,transparent)}
+.toc::-webkit-scrollbar{display:none}
+.toc ul{display:flex;gap:var(--s-4);list-style:none;margin:0;padding:0;white-space:nowrap}
+.toc a{font-size:var(--t-small);color:var(--text-dim);text-decoration:none}
+.toc a:hover{color:var(--text)}
+section{scroll-margin-top:56px}
+.ve-svg .t{font-size:14px;fill:var(--text-dim)}
+.ve-svg .th{font-size:15px;font-weight:600;fill:var(--text)}
+.ve-svg .tb{font-size:14px;fill:var(--text)}
+.tl-now{fill:var(--accent-dim);stroke:none}
+.d-pend{fill:none;stroke:var(--text-dim);stroke-width:1.5}
+.d-done{fill:var(--text)}
+.d-late{fill:var(--risk)}
+.d-ring{fill:none;stroke:var(--risk);stroke-width:1.5}
+.w-box{fill:var(--surface);stroke:var(--border-bright);stroke-width:1.5}
+.w-arc{fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round}
+.w-trk{fill:none;stroke:var(--border);stroke-width:5}
+.w-gl{fill:none;stroke:var(--text);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.case .w-arc{stroke:var(--st)}
+.fin{padding:var(--s-5)}
+.fin-ctl{display:flex;align-items:center;gap:var(--s-3);margin-bottom:var(--s-4);font-size:var(--t-small)}
+.fin-ctl input{flex:1;max-width:280px}
+.fin-bar{display:flex;height:40px;border-radius:var(--r-1);overflow:hidden;border:1px solid var(--border-bright)}
+.fin-bar span{display:flex;align-items:center;padding:0 var(--s-2);font-size:var(--t-small);white-space:nowrap;overflow:hidden;transition:flex-basis var(--med) var(--ease)}
+.fin-bar .fx{background:var(--surface);color:var(--text-dim)}
+.fin-bar .sv{background:repeating-linear-gradient(45deg,var(--surface),var(--surface) 4px,var(--border) 4px,var(--border) 6px);color:var(--text)}
+.fin-bar .ex{background:var(--accent-dim);color:var(--text)}
+.fin-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4);margin-top:var(--s-5)}
+.fin-rows .ve-label{display:block}
+.fin-rows .val{font-size:var(--t-h2);font-variant-numeric:tabular-nums}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--s-4);margin-top:var(--s-5)}
+.card{border:1px solid var(--border);border-radius:var(--r-2);padding:var(--s-4)}
+.card h3{margin:var(--s-2) 0}
+.card ul{margin:0;padding-left:1.1em;font-size:var(--t-small)}
+.asks{display:grid;gap:var(--s-5)}
+@media (max-width:640px){.fin-rows{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<header>
+  <p class="eyebrow">Minimal Launcher · plan de Rutinas</p>
+  <h1>La hora elige la rutina, y la rutina manda en todo el launcher</h1>
+  <p class="lead">Los 3 espacios fijos de hoy pasan a <b>5 fases de rutina</b>: deciden apps, widgets y recordatorios, y bloquean el inicio si falta un registro.</p>
+  <p class="meta">Notas del cuaderno + app-plan.md · código actual en app/src/main · 2026-10-28</p>
+</header>
+
+
+
+<section id="mapa">
+<figure>
+  <div class="frame"><svg class="ve-svg" viewBox="0 0 1040 560" aria-label="Mapa: el motor de rutinas dentro del launcher controla apps, widgets, recordatorios y audio; un pago detectado activa el modo forzoso, que abre el registro en la app aparte de Finanzas y Comida.">
+    <rect class="ve-bnd" x="20" y="30" width="670" height="510"/><text class="ve-bnd-t" x="32" y="50">LAUNCHER · nativo</text>
+    <rect class="ve-bnd" x="720" y="30" width="300" height="390"/><text class="ve-bnd-t" x="732" y="50">APP APARTE · registros</text>
+    <rect class="ve-bnd" x="720" y="450" width="300" height="90"/><text class="ve-bnd-t" x="732" y="470">COMPUTADORA · vista web</text>
+
+    <path class="ve-e" d="M180 100H270"/><text class="ve-el" x="225" y="91">dispara</text>
+    <path class="ve-e is-new" d="M370 130V160H115V200"/><text class="ve-el r" x="121" y="186">filtra</text>
+    <path class="ve-e is-new" d="M370 160H275V200"/><text class="ve-el r" x="281" y="186">elige vista</text>
+    <path class="ve-e is-new" d="M370 160H435V200"/><text class="ve-el r" x="441" y="186">programa</text>
+    <path class="ve-e is-new" d="M370 160H600V200"/><text class="ve-el r" x="606" y="186">lanza</text>
+    <path class="ve-e is-new" d="M435 254V285H370V310"/><text class="ve-el r" x="441" y="276">rutina sin marcar</text>
+    <path class="ve-e is-hot" data-ref="pago" d="M200 340H270"/><text class="ve-el" x="235" y="331">pago</text>
+    <path class="ve-e is-hot" data-ref="pago" d="M470 340H705V98H750"/><text class="ve-el" x="585" y="331">abre registro</text>
+    <path class="ve-e is-hot" data-ref="pago" d="M705 188H750"/>
+    <path class="ve-e" d="M830 126V160"/><text class="ve-el r" x="836" y="146">pago de comida</text>
+    <path class="ve-e" d="M830 216V250"/><text class="ve-el r" x="836" y="236">kcal ajustan</text>
+    <path class="ve-e is-async" d="M950 250V216"/><text class="ve-el r" x="956" y="236">medidas</text>
+    <path class="ve-e is-async" d="M960 420V478"/><text class="ve-el l" x="954" y="452">sincroniza</text>
+
+    <g class="ve-n"><rect class="sh" x="40" y="75" width="140" height="50"/><text x="110" y="94">Hora · lugar</text><text class="sub" x="110" y="112">+ ubicación</text></g>
+    <g class="ve-n is-key is-new" data-ref="motor"><rect class="sh" x="270" y="70" width="200" height="60"/><text x="370" y="92">Motor de rutinas</text><text class="sub" x="370" y="112">nuevo · 5 fases</text></g>
+    <g class="ve-n"><rect class="sh" x="40" y="200" width="150" height="54"/><text x="115" y="220">Apps permitidas</text><text class="sub" x="115" y="239">existe · Space</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="200" y="200" width="150" height="54"/><text x="275" y="220">Widgets</text><text class="sub" x="275" y="239">2×2 · 4×2 · 4×1</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="360" y="200" width="150" height="54"/><text x="435" y="220">Recordatorios</text><text class="sub" x="435" y="239">puntos sin texto</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="520" y="200" width="162" height="54"/><text x="601" y="220">Audio · mensaje</text><text class="sub" x="601" y="239">podcast · WhatsApp</text></g>
+    <g class="ve-n is-new" data-ref="pago"><rect class="sh" x="40" y="310" width="160" height="60"/><text x="120" y="331">Detector de pagos</text><text class="sub" x="120" y="350">aviso del banco</text></g>
+    <g class="ve-n is-new" data-ref="pago forzoso"><rect class="sh" x="270" y="310" width="200" height="60"/><text x="370" y="331">Modo forzoso</text><text class="sub" x="370" y="350">de FrictionScreen</text></g>
+
+    <text class="ve-kind" x="40" y="420">ya existe · no cambia</text>
+    <g class="ve-n"><rect class="sh" x="40" y="432" width="118" height="44"/><text x="99" y="454">Semana</text></g>
+    <g class="ve-n"><rect class="sh" x="170" y="432" width="118" height="44"/><text x="229" y="454">Bancos</text></g>
+    <g class="ve-n"><rect class="sh" x="300" y="432" width="118" height="44"/><text x="359" y="454">IA</text></g>
+    <g class="ve-n"><rect class="sh" x="430" y="432" width="118" height="44"/><text x="489" y="454">Reloj mundial</text></g>
+    <g class="ve-n"><rect class="sh" x="560" y="432" width="118" height="44"/><text x="619" y="454">Respaldo</text></g>
+
+    <g class="ve-n" data-ref="fin"><rect class="sh" x="750" y="70" width="240" height="56"/><text x="870" y="90">Finanzas</text><text class="sub" x="870" y="109">existe · crece</text></g>
+    <g class="ve-n" data-ref="comida"><rect class="sh" x="750" y="160" width="240" height="56"/><text x="870" y="180">Comida · recetas</text><text class="sub" x="870" y="199">existe · crece</text></g>
+    <g class="ve-n"><rect class="sh" x="750" y="250" width="240" height="56"/><text x="870" y="270">Ejercicio</text><text class="sub" x="870" y="289">existe</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="750" y="340" width="240" height="56"/><text x="870" y="360">Notas rápidas</text><text class="sub" x="870" y="379">por aspecto</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="750" y="478" width="240" height="44"/><text x="870" y="500">Vista web</text></g>
+  </svg></div>
+  <figcaption><span class="fig-n">Fig. 1</span>El launcher se queda con lo que toca la pantalla de inicio; los registros viven en una app aparte que el launcher lee y abre.</figcaption>
+</figure>
+<p>Lo marcado como nuevo cuelga del <span class="ve-ref" data-ref="motor" tabindex="0">motor de rutinas</span>. La única ruta que bloquea algo es la del <span class="ve-ref" data-ref="pago" tabindex="0">pago detectado</span>: termina en <span class="ve-ref" data-ref="fin" tabindex="0">Finanzas</span> y <span class="ve-ref" data-ref="comida" tabindex="0">Comida</span>.</p>
+</section>
+
+<nav class="toc" aria-label="Secciones"><ul>
+  <li><a href="#mapa">Mapa</a></li><li><a href="#dia">El día</a></li><li><a href="#widgets">Widgets</a></li><li><a href="#forzoso">Modo forzoso</a></li><li><a href="#finanzas">Finanzas</a></li><li><a href="#comida">Comida y ejercicio</a></li><li><a href="#donde">Qué va dónde</a></li><li><a href="#preguntas">Decisiones</a></li>
+</ul></nav>
+
+<section id="dia">
+<p class="ve-label caps">El día</p>
+<h2>Cada fase cambia apps, recordatorios, audio y acciones</h2>
+<figure class="ve-steps">
+  <div class="frame"><svg class="ve-svg" viewBox="0 0 1000 400" aria-label="Las 5 fases del día y lo que cada una activa en apps, recordatorios, audio y acciones.">
+    <g class="ve-at" data-s="1"><rect class="tl-now" x="170" y="20" width="164" height="370" rx="6"/></g>
+    <g class="ve-at" data-s="2"><rect class="tl-now" x="334" y="20" width="164" height="370" rx="6"/></g>
+    <g class="ve-at" data-s="3"><rect class="tl-now" x="498" y="20" width="164" height="370" rx="6"/></g>
+    <g class="ve-at" data-s="4"><rect class="tl-now" x="662" y="20" width="164" height="370" rx="6"/></g>
+    <g class="ve-at" data-s="5"><rect class="tl-now" x="826" y="20" width="164" height="370" rx="6"/></g>
+    <path class="ve-axis" d="M20 80H990M20 150H990M20 220H990M20 290H990M20 380H990"/>
+    <text class="t" x="20" y="120">Apps</text>
+    <text class="t" x="20" y="190">Recordatorios</text>
+    <text class="t" x="20" y="260">Audio</text>
+    <text class="t" x="20" y="330">Acción</text>
+
+    <g data-s="1">
+      <text class="th" x="180" y="44">Iniciar el día</text><text class="t" x="180" y="66">hoy: Mañana</text>
+      <text class="tb" x="180" y="110">tú eliges qué</text><text class="tb" x="180" y="130">se ve o se apaga</text>
+      <text class="t" x="180" y="190">—</text><text class="t" x="180" y="260">—</text>
+      <text class="tb" x="180" y="330">elegir funciones</text>
+    </g>
+    <g data-s="2">
+      <text class="th" x="344" y="44">Traslado</text><text class="t" x="344" y="66">hoy: Mañana</text>
+      <text class="tb" x="344" y="120">esenciales</text>
+      <text class="t" x="344" y="190">—</text>
+      <text class="tb" x="344" y="260">música · podcast</text>
+      <text class="t" x="344" y="330">—</text>
+    </g>
+    <g data-s="3">
+      <text class="th" x="508" y="44">Trabajo</text><text class="t" x="508" y="66">hoy: Trabajo</text>
+      <text class="tb" x="508" y="110">trabajo ✓</text><text class="tb" x="508" y="130">ocio ✕</text>
+      <circle class="d-done" cx="514" cy="176" r="6"/><circle class="d-pend" cx="534" cy="176" r="6"/><circle class="d-late" cx="554" cy="176" r="6"/>
+      <text class="tb" x="508" y="200">agua · caminar ·</text><text class="tb" x="508" y="216">colación</text>
+      <text class="t" x="508" y="260">—</text>
+      <text class="tb" x="508" y="320">animación de</text><text class="tb" x="508" y="340">pendientes</text>
+    </g>
+    <g data-s="4">
+      <text class="th" x="672" y="44">Dejar oficina</text><text class="t" x="672" y="66">hoy: Noche</text>
+      <text class="t" x="672" y="120">—</text><text class="t" x="672" y="190">—</text><text class="t" x="672" y="260">—</text>
+      <text class="tb" x="672" y="320">registrar pendientes</text><text class="tb" x="672" y="340">mensaje WhatsApp</text>
+    </g>
+    <g data-s="5">
+      <text class="th" x="836" y="44">Llegar a casa</text><text class="t" x="836" y="66">hoy: Noche</text>
+      <text class="tb" x="836" y="120">todas</text>
+      <circle class="d-pend" cx="842" cy="176" r="6"/><circle class="d-pend" cx="862" cy="176" r="6"/><circle class="d-pend" cx="882" cy="176" r="6"/>
+      <text class="tb" x="836" y="204">ordenar → agua</text>
+      <text class="t" x="836" y="260">—</text>
+      <text class="tb" x="836" y="320">descanso 5 min →</text><text class="tb" x="836" y="340">gimnasio → dormir</text>
+    </g>
+  </svg></div>
+  <div class="ve-player">
+    <ol class="ve-cap">
+      <li data-n="1/5">Iniciar el día: tú eliges qué funciones se ven y cuáles se apagan.</li>
+      <li data-n="2/5">Traslado: el launcher ofrece música o podcast.</li>
+      <li data-n="3/5">Trabajo: se apagan las apps de ocio y salen puntos de agua, caminar y colación.</li>
+      <li data-n="4/5">Dejar la oficina: registras pendientes y se abre WhatsApp con el mensaje listo.</li>
+      <li data-n="5/5">Llegar a casa: una lista en orden, de ordenar las cosas hasta dormir.</li>
+    </ol>
+    <button data-go="-1" aria-label="Paso anterior">‹</button><button data-play aria-label="Reproducir">▶</button><input type="range" aria-label="Paso"><button data-go="1" aria-label="Paso siguiente">›</button>
+  </div>
+  <figcaption><span class="fig-n">Fig. 2</span>Las 5 fases reemplazan los 3 espacios de hoy (línea gris “hoy:”); cada fase enciende cosas distintas.</figcaption>
+</figure>
+<p>“Dejar la oficina” y “Llegar a casa” se activan por ubicación: el launcher detecta cuando entras o sales de la geocerca de casa o de la oficina.</p>
+</section>
+
+<section id="widgets">
+<p class="ve-label caps">Widgets</p>
+<h2>Los widgets cambian según la hora; su diseño queda para después</h2>
+<p>Habrá tres tamaños: 2×2, 4×2 y 4×1. Cada uno muestra lo que toca a esa hora: si se acerca la comida o el entrenamiento, ese widget se activa. Lee la hora de la comida de Comida y la del entrenamiento de Ejercicio. Su diseño se hará más adelante.</p>
+</section>
+
+<section id="forzoso">
+<p class="ve-label caps">Modo forzoso</p>
+<h2>Un pago sin registrar bloquea el inicio hasta que lo registras</h2>
+<figure class="ve-steps">
+  <div class="frame"><svg class="ve-svg" viewBox="0 0 1000 320" aria-label="Flujo: pago detectado, desbloqueo, pregunta si fue comida, registro de gasto y comida, inicio libre.">
+    <path class="ve-e is-hot" data-s="1" d="M160 80H230"/><text class="ve-el" data-s="1" x="195" y="71">guarda</text>
+    <path class="ve-e" data-s="2" d="M310 110V230"/><text class="ve-x" data-s="2" x="310" y="176">✕</text><text class="ve-el r" data-s="2" x="324" y="176">bloqueado</text>
+    <path class="ve-e is-hot" data-s="3" d="M390 80H470"/><text class="ve-el" data-s="3" x="430" y="71">pregunta</text>
+    <path class="ve-e is-hot" data-s="3" d="M570 80H640"/><text class="ve-el" data-s="3" x="605" y="71">sí</text>
+    <path class="ve-e is-hot" data-s="4" d="M790 80H830"/>
+    <path class="ve-e is-hot" data-s="4" d="M905 110V230"/><text class="ve-el r" data-s="4" x="911" y="176">listo</text>
+    <path class="ve-e" data-s="5" d="M520 116V230"/><text class="ve-el r" data-s="5" x="526" y="176">no</text>
+    <path class="ve-e" data-s="5" d="M630 258H830"/><text class="ve-el" data-s="5" x="730" y="249">registra gasto</text>
+
+    <g class="ve-n is-new" data-s="1"><text class="ve-kind" x="85" y="40">hecho</text><rect class="sh" x="10" y="50" width="150" height="60"/><text x="85" y="72">Pago detectado</text><text class="sub" x="85" y="91">aviso del banco</text></g>
+    <g class="ve-n" data-s="2"><text class="ve-kind" x="310" y="40">estado</text><rect class="sh" x="230" y="50" width="160" height="60"/><text x="310" y="72">Desbloqueas</text><text class="sub" x="310" y="91">la próxima vez</text></g>
+    <g class="ve-n" data-s="2"><rect class="sh" x="230" y="230" width="160" height="56" style="stroke-dasharray:4 4"/><text x="310" y="258">Inicio</text></g>
+    <g class="ve-n is-key" data-s="3"><text class="ve-kind" x="520" y="34">decisión</text><path class="sh" d="M520 44L570 80L520 116L470 80Z"/><text x="520" y="80">¿comida?</text></g>
+    <g class="ve-n" data-s="3" data-ref="fin"><rect class="sh" x="640" y="50" width="150" height="60"/><text x="715" y="72">Registrar gasto</text><text class="sub" x="715" y="91">comida o extras</text></g>
+    <g class="ve-n" data-s="4" data-ref="comida"><rect class="sh" x="830" y="50" width="150" height="60"/><text x="905" y="72">Registrar comida</text><text class="sub" x="905" y="91">suma kcal</text></g>
+    <g class="ve-n" data-s="4"><rect class="sh" x="830" y="230" width="150" height="56"/><text x="905" y="258">Inicio libre</text></g>
+    <g class="ve-n" data-s="5"><rect class="sh" x="410" y="230" width="220" height="56"/><text x="520" y="250">¿Qué fue?</text><text class="sub" x="520" y="269">transferencia · regalo</text></g>
+  </svg></div>
+  <div class="ve-player">
+    <ol class="ve-cap">
+      <li data-n="1/5">Llega el aviso del banco: el launcher guarda un pago pendiente.</li>
+      <li data-n="2/5">Al desbloquear, el launcher abre el registro de gasto, no el inicio.</li>
+      <li data-n="3/5">Si fue comida, el gasto sale del presupuesto de comida o de la bolsa de extras.</li>
+      <li data-n="4/5">Registras qué comiste: Comida suma las kcal y el inicio se libera.</li>
+      <li data-n="5/5">Si no fue comida, eliges qué fue y el inicio se libera.</li>
+    </ol>
+    <button data-go="-1" aria-label="Paso anterior">‹</button><button data-play aria-label="Reproducir">▶</button><input type="range" aria-label="Paso"><button data-go="1" aria-label="Paso siguiente">›</button>
+  </div>
+  <figcaption><span class="fig-n">Fig. 3</span>Con un solo registro quedan al día Finanzas y Comida; la misma regla aplica a una rutina sin marcar.</figcaption>
+</figure>
+</section>
+
+<section id="finanzas">
+<p class="ve-label caps">Finanzas</p>
+<h2>Solo el ingreso para tu estabilidad entra al presupuesto</h2>
+<figure>
+  <ve-flow label="Un ingreso se clasifica: si es para estabilidad entra al presupuesto; si no, se registra aparte.">
+    <ve-node id="in" at="1 1" sub="mesada · salario">Ingreso</ve-node>
+    <ve-node id="q" at="2 1" sub="¿estabilidad?">Clasificar</ve-node>
+    <ve-node id="p" at="3 1" key>Presupuesto</ve-node>
+    <ve-node id="x" at="2 2" sub="no suma">Aparte</ve-node>
+    <ve-edge from="in" to="q" label="llega"/>
+    <ve-edge from="q" to="p" label="sí" hot/>
+    <ve-edge from="q" to="x" label="no"/>
+  </ve-flow>
+  <figcaption><span class="fig-n">Fig. 4</span>Una transferencia, un regalo o el pago de un servicio externo se registra aparte y no infla tu presupuesto.</figcaption>
+</figure>
+
+<figure id="fin">
+  <div class="frame fin">
+    <div class="fin-bar" role="img" aria-label="De 12,000: 7,000 gastos fijos, 1,000 ahorro, 4,000 extras">
+      <span class="fx" id="fx" style="flex-basis:58.33%">Fijos 7,000</span>
+      <span class="sv" id="sv" style="flex-basis:8.33%">1,000</span>
+      <span class="ex" id="ex" style="flex-basis:33.33%">Extras 4,000</span>
+    </div>
+    <div class="fin-rows">
+      <div><span class="ve-label">Extras al mes</span><span class="val" id="vm">$4,000</span></div>
+      <div><span class="ve-label">A la semana</span><span class="val" id="vs">$933</span></div>
+      <div><span class="ve-label">Al día</span><span class="val" id="vd">$133</span></div>
+    </div>
+  </div>
+  <figcaption><span class="fig-n">Fig. 5</span>Presupuesto − fijos − ahorro = la bolsa de extras, que se reparte en semana y día. Números de ejemplo: ingreso 12,000, fijos 7,000, ahorro (rayado) 20&nbsp;% de lo que queda.</figcaption>
+</figure>
+
+<figure>
+  <div class="frame"><svg class="ve-svg" viewBox="0 0 720 240" aria-label="Semana de ejemplo: el miércoles se gastan 200, 67 de más; los 4 días restantes bajan de 133 a 117.">
+    <path class="ve-axis" d="M40 200H700"/>
+    <path class="ve-axis" d="M40 93H700" style="stroke-dasharray:4 4"/><text class="t" x="70" y="84">133 por día</text>
+    <rect x="70" y="93" width="48" height="107" fill="var(--text-dim)"/>
+    <rect x="148" y="93" width="48" height="107" fill="var(--text-dim)"/>
+    <rect x="226" y="40" width="48" height="160" fill="var(--risk)"/><text class="tb" x="226" y="32">200</text>
+    <text class="t" x="282" y="66">+67 de más</text>
+    <g fill="none" stroke="var(--accent)" stroke-width="1.75" stroke-dasharray="4 3">
+      <rect x="304" y="106" width="48" height="94"/><rect x="382" y="106" width="48" height="94"/><rect x="460" y="106" width="48" height="94"/><rect x="538" y="106" width="48" height="94"/>
+    </g>
+    <text class="tb" x="598" y="124" style="fill:var(--accent)">117 por día</text>
+    <text class="t" x="86" y="222">L</text><text class="t" x="164" y="222">M</text><text class="t" x="242" y="222">M</text><text class="t" x="320" y="222">J</text><text class="t" x="398" y="222">V</text><text class="t" x="476" y="222">S</text><text class="t" x="554" y="222">D</text>
+  </svg></div>
+  <figcaption><span class="fig-n">Fig. 6</span>Gastar de más un día baja el límite del resto de la semana: (933 − 466) ÷ 4 = 117.</figcaption>
+</figure>
+
+<div class="cards">
+  <div class="card"><span class="chip ok">ingreso fijo</span><h3>Mesada o salario</h3><ul><li>Suma al presupuesto</li><li>Ahorro en % editable</li></ul></div>
+  <div class="card"><span class="chip warn">antojo</span><h3>Gasto extra</h3><ul><li>Sale de la bolsa de extras</li><li>Si fue comida fuera de presupuesto, se marca como extra y pide registrar la comida</li></ul></div>
+  <div class="card"><span class="chip warn">espera</span><h3>Cuenta compartida</h3><ul><li>Pagas todo y queda “por cobrar”</li><li>Se cierra cuando los demás te pagan</li></ul></div>
+  <div class="card"><span class="chip ok">editable</span><h3>Presupuestos por tema</h3><ul><li>Comida al día, o cualquier “x para algo x”</li></ul></div>
+</div>
+</section>
+
+<section id="comida">
+<p class="ve-label caps">Comida y ejercicio</p>
+<h2>Lo que comes ajusta el entrenamiento, y tus medidas ajustan la meta</h2>
+<figure>
+  <div class="frame"><svg class="ve-svg" viewBox="0 0 1000 300" aria-label="Ciclo: registrar comida, comparar kcal con la meta, ajustar entrenamiento, registrar medidas, mover metas de peso e IMC, que fijan la meta de kcal.">
+    <path class="ve-e" d="M235 68H365"/><text class="ve-el" x="310" y="59">suma</text>
+    <path class="ve-e is-hot" d="M615 68H760"/><text class="ve-el" x="680" y="59">según toque</text>
+    <path class="ve-e" d="M860 96V200"/><text class="ve-el r" x="866" y="152">después</text>
+    <path class="ve-e" d="M760 228H615"/><text class="ve-el" x="680" y="219">mueven</text>
+    <path class="ve-e" d="M490 200V96"/><text class="ve-el r" x="496" y="152">fija meta kcal</text>
+    <path class="ve-e is-async" d="M130 200V96"/><text class="ve-el r" x="136" y="152">abre</text>
+
+    <g class="ve-n" data-ref="comida"><rect class="sh" x="25" y="40" width="210" height="56"/><text x="130" y="60">Registrar comida</text><text class="sub" x="130" y="79">receta o ingredientes</text></g>
+    <g class="ve-n is-key"><rect class="sh" x="365" y="40" width="250" height="56"/><text x="490" y="60">kcal vs meta</text><text class="sub" x="490" y="79">proteína · fibra · vitamina</text></g>
+    <g class="ve-n"><rect class="sh" x="760" y="40" width="200" height="56"/><text x="860" y="60">Ajustar entreno</text><text class="sub" x="860" y="79">del día o la semana</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="760" y="200" width="200" height="56"/><text x="860" y="220">Registrar medidas</text><text class="sub" x="860" y="239">ligadas a tus metas</text></g>
+    <g class="ve-n is-new"><rect class="sh" x="365" y="200" width="250" height="56"/><text x="490" y="220">Metas</text><text class="sub" x="490" y="239">peso · IMC</text></g>
+    <g class="ve-n" data-ref="fin"><rect class="sh" x="25" y="200" width="210" height="56"/><text x="130" y="220">Pago de comida</text><text class="sub" x="130" y="239">desde Finanzas</text></g>
+  </svg></div>
+  <figcaption><span class="fig-n">Fig. 7</span>El ciclo cierra en la meta de kcal: comer, entrenar y medir mueven el mismo número.</figcaption>
+</figure>
+<div class="cards">
+  <div class="card"><span class="chip ok">receta</span><h3>Registro de recetas</h3><ul><li>Foto, pasos, ingredientes</li><li>kcal, proteína, fibra, vitamina</li><li>Tiempo de preparación</li></ul></div>
+  <div class="card"><span class="chip warn">sin receta</span><h3>Base de ingredientes</h3><ul><li>Precargada, con su aporte nutrimental</li><li>Armas lo que comiste con ellos</li></ul></div>
+  <div class="card"><span class="chip ok">vista día</span><h3>Hoy</h3><ul><li>Meta de kcal</li><li>Qué vas a comer y a qué hora</li><li>Registrar desde aquí</li></ul></div>
+  <div class="card"><span class="chip ok">vista semana</span><h3>Semana</h3><ul><li>Metas de peso e IMC</li><li>Las animaciones dicen el estado</li></ul></div>
+</div>
+</section>
+
+<section id="donde">
+<p class="ve-label caps">Qué va dónde</p>
+<h2>El launcher conserva lo de la pantalla; los registros se mudan sin romper nada</h2>
+<div class="ve-table"><table>
+  <thead><tr><th>Parte</th><th>Estado</th><th>Dónde</th><th>Parte de</th></tr></thead>
+  <tbody>
+    <tr><td>Motor de rutinas</td><td><span class="chip warn">nuevo</span></td><td>Launcher</td><td><code>data/Space.kt</code> <small>3 espacios → 5 fases</small></td></tr>
+    <tr><td>Apps por fase</td><td><span class="chip ok">existe</span></td><td>Launcher</td><td><code>Space.allows</code></td></tr>
+    <tr><td>Widgets inteligentes</td><td><span class="chip warn">nuevo</span></td><td>Launcher</td><td><code>data/WidgetGrid.kt</code> <small>ya tiene tamaños</small></td></tr>
+    <tr><td>Recordatorios visuales</td><td><span class="chip warn">crece</span></td><td>Launcher</td><td><code>ReminderScheduler.kt</code>, <code>DotIcon.kt</code></td></tr>
+    <tr><td>Modo forzoso</td><td><span class="chip warn">nuevo</span></td><td>Launcher</td><td><code>ui/FrictionScreen.kt</code> <small>ya pausa apps</small></td></tr>
+    <tr><td>Detector de pagos</td><td><span class="chip warn">nuevo</span></td><td>Launcher</td><td><small>lee avisos del banco; pide permiso de notificaciones</small></td></tr>
+    <tr><td>Llegar a casa / dejar oficina</td><td><span class="chip warn">nuevo</span></td><td>Launcher</td><td><small>ubicación (geocerca)</small></td></tr>
+    <tr><td>Mensaje de WhatsApp</td><td><span class="chip warn">nuevo</span></td><td>Launcher</td><td><small>abre el chat con el texto listo; tú lo envías</small></td></tr>
+    <tr><td>Finanzas</td><td><span class="chip warn">crece</span></td><td>App aparte</td><td><code>feature/finance/FinanceScreen.kt</code></td></tr>
+    <tr><td>Comida y recetas</td><td><span class="chip warn">crece</span></td><td>App aparte</td><td><code>ui/DietPage.kt</code></td></tr>
+    <tr><td>Ejercicio</td><td><span class="chip ok">existe</span></td><td>App aparte <small>widget queda</small></td><td><code>feature/exercise/</code></td></tr>
+    <tr><td>Notas rápidas</td><td><span class="chip warn">crece</span></td><td>App aparte</td><td><code>feature/notes/NotesScreen.kt</code></td></tr>
+    <tr><td>Bancos, IA, Semana, Reloj</td><td><span class="chip ok">existe</span></td><td>Launcher</td><td><small>no cambian</small></td></tr>
+  </tbody>
+</table></div>
+<p>Para no romper nada, la “app aparte” empieza como un módulo del mismo proyecto que comparte la base de datos. Las pantallas de hoy se mudan una a una; el launcher sigue leyendo lo mismo.</p>
+</section>
+
+<section id="preguntas">
+<p class="ve-label caps">Decisiones</p>
+<h2>Tres decisiones tomadas</h2>
+<div class="ve-table"><table>
+  <thead><tr><th>Pregunta</th><th>Decisión</th></tr></thead>
+  <tbody>
+    <tr><td>¿También en la computadora?</td><td><span class="chip ok">sí</span> Una vista web que lee los mismos registros</td></tr>
+    <tr><td>¿Cómo sabe que llegaste a casa o dejaste la oficina?</td><td><span class="chip ok">ubicación</span> Geocerca de casa y oficina</td></tr>
+    <tr><td>¿WhatsApp puede pedir un toque?</td><td><span class="chip ok">sí</span> Abre el chat con el texto listo; tú lo envías</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<section class="sources" aria-label="Fuentes"><p class="ve-label caps">Fuentes</p>
+<p><code>app-plan.md</code> · notas del cuaderno (7 páginas) · <code>data/Space.kt</code> · <code>data/ReminderScheduler.kt</code> · <code>data/WidgetGrid.kt</code> · <code>ui/FrictionScreen.kt</code> · <code>BACKLOG.md</code></p></section>
+</main>
+<script>
+(function(){
+  var fin=document.getElementById('fin'); if(!fin) return;
+  var I=12000,F=7000,f=function(n){return Math.round(n).toLocaleString('en-US')};
+  var ctl=document.createElement('div'); ctl.className='fin-ctl';
+  ctl.innerHTML='<label for="pct">Ahorro</label><input id="pct" type="range" min="0" max="50" step="5" value="20"><span id="pv">20 %</span>';
+  fin.querySelector('.fin').prepend(ctl);
+  var r=ctl.querySelector('input');
+  function model(p){var d=I-F,s=d*p/100,e=d-s;return{s:s,e:e,w:e/30*7,day:e/30}}
+  function draw(){var p=+r.value,m=model(p);
+    document.getElementById('pv').textContent=p+' %';
+    document.getElementById('sv').style.flexBasis=(m.s/I*100)+'%';document.getElementById('sv').textContent=f(m.s);
+    document.getElementById('ex').style.flexBasis=(m.e/I*100)+'%';document.getElementById('ex').textContent='Extras '+f(m.e);
+    document.getElementById('vm').textContent='$'+f(m.e);document.getElementById('vs').textContent='$'+f(m.w);document.getElementById('vd').textContent='$'+f(m.day);
+    fin.querySelector('.fin-bar').setAttribute('aria-label','De '+f(I)+': '+f(F)+' fijos, '+f(m.s)+' ahorro, '+f(m.e)+' extras');}
+  r.addEventListener('input',draw);
+})();
+</script>
+</body>
+</html>

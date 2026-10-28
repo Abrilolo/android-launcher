@@ -1,11 +1,15 @@
 package com.adrian.minimallauncher.feature.vault
 
+import com.adrian.minimallauncher.ui.components.DotIcons
+import com.adrian.minimallauncher.ui.components.DotIcon
+import com.adrian.minimallauncher.ui.components.DotActivation
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -69,16 +73,19 @@ fun unlockVault(activity: FragmentActivity, onUnlocked: () -> Unit) {
     BiometricHelper.prompt(activity, title = "Bancos", subtitle = "Confirma con tu huella o PIN", onSuccess = onUnlocked)
 }
 
-/** Home widget: never shows which apps or balances are inside, only that it is locked. */
+/**
+ * Home widget: never shows which apps or balances are inside, or how many; only the padlock, big and centered.
+ * Each change of [opening] plays the padlock opening (the caller opens Bancos once it has played).
+ */
 @Composable
-fun VaultWidget(appCount: Int) {
-    Column(Modifier.fillMaxSize(), Arrangement.SpaceBetween) {
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            SmallLabel("BANCOS")
-            Box(Modifier.size(6.dp).background(LauncherRed, CircleShape))
-        }
-        FingerprintIcon(size = 44.dp)
-        SmallLabel("BLOQUEADO · $appCount APPS")
+fun VaultWidget(opening: Int = 0) {
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        DotIcon(
+            DotIcons.candadoGrande, done = true, contentDescription = "Bancos bloqueado",
+            size = minOf(96.dp, minOf(maxWidth, maxHeight) * 0.75f),
+            activation = DotActivation.Unlock,
+            replay = opening,
+        )
     }
 }
 

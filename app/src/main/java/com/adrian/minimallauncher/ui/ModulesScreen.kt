@@ -57,6 +57,9 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.Locale
+import com.adrian.minimallauncher.feature.ai.AiApp
+import com.adrian.minimallauncher.feature.ai.AiAppPicker
+import com.adrian.minimallauncher.feature.ai.AiAppsEditor
 import java.time.format.DateTimeFormatter
 
 private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
@@ -64,7 +67,7 @@ private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
 /** Home tile ids with the name shown in Módulos, in the same order as the home grid. */
 private val MODULE_NAMES = mapOf(
     "alarms" to "Alarma", "exercise" to "Ejercicio", "finance" to "Finanzas", "diet" to "Dieta",
-    "world" to "Mundo", "vault" to "Bancos", "notes" to "Notas",
+    "world" to "Mundo", "vault" to "Bancos", "notes" to "Notas", "ai" to "Asistentes IA",
 )
 
 /**
@@ -217,6 +220,7 @@ private fun summary(id: String, s: ModuleSettings): String = when (id) {
 @Composable
 private fun ModuleEditor(id: String, settings: ModuleSettings, onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit) {
     when (id) {
+        "ai" -> AiAppsEditor(settings, onUpdate)
         "alarms" -> {
             val context = LocalContext.current
             Text("Las alarmas se crean en el Reloj del teléfono. El inicio muestra la siguiente.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -288,11 +292,16 @@ fun WidgetSetupScreen(
     onPinNote: (String) -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    /** For a single-assistant widget: shows another app in it. */
+    onPickAi: (AiApp) -> Unit = {},
 ) {
+    val ai = AiApp.fromWidget(widgetId)
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-        ModuleHeader(if (widgetId == "world") "RELOJ MUNDIAL" else "NOTA FIJADA", onDone, Modifier.padding(top = 8.dp))
+        ModuleHeader(if (ai != null) "ASISTENTES IA" else if (widgetId == "world") "RELOJ MUNDIAL" else "NOTA FIJADA", onDone, Modifier.padding(top = 8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (widgetId == "world") {
+            if (ai != null) {
+                AiAppPicker(ai, onPickAi)
+            } else if (widgetId == "world") {
                 ModuleEditor("world", settings, onUpdate)
             } else if (notes.isEmpty()) {
                 Text("Todavía no hay notas. Escribe una en Notas y fíjala para verla aquí.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -397,6 +406,11 @@ private fun WaterEditor(settings: ModuleSettings, onUpdate: ((ModuleSettings) ->
         ModuleChip("+", false) { onUpdate { it.copy(waterGoal = (it.waterGoal + 1).coerceAtMost(20)) } }
         SmallLabel("= ${formatMl(settings.waterGoal * settings.waterGlassMl)} AL DÍA", color = MaterialTheme.colorScheme.onSurface)
     }
+    // The widget shows the containers whose turn is near, spread over these hours.
+    SmallLabel("DESDE")
+    ChipRow((6..10).map { LocalTime.of(it, 0) }, settings.waterFrom, { it.format(DateTimeFormatter.ofPattern("HH:mm")) }) { t -> onUpdate { it.copy(waterFrom = t) } }
+    SmallLabel("HASTA")
+    ChipRow((19..23).map { LocalTime.of(it, 0) }, settings.waterTo, { it.format(DateTimeFormatter.ofPattern("HH:mm")) }) { t -> onUpdate { it.copy(waterTo = t) } }
 }
 
 @Composable

@@ -30,7 +30,7 @@ fun PersonalSectionBody(id: String, records: PersonalRecords, actions: PersonalR
             var reminderTitle by rememberSaveable { mutableStateOf("") }
             var reminderTime by rememberSaveable { mutableStateOf("08:00") }
             records.reminders.forEach { reminder ->
-                RecordLine("${reminder.title}  ${"%02d:%02d".format(reminder.hour, reminder.minute)}  ·  ${reminder.spaceName}", "×") { actions.deleteReminder(reminder.id) }
+                RecordLine("${reminder.title}  ${"%02d:%02d".format(reminder.hour, reminder.minute)}  ·  ${reminder.phaseId}", "×") { actions.deleteReminder(reminder.id) }
             }
             OutlinedTextField(reminderTitle, { reminderTitle = it }, Modifier.fillMaxWidth(), placeholder = { Text("Recordatorio") }, singleLine = true)
             OutlinedTextField(reminderTime, { reminderTime = it.take(5) }, Modifier.fillMaxWidth().padding(top = 6.dp), placeholder = { Text("HH:mm") }, singleLine = true)

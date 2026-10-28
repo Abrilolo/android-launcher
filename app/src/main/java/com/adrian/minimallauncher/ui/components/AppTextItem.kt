@@ -1,4 +1,6 @@
 package com.adrian.minimallauncher.ui.components
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,13 +20,20 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun appItemHeight(): Dp = with(LocalDensity.current) { 28.sp.toDp() } + 16.dp
 @Composable
-fun AppTextItem(label: String, onClick: () -> Unit, color: Color = MaterialTheme.colorScheme.onSurface) {
-    Text(
-        label,
-        Modifier.fillMaxWidth().height(appItemHeight()).clickable(onClick = onClick).wrapContentHeight(Alignment.CenterVertically),
-        color = color,
-        style = MaterialTheme.typography.headlineSmall.copy(fontSize = 21.sp),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+fun AppTextItem(label: String, onClick: () -> Unit, color: Color = MaterialTheme.colorScheme.onSurface, locked: Boolean = false) {
+    Row(
+        Modifier.fillMaxWidth().height(appItemHeight()).clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            Modifier.weight(1f, fill = false),
+            color = color,
+            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 21.sp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        // Out of schedule: a small gray lock (it opens after the pause).
+        if (locked) DotIcon(DotIcons.candado, done = false, contentDescription = "Fuera de horario", Modifier.padding(start = 10.dp), size = 16.dp)
+    }
 }

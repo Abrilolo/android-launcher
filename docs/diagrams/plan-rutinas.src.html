@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<title>Rutinas y registros conectados</title>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Plan · android-launcher</p>
+  <h1>Rutinas y registros conectados en el launcher</h1>
+  <p class="lead">Un <b>motor de rutinas</b> reemplaza los 3 espacios; Finanzas, Comida y Ejercicio comparten registros, y un pago sin registrar bloquea el inicio.</p>
+  <ve-files>
+    + app/src/main/java/com/adrian/minimallauncher/data/routine/Routine.kt          # fases, disparadores y acciones
+    + app/src/main/java/com/adrian/minimallauncher/data/routine/RoutineEngine.kt    # fase actual por hora y ubicación
+    + app/src/main/java/com/adrian/minimallauncher/data/routine/Places.kt           # geocercas de casa y oficina
+    ~ app/src/main/java/com/adrian/minimallauncher/data/Space.kt                    # queda dentro de cada fase
+    ~ app/src/main/java/com/adrian/minimallauncher/data/ReminderScheduler.kt        # recordatorios por punto
+    ~ app/src/main/java/com/adrian/minimallauncher/data/PersonalRecords.kt          # tipos de gasto, comida con nutrientes
+    ~ app/src/main/java/com/adrian/minimallauncher/data/LauncherDatabase.kt         # versión 3 y migración
+    ~ app/src/main/java/com/adrian/minimallauncher/data/BackupRepository.kt         # tablas nuevas en el respaldo
+    + app/src/main/java/com/adrian/minimallauncher/feature/finance/Budget.kt        # presupuesto, ahorro y bolsa de extras
+    ~ app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceScreen.kt
+    + app/src/main/java/com/adrian/minimallauncher/feature/food/Recipes.kt          # recetas e ingredientes
+    + app/src/main/assets/ingredients.json                                          # base precargada
+    ~ app/src/main/java/com/adrian/minimallauncher/ui/DietPage.kt
+    ~ app/src/main/java/com/adrian/minimallauncher/feature/exercise/ExercisePlan.kt # ajuste según kcal
+    + app/src/main/java/com/adrian/minimallauncher/PaymentListener.kt               # lee avisos del banco
+    + app/src/main/java/com/adrian/minimallauncher/ui/ForcedEntryScreen.kt          # registro obligatorio
+    ~ app/src/main/java/com/adrian/minimallauncher/MainActivity.kt
+    ~ app/src/main/java/com/adrian/minimallauncher/feature/notes/NotesScreen.kt     # notas por aspecto
+    ~ app/src/main/AndroidManifest.xml                                              # ubicación y acceso a notificaciones
+    + web/                                                                          # vista web, al final
+  </ve-files>
+  <ve-why>
+    <ve-quote via="app-plan.md" from="you">Algunas de las cosas no tienen que ser nativas del launcher y tendremos que hacer una “app” desde cero. Tienes que saber diferenciar que tiene que ir en que sin romper el funcionamiento.</ve-quote>
+    <ve-quote via="cuaderno" from="you">Detectamos pago – comida → próximo desbloqueo de pantalla abrimos registro de gasto → registramos comida, si no no podremos volver a la vista normal.</ve-quote>
+    <ve-quote via="prompt" from="you">okey ahora hagamos un plan para implementar todo esto</ve-quote>
+  </ve-why>
+  <ve-revision v="2">
+    <li>Se empieza por Rutinas.</li>
+    <li>El modo forzoso cubre todo el teléfono, sin permiso de superposición: se abre el registro y no deja salir hasta terminar.</li>
+    <li>Ingredientes de USDA, con porciones editables e ingredientes propios.</li>
+    <li>Pasar la meta de kcal elige un ejercicio del mismo grupo muscular en un stack que armas después.</li>
+    <li>La vista web lee el respaldo JSON; no hay servidor.</li>
+    <li>La lectura de avisos del banco se revisa después; mientras, hay un pago de prueba.</li>
+  </ve-revision>
+</header>
+
+<figure class="hero">
+  <ve-flow label="La hora y la ubicación disparan el motor de rutinas, que cambia apps, recordatorios y audio. Un aviso del banco activa el modo forzoso, que pide el registro en Finanzas y Comida. Los registros se sincronizan con la vista web; las notas rápidas alimentan los widgets.">
+    <ve-node id="hora" at="1 1" sub="+ ubicación" claim="1">Hora</ve-node>
+    <ve-node id="motor" at="2 1" sub="5 fases" key new claim="1">Motor de rutinas</ve-node>
+    <ve-node id="efectos" at="3 1" sub="recordatorios · audio" claim="1">Apps por fase</ve-node>
+    <ve-node id="banco" at="1 2" sub="notificación" new claim="4">Aviso del banco</ve-node>
+    <ve-node id="forzoso" at="2 2" new claim="4">Modo forzoso<small data-if="bloqueo=launcher">en el launcher</small><small data-if="bloqueo=total">todo el teléfono</small></ve-node>
+    <ve-node id="registros" at="3 2" shape="db" sub="finanzas · comida · ejercicio" claim="2 3">Registros</ve-node>
+    <ve-node id="notas" at="1 3" sub="por aspecto" claim="5">Notas rápidas</ve-node>
+    <ve-node id="widgets" at="2 3" sub="lógica, sin diseño" new claim="5">Widgets</ve-node>
+    <ve-node id="web" at="3 3" new claim="5">Vista web<small data-if="sync=drive">solo lectura</small></ve-node>
+    <ve-edge from="hora" to="motor" claim="1" label="dispara"/>
+    <ve-edge from="motor" to="efectos" claim="1" label="cambia"/>
+    <ve-edge from="motor" to="forzoso" claim="4" label="sin marcar"/>
+    <ve-edge from="banco" to="forzoso" hot claim="4" label="pago"/>
+    <ve-edge from="forzoso" to="registros" hot claim="4" label="pide registro"/>
+    <ve-edge from="registros" to="web" async claim="5" label="sincroniza"/>
+    <ve-edge from="notas" to="widgets" claim="5" label="pendientes"/>
+  </ve-flow>
+  <figcaption><span class="fig-n">Fig. 1</span>El motor de rutinas y el modo forzoso son lo nuevo; los registros crecen sobre las tablas que ya existen.</figcaption>
+</figure>
+
+<ve-plan>
+
+  <ve-claim check="A las horas de cada fase, el inicio muestra las apps y los recordatorios de esa fase; al salir de la oficina se abre la lista de pendientes.">
+    <p>Cinco fases de rutina deciden apps, recordatorios, audio y acciones de salida.</p>
+    <ve-code title="data/routine/Routine.kt · boceto" lang="kotlin">
+<script type="text/plain">
+data class RoutinePhase(
+    val id: String,                     // "inicio", "traslado", "trabajo", "salida", "casa"
+    val trigger: Trigger,
+    val groups: Set<AppGroup>,          // lo mismo que hoy decide Space
+    val dots: List<DotReminder>,        // agua, caminar, colación… sin texto
+    val audio: AudioAction? = null,     // abre música o podcast
+    val onEnter: List<PhaseAction> = emptyList(),  // pendientes, WhatsApp, lista de casa
+)
+
+sealed interface Trigger {
+    data class Between(val start: LocalTime, val end: LocalTime) : Trigger
+    data class Arrive(val place: PlaceId) : Trigger
+    data class Leave(val place: PlaceId) : Trigger
+}
+</script>
+    </ve-code>
+
+    <ve-claim>
+      <p>La regla de apps de cada espacio se queda igual dentro de cada fase.</p>
+      <ve-code src="app/src/main/java/com/adrian/minimallauncher/data/Space.kt" lines="12-28" hl="22">
+        <ve-pin line="22"><code>allows()</code> se reutiliza: cada fase guarda sus grupos de apps. Los espacios guardados pasan a las fases en la primera carga.</ve-pin>
+      </ve-code>
+    </ve-claim>
+
+    <ve-claim evidence="inferred" check="Al cruzar la geocerca de la oficina con la app cerrada, el launcher cambia a la fase de salida.">
+      <p>Salir de la oficina y llegar a casa se detectan con geocercas.</p>
+      <ve-calls title="Ubicación">
+<script type="text/plain">
++ **Places.register**(casa, oficina)          @ data/routine/Places.kt        -- GeofencingClient, radio 150 m
++   **GeofenceReceiver.onReceive**(evento)    @ data/routine/Places.kt
++     RoutineEngine.enter(fase)               @ data/routine/RoutineEngine.kt
+~ AndroidManifest                              @ app/src/main/AndroidManifest.xml           -- ubicación precisa y en segundo plano
+</script>
+      </ve-calls>
+    </ve-claim>
+
+    <ve-claim check="Al entrar a la fase de salida, se abre WhatsApp con el texto listo en el chat elegido.">
+      <p>El mensaje de WhatsApp abre el chat con el texto listo; tú lo envías.</p>
+      <ve-code title="PhaseAction.kt · boceto" lang="kotlin">
+<script type="text/plain">
+val uri = Uri.parse("https://wa.me/$phone?text=${Uri.encode(text)}")
+context.startActivity(Intent(Intent.ACTION_VIEW, uri).setPackage("com.whatsapp"))
+</script>
+      </ve-code>
+    </ve-claim>
+
+    <ve-claim>
+      <p>Los recordatorios de cada fase usan el programador que ya existe.</p>
+      <ve-code src="app/src/main/java/com/adrian/minimallauncher/data/ReminderScheduler.kt" lines="12-28" hl="20">
+        <ve-pin line="20">El extra pasa de <code>spaceName</code> a la fase y al ícono de punto; la notificación no lleva texto largo.</ve-pin>
+      </ve-code>
+    </ve-claim>
+  </ve-claim>
+
+  <ve-claim check="Con ingreso 12,000, fijos 7,000 y ahorro 20 %, la vista muestra 4,000 de extras y 133 al día.">
+    <p>Finanzas reparte cada ingreso fijo en fijos, ahorro y una bolsa de extras.</p>
+    <ve-code title="feature/finance/Budget.kt · boceto" lang="kotlin">
+<script type="text/plain">
+enum class MoneyKind { INCOME_FIXED, TRANSFER, GIFT, SERVICE, FIXED, EXTRA, SHARED }
+
+fun extrasLeftToday(month: MonthMoney, today: LocalDate): Long {
+    val bag = (month.fixedIncome - month.fixedCosts) * (100 - month.savingPct) / 100
+    val week = bag * 7 / today.lengthOfMonth()
+    val spentThisWeek = month.extrasSpent(weekOf(today), before = today)
+    return (week - spentThisWeek) / daysLeftInWeek(today)   // gastar de más hoy baja mañana
+}
+</script>
+    </ve-code>
+
+    <ve-claim>
+      <p>Cada movimiento guarda su tipo; hoy solo guarda monto y concepto.</p>
+      <ve-code src="app/src/main/java/com/adrian/minimallauncher/data/PersonalRecords.kt" lines="18-19" hl="19">
+        <ve-pin line="19">La versión 3 agrega <code>kind</code>, <code>category</code> y <code>pendingFromOthersCents</code>. Los gastos de hoy pasan como <code>EXTRA</code>.</ve-pin>
+      </ve-code>
+    </ve-claim>
+
+    <ve-claim check="Una cuenta de 900 pagada por ti queda con 600 por cobrar hasta que marcas los pagos.">
+      <p>Una cuenta compartida queda “por cobrar” hasta que te pagan.</p>
+      <ve-code title="Budget.kt · boceto" lang="kotlin">
+<script type="text/plain">
+FinanceRecord(kind = SHARED, amountCents = 90000, pendingFromOthersCents = 60000)
+fun settle(id: String, paidCents: Long)   // baja lo pendiente; en 0 se cierra
+</script>
+      </ve-code>
+    </ve-claim>
+  </ve-claim>
+
+  <ve-claim check="Registrar una receta suma sus kcal y nutrientes al día; pasar la meta cambia la sesión sugerida de Ejercicio.">
+    <p>Comida registra recetas o ingredientes y ajusta el entrenamiento del día.</p>
+    <ve-code title="feature/food/Recipes.kt · boceto" lang="kotlin">
+<script type="text/plain">
+@Entity(tableName = "recipes")     data class Recipe(id, name, photoUri, steps, prepMinutes)
+@Entity(tableName = "ingredients") data class Ingredient(id, name, kcal, protein, carbs, fiber, vitamins)  // por 100 g
+@Entity(tableName = "recipe_items") data class RecipeItem(recipeId, ingredientId, grams)
+// MealRecord gana recipeId? y los totales del plato
+</script>
+    </ve-code>
+    <ve-ask id="ingredientes" q="¿De dónde sale la base de ingredientes precargada?">
+      <ve-opt value="corta" note="unos 150 alimentos comunes">Lista en español que crece</ve-opt>
+      <ve-opt value="usda" default note="porciones editables; puedes agregar">Base pública USDA</ve-opt>
+    </ve-ask>
+    <ve-ask id="ajuste" q="¿Qué hace Ejercicio cuando pasas tu meta de kcal?">
+      <ve-opt value="stack" default note="el contenido lo armas después">Stack del mismo grupo muscular que quema el exceso</ve-opt>
+      <ve-opt value="sugiere" note="tú decides si lo haces">Sugiere más minutos de cardio</ve-opt>
+      <ve-opt value="muestra" note="no cambia la sesión">Solo muestra la diferencia</ve-opt>
+    </ve-ask>
+
+    <ve-claim>
+      <p>Las medidas usan la tabla que ya existe y mueven las metas de peso e IMC.</p>
+      <ve-code src="app/src/main/java/com/adrian/minimallauncher/data/PersonalRecords.kt" lines="24-25" hl="25">
+        <ve-pin line="25"><code>BodyMetricRecord</code> ya guarda tipo y valor; solo faltan las metas en ajustes.</ve-pin>
+      </ve-code>
+    </ve-claim>
+  </ve-claim>
+
+  <ve-claim evidence="guess" check="Un pago con tarjeta crea un pendiente y, al ir al inicio, se abre el registro en lugar del inicio.">
+    <p>Un pago detectado abre el registro y no deja usar el inicio hasta terminarlo.</p>
+    <ve-calls title="Pago">
+<script type="text/plain">
++ **PaymentListener.onNotificationPosted**(sbn)   @ PaymentListener.kt      -- NotificationListenerService
++   parseAmount(texto del banco)                  @ PaymentListener.kt      -- un patrón por banco
++   pending_payments.insert(monto, banco, hora)   @ data/LauncherDatabase.kt
+~ LauncherScreen                                  @ app/src/main/java/com/adrian/minimallauncher/ui/LauncherScreen.kt    -- si hay pendiente, muestra ForcedEntryScreen
++   **ForcedEntryScreen**(pago)                   @ ui/ForcedEntryScreen.kt -- ¿comida? → gasto → comida
+?   superposición al desbloquear                  @ PaymentListener.kt      -- solo con bloqueo total
+</script>
+    </ve-calls>
+    <ve-ask id="bloqueo" q="¿Qué tanto bloquea el modo forzoso?">
+      <ve-opt value="launcher" note="sin permisos extra">Solo el inicio del launcher</ve-opt>
+      <ve-opt value="total" default new="1" note="sin superposición; no deja salir">Todo el teléfono al desbloquear</ve-opt>
+    </ve-ask>
+
+    <ve-claim evidence="guess">
+      <p>Tus bancos avisan cada pago con una notificación que incluye el monto.</p>
+      <ve-code title="Aviso de ejemplo · inventado" lang="text">
+<script type="text/plain">
+Compra aprobada por $85.00 en OXXO con tu tarjeta *1234
+→ monto 8500 centavos, comercio "OXXO"
+</script>
+      </ve-code>
+    </ve-claim>
+
+    <ve-claim>
+      <p>La pantalla de registro sigue el patrón de la pausa que ya existe.</p>
+      <ve-code src="app/src/main/java/com/adrian/minimallauncher/ui/FrictionScreen.kt" lines="29-37" hl="37">
+        <ve-pin line="37">Igual que aquí, atrás no cierra la pantalla. La diferencia es que se libera al guardar el registro, no al pasar un tiempo.</ve-pin>
+      </ve-code>
+    </ve-claim>
+  </ve-claim>
+
+  <ve-claim check="Una nota de Trabajo nueva sube el contador de Trabajo en el widget de notas; el mismo gasto aparece en la vista web.">
+    <p>Notas rápidas, widgets y la vista web leen los mismos registros.</p>
+    <ve-code src="app/src/main/java/com/adrian/minimallauncher/data/PersonalRecords.kt" lines="10-13" hl="12">
+      <ve-pin line="12">Las categorías pasan a ser los aspectos: Trabajo, Escuela, Ejercicio, Comida y Dieta.</ve-pin>
+    </ve-code>
+    <ve-ask id="sync" q="¿Dónde viven los datos que lee la vista web?">
+      <ve-opt value="supabase" note="base en la nube, gratis al inicio">Supabase</ve-opt>
+      <ve-opt value="firebase" note="servicio de Google">Firebase</ve-opt>
+      <ve-opt value="drive" default note="sin servidor; la web solo lee">Respaldo JSON en Drive</ve-opt>
+    </ve-ask>
+
+    <ve-claim>
+      <p>Los widgets eligen qué mostrar según la fase; su diseño se hace después.</p>
+      <ve-calls title="Widget">
+<script type="text/plain">
++ **WidgetSelector.pick**(fase, ahora)   @ ui/components/WidgetSelector.kt  -- comida cerca, entrenar, pago pendiente
+</script>
+      </ve-calls>
+    </ve-claim>
+  </ve-claim>
+
+  <ve-claim aux="shared">
+    <p>Compartido: la base de datos sube a versión 3 sin perder lo guardado.</p>
+    <ve-code src="app/src/main/java/com/adrian/minimallauncher/data/LauncherDatabase.kt" lines="18-22" hl="20">
+      <ve-pin line="20">Versión 3: columnas nuevas con valores por defecto y tablas nuevas. El respaldo JSON sube de formato y sigue leyendo el anterior.</ve-pin>
+    </ve-code>
+    <ve-ask id="orden" q="¿Qué parte construimos primero?">
+      <ve-opt value="rutinas" default>Rutinas</ve-opt>
+      <ve-opt value="finanzas">Finanzas</ve-opt>
+      <ve-opt value="comida">Comida</ve-opt>
+    </ve-ask>
+    <ol>
+      <li>Base: base de datos versión 3 y respaldo.</li>
+      <li>Rutinas: fases por hora, apps, recordatorios por punto y audio.</li>
+      <li>Finanzas: tipos de ingreso, ahorro, bolsa de extras y cuentas compartidas.</li>
+      <li>Comida: recetas, ingredientes, metas, y el ajuste en Ejercicio.</li>
+      <li>Pago detectado y modo forzoso.</li>
+      <li>Ubicación: geocercas, pendientes al salir y WhatsApp.</li>
+      <li>Notas por aspecto y lógica de widgets.</li>
+      <li>Vista web.</li>
+    </ol>
+    <p>Cada paso compila, se instala en el S24+ y queda “por validar” en <code>BACKLOG.md</code>. La “app aparte” es primero un módulo del mismo proyecto.</p>
+  </ve-claim>
+
+  <ve-claim aux="scope">
+    <p>No cambia: Bancos, Asistentes IA, Reloj mundial, Semana y el lenguaje de puntos.</p>
+    <ul>
+      <li>El diseño de los widgets queda fuera hasta que lo pidas.</li>
+      <li>Cada vista nueva sigue la regla de puntos gris, blanco y rojo, y lleva engrane de ajustes.</li>
+    </ul>
+  </ve-claim>
+
+</ve-plan>
+
+</body>
+</html>

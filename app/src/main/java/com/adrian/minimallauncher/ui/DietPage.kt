@@ -110,7 +110,6 @@ fun DietPage(
                     SmallLabel("COMIDAS", color = LauncherRed)
                     SettingsGear(onSettings)
                 }
-                DotMatrixText("$count/${meals.size}", cell = 7.dp, accents = mapOf('/' to LauncherRed), reveal = count)
             }
             if (meals.isEmpty()) SmallLabel("SIN COMIDAS · AGRÉGALAS CON EL ENGRANE")
             meals.indices.chunked(MEALS_PER_ROW).forEach { row ->
@@ -242,7 +241,6 @@ private fun WaterCard(date: LocalDate, settings: ModuleSettings, habits: Set<Str
         ) {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 SmallLabel("AGUA", color = LauncherRed)
-                DotMatrixText("$count/$goal", cell = 3.5.dp, accents = mapOf('/' to LauncherRed), reveal = count)
             }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val gap = 4.dp
@@ -272,7 +270,7 @@ private fun WaterCard(date: LocalDate, settings: ModuleSettings, habits: Set<Str
                 }
             }
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                SmallLabel("$unit DE ${formatMl(ml)}")
+                SmallLabel(formatMl(ml))
                 SmallLabel("${formatMl(count * ml)} / ${formatMl(goal * ml)}", color = MaterialTheme.colorScheme.onSurface)
             }
         }

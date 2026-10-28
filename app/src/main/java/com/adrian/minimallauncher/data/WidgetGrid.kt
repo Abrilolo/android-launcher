@@ -12,8 +12,15 @@ data class GridSize(val w: Int, val h: Int) {
 fun sizesFor(widgetId: String): List<GridSize> = when (widgetId) {
     "notes" -> listOf(GridSize(4, 1), GridSize(4, 2))
     "clock" -> listOf(GridSize(4, 2), GridSize(2, 2))
+    // Asistentes IA: the strip with every assistant is 4×1; a single assistant ("ai:<app>") is 2×2 or 4×2.
+    "ai" -> listOf(GridSize(4, 1))
+    "routine" -> listOf(GridSize(2, 2), GridSize(4, 2), GridSize(4, 1))
     else -> listOf(GridSize(2, 2), GridSize(4, 2))
 }
+
+/** Layouts the catalog offers: Asistentes IA shows its strip and the single-app ones under one entry. */
+fun catalogSizesFor(widgetId: String): List<GridSize> =
+    if (widgetId == "ai") listOf(GridSize(4, 1), GridSize(2, 2), GridSize(4, 2)) else sizesFor(widgetId)
 
 /** The Apps page starts with the big clock on top of the app list. */
 val APPS_DEFAULT_LAYOUT = listOf(WidgetStackConfig("stack_clock", listOf("clock"), span = 2, col = 0, row = 0, w = 4, h = 2))

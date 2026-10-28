@@ -1,7 +1,14 @@
 package com.adrian.minimallauncher.data
 
+import android.content.ClipData
 import android.content.Context
+import androidx.core.content.FileProvider
+import java.io.File
 import android.content.Intent
+import android.content.pm.LauncherApps
+import android.net.Uri
+import android.os.Process
+import com.adrian.minimallauncher.feature.ai.AppShortcut
 
 /** An app the user picked by name; matched by known package or by its launcher label. */
 private class CuratedApp(val names: List<String>, val packages: List<String> = emptyList(), val prefix: Boolean = false) {
@@ -105,9 +112,93 @@ class AppRepository(private val context: Context) {
     }
 
     fun openApp(packageName: String) {
+        val launcherApps = context.getSystemService(LauncherApps::class.java)
+        val activity = runCatching { launcherApps?.getActivityList(packageName, Process.myUserHandle())?.firstOrNull() }.getOrNull()
+        if (launcherApps != null && activity != null && runCatching { launcherApps.startMainActivity(activity.componentName, Process.myUserHandle(), null, null) }.isSuccess) return
         context.packageManager.getLaunchIntentForPackage(packageName)?.let { intent ->
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
             context.startActivity(intent)
         }
+    }
+
+    /**
+     * Up to four shortcuts each app publishes (new chat, voice…), the ones in its manifest first. Only the default
+     * launcher may read them, so this is empty until the user picks this launcher as home.
+     */
+    fun loadShortcuts(packages: Collection<String>): Map<String, List<AppShortcut>> {
+        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return packages.associateWith(::builtInShortcuts)
+        if (runCatching { launcherApps.hasShortcutHostPermission() }.getOrDefault(false).not()) return packages.associateWith(::builtInShortcuts)
+        return packages.associateWith { pkg ->
+            val query = LauncherApps.ShortcutQuery()
+                .setPackage(pkg)
+                .setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC)
+            runCatching { launcherApps.getShortcuts(query, Process.myUserHandle()) }.getOrNull().orEmpty()
+                .filter { it.isEnabled }
+                .sortedWith(compareBy({ !it.isDeclaredInManifest }, { it.rank }))
+                .mapNotNull { info -> (info.shortLabel ?: info.longLabel)?.toString()?.takeIf(String::isNotBlank)?.let { AppShortcut(pkg, info.id, it) } }
+                .ifEmpty { builtInShortcuts(pkg) }
+        }
+    }
+
+    /**
+     * Gemini publishes no shortcuts: its assistant lives in the Google app. These open it there instead, each only
+     * when the phone can handle it: talk to it, or point the camera with Lens.
+     */
+    private fun builtInShortcuts(packageName: String): List<AppShortcut> {
+        if (packageName != GEMINI_PACKAGE) return emptyList()
+        return listOf("voice" to "HABLAR", "lens" to "LENS")
+            .filter { (id, _) -> context.packageManager.resolveActivity(builtInIntent(id), 0) != null }
+            .map { (id, label) -> AppShortcut(packageName, BUILT_IN + id, label) }
+    }
+
+    private fun builtInIntent(id: String): Intent = when (id) {
+        "voice" -> Intent(Intent.ACTION_VOICE_COMMAND).setPackage(GOOGLE_APP)
+        else -> Intent().setClassName(GOOGLE_APP, "com.google.android.apps.search.lens.LensExportedActivity")
+    }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    fun startShortcut(packageName: String, id: String) {
+        if (id.startsWith(BUILT_IN)) {
+            runCatching { context.startActivity(builtInIntent(id.removePrefix(BUILT_IN))) }.onFailure { openApp(packageName) }
+            return
+        }
+        val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return
+        runCatching { launcherApps.startShortcut(packageName, id, null, null, Process.myUserHandle()) }
+            .onFailure { openApp(packageName) }
+    }
+
+    /** A new file for the camera to save a photo into, readable by the app it is shared with. */
+    fun newPhotoUri(): Uri {
+        val dir = File(context.cacheDir, "shared").apply { mkdirs() }
+        val file = File(dir, "photo_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+    /** Hands an image to [packageName] as a share, so it lands in a new chat there. */
+    fun shareImage(packageName: String, uri: Uri) {
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("image/*")
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .setPackage(packageName)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        intent.clipData = ClipData.newRawUri("", uri)
+        runCatching { context.startActivity(intent) }.onFailure { openApp(packageName) }
+    }
+
+    /** The app's page in the Play Store, or on the web if there is no store. */
+    fun openStore(packageName: String) {
+        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(market) }.onFailure {
+            runCatching {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+        }
+    }
+
+    private companion object {
+        const val GEMINI_PACKAGE = "com.google.android.apps.bard"
+        const val GOOGLE_APP = "com.google.android.googlequicksearchbox"
+        const val BUILT_IN = "launcher:"
     }
 }

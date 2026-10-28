@@ -1,5 +1,7 @@
 package com.adrian.minimallauncher.ui
 
+import com.adrian.minimallauncher.data.routine.PhaseMode
+import com.adrian.minimallauncher.ui.components.RoutineWidgetData
 import android.Manifest
 import android.os.Build
 import android.content.pm.PackageManager
@@ -8,8 +10,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -19,7 +19,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.adrian.minimallauncher.data.PageKind
@@ -40,7 +39,17 @@ import com.adrian.minimallauncher.ui.theme.LauncherTheme
 import com.adrian.minimallauncher.data.PersonalRecords
 import com.adrian.minimallauncher.data.PersonalRecordActions
 import com.adrian.minimallauncher.viewmodel.LauncherViewModel
-import kotlinx.coroutines.launch
+import com.adrian.minimallauncher.feature.ai.AI_STRIP
+import com.adrian.minimallauncher.feature.ai.AI_CAMERA
+import com.adrian.minimallauncher.feature.ai.AI_GALLERY
+import android.net.Uri
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.adrian.minimallauncher.feature.ai.AiApp
+import com.adrian.minimallauncher.feature.ai.aiStates
+
+/** A widget just placed that asks for its setup, and the stack it went into. */
+private data class WidgetSetup(val widgetId: String, val pageId: String, val stackId: String)
 
 @Composable
 fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseViewModel) {
@@ -51,6 +60,11 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val reminders by viewModel.reminders.collectAsState()
     val finances by viewModel.finances.collectAsState()
     val meals by viewModel.meals.collectAsState()
+    val routinePhases by viewModel.phases.collectAsState()
+    val routineCurrent by viewModel.currentPhase.collectAsState()
+    val routinePicks by viewModel.widgetPicks.collectAsState()
+    val routineReminders by viewModel.phaseReminders.collectAsState()
+    val routineChecks by viewModel.phaseChecks.collectAsState()
     val bodyMetrics by viewModel.bodyMetrics.collectAsState()
     val completedWorkouts by viewModel.completedWorkouts.collectAsState()
     val completedHabits by viewModel.completedHabits.collectAsState()
@@ -62,14 +76,14 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val widgetLayouts by viewModel.widgetLayouts.collectAsState()
     val moduleSettings by viewModel.moduleSettings.collectAsState()
     val exerciseDay by exerciseViewModel.day.collectAsState()
+    val aiShortcuts by viewModel.aiShortcuts.collectAsState()
     // Which module page is open; never saved, so Bancos is always locked after the app restarts.
     var openModule by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
-    // A widget just placed that asks for its setup (Mundo, Notas).
-    var setupWidget by remember { mutableStateOf<String?>(null) }
+    // A widget just placed that asks for its setup (Mundo, Notas, which assistant).
+    var setupWidget by remember { mutableStateOf<WidgetSetup?>(null) }
     var restrictedApp by remember { mutableStateOf<com.adrian.minimallauncher.data.LauncherApp?>(null) }
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     val personalRecords = PersonalRecords(
@@ -104,11 +118,66 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     )
 
     val vaultApps = apps.filter { it.isVault }
-    val openModuleById: (String) -> Unit = { id ->
-        if (id == "vault") (context as? FragmentActivity)?.let { activity -> unlockVault(activity) { openModule = "vault" } }
-        else openModule = id
+    // Claude's camera and gallery shortcuts: the launcher takes or picks the photo, then shares it to the app.
+    var photoFor by rememberSaveable { mutableStateOf<String?>(null) }
+    var photoUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    val takePhoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val uri = photoUri
+        val pkg = photoFor
+        if (ok && uri != null && pkg != null) viewModel.shareImage(pkg, uri)
     }
-    val homeData = HomeData(personalRecords, exerciseDay, moduleSettings, vaultApps.size)
+    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        val pkg = photoFor
+        if (uri != null && pkg != null) viewModel.shareImage(pkg, uri)
+    }
+    // Assistant widgets open apps: through the pause when the schedule keeps them closed, or the store when missing.
+    val openAppRoute: (String, () -> Unit) -> Unit = { pkg, open ->
+        val app = apps.firstOrNull { it.packageName == pkg }
+        when {
+            app == null -> viewModel.openStore(pkg)
+            space.allows(app) -> open()
+            else -> restrictedApp = app
+        }
+    }
+    val openModuleById: (String) -> Unit = { id ->
+        when {
+            id == "vault" -> (context as? FragmentActivity)?.let { activity -> unlockVault(activity) { openModule = "vault" } }
+            id.startsWith("app:") -> id.removePrefix("app:").let { pkg -> openAppRoute(pkg) { viewModel.openApp(pkg) } }
+            id.startsWith("install:") -> viewModel.openStore(id.removePrefix("install:"))
+            id.startsWith("shortcut:") -> {
+                val pkg = id.removePrefix("shortcut:").substringBefore('/')
+                openAppRoute(pkg) {
+                    when (val shortcut = id.substringAfter('/')) {
+                        AI_CAMERA -> viewModel.newPhotoUri().let { uri ->
+                            photoFor = pkg
+                            photoUri = uri
+                            runCatching { takePhoto.launch(uri) }
+                        }
+                        AI_GALLERY -> {
+                            photoFor = pkg
+                            runCatching { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                        }
+                        else -> viewModel.openShortcut(pkg, shortcut)
+                    }
+                }
+            }
+            else -> openModule = id
+        }
+    }
+    val homeData = HomeData(
+        personalRecords, exerciseDay, moduleSettings, vaultApps.size, viewModel::setHabit,
+        ai = aiStates(apps, space, spaces, now, aiShortcuts),
+        routine = RoutineWidgetData(
+            phases = routinePhases,
+            currentIndex = routinePhases.indexOfFirst { it.id == routineCurrent.id },
+            picks = routinePicks,
+            reminders = routineReminders,
+            checks = routineChecks,
+            ordered = routineCurrent.mode == PhaseMode.ORDERED,
+            onMarkAction = viewModel::markAction,
+            onToggleReminder = viewModel::toggleReminderDone,
+        ),
+    )
     val closeModule = { openModule = null }
 
     LauncherTheme {
@@ -140,10 +209,20 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             onSetMain = viewModel::setMainPage,
             onRestoreWeek = viewModel::restoreWeekPage,
             onAddWidget = { pageId, widgetId, stackId, size, at ->
-                if (stackId != null) viewModel.addWidgetToStack(pageId, stackId, widgetId) else viewModel.addWidgetAsNewStack(pageId, widgetId, size.w, size.h, at)
-                if (widgetId in WIDGETS_WITH_SETUP) setupWidget = widgetId
+                // Asistentes IA at 2×2 or 4×2 holds one app: it starts with one the stack doesn't have yet, then asks which.
+                val stack = stackId?.let { id -> widgetLayouts[pageId].orEmpty().firstOrNull { it.id == id } }
+                val oneApp = widgetId == AI_STRIP && (stack?.h ?: size.h) > 1
+                val placed = if (oneApp) AiApp.firstFree(moduleSettings.aiApps, stack?.widgetIds.orEmpty()).widgetId else widgetId
+                val placedIn = if (stackId != null) {
+                    viewModel.addWidgetToStack(pageId, stackId, placed)
+                    stackId
+                } else {
+                    viewModel.addWidgetAsNewStack(pageId, placed, size.w, size.h, at)
+                }
+                if (oneApp || placed in WIDGETS_WITH_SETUP) setupWidget = WidgetSetup(placed, pageId, placedIn)
             },
             onSettings = { openModule = "modules" },
+            overlayOpen = setupWidget != null || showSettings || openModule != null || restrictedApp != null,
         ) { page, pageScope ->
             when (page.kind) {
                 PageKind.APPS -> AppsPage(
@@ -165,12 +244,13 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                             data = homeData,
                             now = now,
                             onOpenModule = openModuleById,
-                            onEnterEdit = pageScope.enterEdit,
                             onMove = { stackId, col, row -> viewModel.moveStackTo(page.id, stackId, col, row) },
                             onResize = { stackId, w, h -> viewModel.resizeStack(page.id, stackId, w, h) },
                             onMerge = { draggedId, targetId -> viewModel.mergeStacks(page.id, draggedId, targetId) },
                             onRemoveWidget = { stackId, widgetId -> viewModel.removeWidgetFromStack(page.id, stackId, widgetId) },
+                            onRemoveStack = { stackId -> viewModel.removeStack(page.id, stackId) },
                             onAddToStack = { stackId -> pageScope.openCatalog(stackId) },
+                            onSetAlpha = { stackId, alpha -> viewModel.setWidgetAlpha(page.id, stackId, alpha) },
                         )
                     },
                     hasClock = widgetLayouts[page.id].orEmpty().any { "clock" in it.widgetIds },
@@ -183,7 +263,6 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                     exercise = exerciseDay,
                     settings = moduleSettings,
                     onOpenModule = openModuleById,
-                    onNavigateHome = pageScope.goToMain,
                     modifier = screenModifier,
                 )
                 PageKind.WIDGETS -> HomeGrid(
@@ -192,14 +271,15 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                     data = homeData,
                     widgetLayout = widgetLayouts[page.id].orEmpty(),
                     editMode = pageScope.editMode,
-                    onEnterEdit = pageScope.enterEdit,
                     onOpenModule = openModuleById,
                     onSettings = { openModule = "modules" },
                     onMove = { stackId, col, row -> viewModel.moveStackTo(page.id, stackId, col, row) },
                     onResize = { stackId, w, h -> viewModel.resizeStack(page.id, stackId, w, h) },
                     onMerge = { draggedId, targetId -> viewModel.mergeStacks(page.id, draggedId, targetId) },
                     onRemoveWidget = { stackId, widgetId -> viewModel.removeWidgetFromStack(page.id, stackId, widgetId) },
+                    onRemoveStack = { stackId -> viewModel.removeStack(page.id, stackId) },
                     onAddToStack = { stackId -> pageScope.openCatalog(stackId) },
+                    onSetAlpha = { stackId, alpha -> viewModel.setWidgetAlpha(page.id, stackId, alpha) },
                     modifier = screenModifier,
                 )
             }
@@ -210,8 +290,12 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
         val setup = setupWidget
         if (setup != null) Box(overlay) {
             WidgetSetupScreen(
-                setup, moduleSettings, notes, viewModel::updateModuleSettings,
+                setup.widgetId, moduleSettings, notes, viewModel::updateModuleSettings,
                 { id -> viewModel.setNotePinned(id, true) }, { setupWidget = null }, screenModifier,
+                onPickAi = { app ->
+                    viewModel.replaceWidget(setup.pageId, setup.stackId, setup.widgetId, app.widgetId)
+                    setupWidget = setup.copy(widgetId = app.widgetId)
+                },
             )
         } else if (showSettings) Box(overlay) {
             SettingsScreen(
@@ -229,6 +313,8 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 { showSettings = true }, if (fromModule != null) ({ openModule = fromModule }) else closeModule, screenModifier,
                 initialEditing = fromModule,
             )
+        } else if (openModule == "routine") Box(overlay) {
+            RoutineHost(viewModel, closeModule)
         } else if (openModule == "exercise") Box(overlay) {
             val exerciseSettings by exerciseViewModel.settings.collectAsState()
             val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
@@ -251,7 +337,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
         } else if (openModule == "diet") Box(overlay) {
             DietPage(now, personalRecords, personalActions, moduleSettings, viewModel::setHabit, { openModule = "settings:diet" }, closeModule, screenModifier)
         } else if (openModule == "finance") Box(overlay) {
-            FinanceScreen(finances, now, viewModel::addFinance, viewModel::deleteFinance, { openModule = "settings:finance" }, closeModule, screenModifier)
+            FinanceScreen(finances, now, moduleSettings.dailyBudgetCents, viewModel::addFinance, viewModel::deleteFinance, { openModule = "settings:finance" }, closeModule, screenModifier)
         } else if (openModule == "notes") Box(overlay) {
             NotesScreen(notes, viewModel::addNote, viewModel::deleteNote, viewModel::setNotePinned, closeModule, screenModifier)
         } else if (openModule == "vault") Box(overlay) {

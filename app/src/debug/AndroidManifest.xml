@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only ways to create a test pending payment (see DebugPaymentTile.kt). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <service
+            android:name=".DebugPaymentTile"
+            android:exported="true"
+            android:icon="@android:drawable/ic_menu_add"
+            android:label="Pago de prueba"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".DebugRoutineTile"
+            android:exported="true"
+            android:icon="@android:drawable/ic_menu_today"
+            android:label="Rutina"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name=".DebugPaymentReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.adrian.minimallauncher.DEBUG_PAYMENT" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

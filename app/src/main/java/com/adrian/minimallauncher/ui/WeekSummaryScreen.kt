@@ -1,6 +1,5 @@
 package com.adrian.minimallauncher.ui
 
-import com.adrian.minimallauncher.data.MealSlot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.adrian.minimallauncher.data.MealSlot
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecords
 import com.adrian.minimallauncher.feature.LauncherRed
@@ -60,7 +60,6 @@ fun WeekSummaryScreen(
     exercise: ExerciseDay,
     settings: ModuleSettings,
     onOpenModule: (String) -> Unit,
-    onNavigateHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val today = now.toLocalDate()
@@ -77,7 +76,6 @@ fun WeekSummaryScreen(
                 SmallLabel("SEMANA")
                 Text(rangeLabel(monday, week.last()), style = MaterialTheme.typography.headlineSmall)
             }
-            SmallLabel("INICIO ›", Modifier.clickable(role = Role.Button, onClick = onNavigateHome).padding(12.dp), color = MaterialTheme.colorScheme.onSurface)
         }
 
         ExerciseCard(week, today, exercise) { onOpenModule("exercise") }
@@ -124,9 +122,7 @@ private fun SummaryCard(title: String, onClick: () -> Unit, content: @Composable
 @Composable
 private fun ExerciseCard(week: List<LocalDate>, today: LocalDate, exercise: ExerciseDay, onClick: () -> Unit) {
     val training = week.filter { TokyoGuide.sessionFor(it).kind != SessionKind.REST }
-    val done = training.count { it in exercise.weekDone }
     SummaryCard("EJERCICIO · SESIONES", onClick) {
-        DotMatrixText("$done/${training.size}", cell = 5.dp)
         DayColumns(week, today) { day ->
             if (TokyoGuide.sessionFor(day).kind == SessionKind.REST) {
                 // Same height as the dots so the weekday letters stay on one line.
@@ -178,9 +174,9 @@ private fun DietCard(week: List<LocalDate>, today: LocalDate, elapsed: List<Loca
     val dailyHabits = elapsed.sumOf { day -> DIET_HABITS.count { (id, _) -> habitKey(day, id) in habits } }
     SummaryCard("DIETA · LO QUE VA DE LA SEMANA", onClick) {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-            Stat("COMIDAS", "$meals/${elapsed.size * mealSlots.size}")
-            Stat("AGUA", "$water/${elapsed.size * waterGoal}")
-            Stat("HÁBITOS", "$dailyHabits/${elapsed.size * DIET_HABITS.size}")
+            Stat("COMIDAS", meals, elapsed.size * mealSlots.size)
+            Stat("AGUA", water, elapsed.size * waterGoal)
+            Stat("HÁBITOS", dailyHabits, elapsed.size * DIET_HABITS.size)
         }
         // One column of dots per day, one per meal: filled when checked off.
         DayColumns(week, today) { day ->
@@ -194,11 +190,19 @@ private fun DietCard(week: List<LocalDate>, today: LocalDate, elapsed: List<Loca
     }
 }
 
+private const val STAT_DOTS = 10
+
 @Composable
-private fun Stat(label: String, value: String) {
+private fun Stat(label: String, done: Int, total: Int) {
+    // Ten dots, lit in proportion to what is done; no "N/M" count.
+    val lit = if (total == 0) 0 else (done * STAT_DOTS + total / 2) / total
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         SmallLabel(label)
-        DotMatrixText(value, cell = 2.5.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            repeat(STAT_DOTS) { i ->
+                Box(Modifier.size(5.dp).background(if (i < lit) MaterialTheme.colorScheme.onSurface else Color(0xFF4A4A4A), CircleShape))
+            }
+        }
     }
 }
 
