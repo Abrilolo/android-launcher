@@ -124,6 +124,14 @@ fun ExerciseScreen(
     modifier: Modifier = Modifier,
 ) {
     var tab by rememberSaveable { mutableStateOf(ExerciseTab.TODAY) }
+    var guided by rememberSaveable(day.date.toString()) {
+        mutableStateOf(!day.completed && day.session.kind != SessionKind.REST &&
+            java.time.LocalTime.now().let { now -> !now.isBefore(settings.exerciseStart) && now.isBefore(settings.exerciseStart.plusHours(2)) })
+    }
+    if (guided) {
+        GuidedExerciseScreen(day.date, settings, { guided = false }, modifier)
+        return
+    }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var restLeft by rememberSaveable { mutableIntStateOf(0) }
     var restLength by rememberSaveable(settings.exerciseRestSeconds) { mutableIntStateOf(settings.exerciseRestSeconds) }
@@ -154,6 +162,14 @@ fun ExerciseScreen(
             SettingsGear({ showSettings = true })
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            if (tab == ExerciseTab.TODAY) {
+                ModuleCard {
+                    Row(Modifier.fillMaxWidth().clickable(role = Role.Button) { guided = true }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Abrir sesión guiada", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        Text("▷", color = LauncherRed, style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            }
             val weightKg = bodyMetrics.filter { it.type == "WEIGHT" }.maxByOrNull { it.createdAt }?.value ?: ExerciseBurn.DEFAULT_WEIGHT_KG
             when (tab) {
                 ExerciseTab.TODAY -> TodayTab(

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.room.withTransaction
 import com.adrian.minimallauncher.data.routine.RoutineRepository
 import com.adrian.minimallauncher.feature.exercise.SetLog
+import com.adrian.minimallauncher.feature.exercise.GuidedExerciseRecord
 import com.adrian.minimallauncher.feature.exercise.StackExercise
 import com.adrian.minimallauncher.feature.finance.BudgetLimit
 import com.adrian.minimallauncher.feature.finance.BudgetPeriod
@@ -91,6 +92,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             }))
             .put("exerciseStack", JSONArray(stack.all().map { JSONObject().put("id", it.id).put("name", it.name).put("muscleGroup", it.muscleGroup).put("met", it.met.toDouble()).put("minutes", it.minutes).put("sortOrder", it.sortOrder).put("placeholder", it.placeholder) }))
             .put("moduleSettings", settings.moduleSettings.first().toJson())
+            .put("guidedExercise", JSONArray(db.guidedExercise().all().map { JSONObject().put("id", it.id).put("payload", it.payload).put("updatedAt", it.updatedAt) }))
             .put("routine", routine.toJson())
     }
 
@@ -102,6 +104,13 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
         val before = count()
         val sets = root.array("setLogs").map { SetLog(date = it.getString("date"), exerciseId = it.getString("exerciseId"), setIndex = it.getInt("setIndex"), weightKg = it.getDouble("weightKg").toFloat(), reps = it.getInt("reps"), createdAt = it.getLong("createdAt")) }
         db.withTransaction {
+            root.array("guidedExercise").forEach {
+                val id = it.getString("id")
+                val payload = it.getString("payload")
+                require(payload.length <= 2_000_000)
+                JSONObject(payload)
+                if (db.guidedExercise().get(id) == null) db.guidedExercise().put(GuidedExerciseRecord(id, payload, it.getLong("updatedAt")))
+            }
             personal.insertNotes(root.array("notes").map { NoteRecord(it.getString("id"), runCatching { NoteCategory.valueOf(it.getString("category")) }.getOrDefault(NoteCategory.GENERAL), it.getString("text"), it.getLong("createdAt"), it.optBoolean("pinned"), it.optBoolean("done")) })
             // Formats 1 and 2 stored the space name; the launcher maps it to a phase on load.
             personal.insertReminders(root.array("reminders").map { ReminderRecord(it.getString("id"), it.getString("title"), it.getInt("hour"), it.getInt("minute"), it.optString("phaseId").ifBlank { it.optString("spaceName") }) })
@@ -160,7 +169,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
     private suspend fun count(): Int = personal.allNotes().size + personal.allReminders().size + personal.allFinances().size +
         personal.allMeals().size + personal.allBodyMetrics().size + personal.allChecks().size + exercise.allSets().size +
         food.allRecipes().size + food.allIngredients().size + food.allRecipeItems().size + food.allMealItems().size +
-        budgets.all().size + pending.all().size + stack.all().size
+        budgets.all().size + pending.all().size + stack.all().size + db.guidedExercise().all().size
 
     private fun String?.orNull(): Any = this ?: JSONObject.NULL
     private fun JSONObject.stringOrNull(name: String): String? = if (!has(name) || isNull(name)) null else optString(name)
@@ -234,11 +243,11 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
 
     companion object {
         private const val APP_ID = "minimal-launcher"
-        private const val FORMAT = 4
+        private const val FORMAT = 5
         /** The arrays that hold records, for the counts shown after an export or import. */
         private val RECORD_ARRAYS = listOf(
             "notes", "reminders", "finances", "meals", "bodyMetrics", "dayChecks", "setLogs",
-            "recipes", "ingredients", "recipeItems", "mealItems", "budgets", "pendingPayments", "exerciseStack",
+            "recipes", "ingredients", "recipeItems", "mealItems", "budgets", "pendingPayments", "exerciseStack", "guidedExercise",
         )
     }
 }

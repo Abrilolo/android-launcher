@@ -19,6 +19,42 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+// Reuse the reviewed SVG/gesture engine, but package a local production document with native data.
+val sessionAssets = layout.buildDirectory.dir("generated/exerciseSessionAssets")
+val generateExerciseSessionAssets = tasks.register("generateExerciseSessionAssets") {
+    val prototype = rootProject.file("docs/design/concept/EjercicioSesionVisual.html")
+    val runtime = file("src/main/session/runtime.js")
+    val style = file("src/main/session/runtime.css")
+    inputs.files(prototype, runtime, style)
+    outputs.dir(sessionAssets)
+    doLast {
+        var html = prototype.readText(Charsets.UTF_8)
+        html = html.replace(Regex("<link[^>]*>"), "")
+            .replace(Regex("<h2>EJERCICIO[^<]*</h2>"), "")
+        val side = html.indexOf("<div class=\"side\">")
+        val script = html.indexOf("<script>", side)
+        check(side >= 0 && script > side)
+        html = html.removeRange(side, script)
+        html = html.replace("<script>", "<script>\nconst HOST = JSON.parse(AndroidSession.load());\n")
+        html = html.replace(Regex("const GROUPS = .*?;"), "const GROUPS = HOST.groups;")
+        val dataStart = html.indexOf("const EXS = [")
+        val dataEnd = html.indexOf("EXS.forEach", dataStart)
+        check(dataStart > 0 && dataEnd > dataStart)
+        html = html.replaceRange(dataStart, dataEnd, "const EXS = HOST.exercises;\n")
+            .replace("EXS.forEach((e, i) => e.id = 'exercise-' + i);", "")
+            .replace("const CUSTOM = { warm: [], exercise: [] };", "const CUSTOM = HOST.library?.custom || { warm: [], exercise: [] };")
+        val clockStart = html.indexOf("// ---------- Clock ----------")
+        val boot = html.lastIndexOf("go('start');")
+        check(clockStart > 0 && boot > clockStart)
+        html = html.replaceRange(clockStart, boot + "go('start');".length, runtime.readText(Charsets.UTF_8))
+        html = html.replace("</head>", "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'\"><style>${style.readText(Charsets.UTF_8)}</style></head>")
+        val target = sessionAssets.get().file("exercise-session/index.html").asFile
+        target.parentFile.mkdirs()
+        target.writeText(html, Charsets.UTF_8)
+    }
+}
+android.sourceSets.getByName("main").assets.directories.add(sessionAssets.get().asFile.path)
+tasks.named("preBuild").configure { dependsOn(generateExerciseSessionAssets) }
 // Room writes each version's schema here, so the next migration can be checked against it.
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 dependencies {

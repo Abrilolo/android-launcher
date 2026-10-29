@@ -29,7 +29,7 @@ Vista en curso: **Alarmas y recordatorios (lenguaje visual)**
 | Página de Apps (antes cajón) | `ui/AppsPage.kt` | Hecho | Página principal |
 | Semana (izquierda del inicio) | `ui/WeekSummaryScreen.kt` | Pendiente | |
 | Ejercicio · hoy / semana / cuerpo / ajustes | `feature/exercise/ExerciseScreen.kt` | Por validar | Boceto: `docs/design/concept/EjercicioVisual.html` |
-| Bancos | `feature/vault/VaultModule.kt` | Por validar | Desbloqueo con huella sin probar |
+| Bancos | `feature/vault/VaultModule.kt` | Hecho | Funciona bien |
 | Finanzas | `feature/finance/FinanceScreen.kt` | Por validar | Boceto: `docs/design/concept/FinanzasVisual.html` (modelo nuevo) |
 | Comida (antes Dieta) | `ui/DietPage.kt`, `feature/food/` | Por validar | Boceto: `docs/design/concept/ComidaVisual.html` |
 | Notas | `feature/notes/NotesScreen.kt` | Pendiente | |
@@ -94,6 +94,8 @@ Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
 
 #### Ejercicio · sesión guiada (bocetos 2026-10-29)
 
+Android implementation (2026-10-29): the approved motion and gesture prototype is bundled as an offline WebView scene reached from Today's exercise screen, with the planned session and previous set logs supplied by Room. Choices, custom warm-ups/exercises, editable rotating phrases, timers, completed sets, and resumable session state are persisted locally; guided records are included in backup format 5. The generated scene removes the demo sidebar, sample exercises, and remote fonts. `:app:assembleDebug` and `:app:testDebugUnitTest` pass; device interaction and visual fit remain to be checked after installation.
+
 Bocetos del usuario en `docs/design/sketches/ejercicio/` (1 a 6, en orden). Pedido: "solo tenemos como el flujo, pero nos falta mucha funcionalidad de como se ven las cosas". Dentro de la sesión sí va texto (nombre del ejercicio o calentamiento, tips): es la app en uso, no un widget. Estado: **Boceto por aprobar**: `docs/design/concept/EjercicioSesionVisual.html` (2026-10-29, interactivo con gestos; el dashboard va marcado "por diseñar").
 
 - [ ] **Entrada.** Si es hora de entrenar abre directo en el inicio de la rutina; si no, en la vista general. Arriba, los grupos musculares de hoy en una barra flotante y un botón home a la vista general.
@@ -103,9 +105,10 @@ Bocetos del usuario en `docs/design/sketches/ejercicio/` (1 a 6, en orden). Pedi
   - "Que se mueva a lo largo de la pantalla... con una función random": comportamientos al azar con pesos según el momento, sin secuencia fija y sin repetir el último; cada uno dura más y hay más variedad. Entrada: saltitos antes de pelear, sombra de boxeo larga con combinaciones al azar, calentamiento de futbolista (tobillos, cuádriceps, isquios, balanceo, zancadas, trote) y, si tardas, se impacienta (reloj, señala, hombros, brazos cruzados). Vista general: camina, saluda, se sienta, rueda y se queda acostada de lado. Fiesta: baile tipo Fortnite, funk brasileño, salsa. Espera: camina, saca una silla, se sienta, se duerme con "z" o se acuesta en el piso y se duerme. Descanso: descansa → se estira → calienta. Durante: motiva (rebota, aplaude, puño, señala, saltitos).
   - "Que desplace más y en diferentes direcciones... con el punto de fuga": perspectiva (al alejarse más chica, más arriba, hacia el centro y más tenue); entre acciones casi siempre camina a otro punto, de lado, al fondo, hacia ti o en diagonal; voltea de frente antes de cambiar de dirección.
   - "Junta dogplank y jacks": un solo calentamiento "Saltos y plancha".
+  - **Prototype refinement (2026-10-29):** three-action memory, exertion-weighted recovery, shorter travel between actions, foreground staging for expressive gestures, short-arc joint interpolation, faster boxing response, grounded feet, and standing-up transitions when interrupting floor/chair poses. Added hand-held bottle/towel, wristwatch, floor mat, seated cross-legged sleep, eyes and blinking. Existing football warm-ups, dances, rolling and combined “Saltos y plancha” are retained. Sidebar buttons expose specific actions for review. This is HTML prototype work, not Android integration.
 - [ ] **Iniciar.** Botón ▷: se mantiene apretado (se llena como agua) y luego se arrastra y suelta en un punto. Las dos cosas juntas, para no iniciar por error.
 - [ ] **Calentamiento.** Abajo, una tarjeta con dibujo vectorial y el nombre del calentamiento, con 3 opciones para la rutina. Swipe horizontal cambia de opción; al final, si sigues jalando, aparece "otros" con la cuadrícula completa de calentamientos.
-- [ ] **Detalle.** Swipe hacia arriba en la tarjeta: la personita "espía" desde arriba y abajo van insights del calentamiento, tu progreso y tips.
+- [~] **Detalle.** Swipe hacia arriba en la tarjeta: la personita "espía" desde arriba y abajo van insights del calentamiento, tu progreso y tips. **HTML prototype implemented:** hands arrive before the head; the character looks down, glances, blinks and follows the pointer. The main figure pauses while details are open. Close button, Escape and downward swipe restore it; repeated opening replaces gesture listeners. Reduced-motion support included. Android integration and visual acceptance remain pending.
 - [ ] **Elegir.** Swipe a la derecha sobre la animación (o junto a ella) inicia ese calentamiento o ejercicio.
 - [ ] **Durante el ejercicio.** Arriba, la personita chica junto al tiempo. Te motiva todo el tiempo (pedido: "durante el ejercicio animaciones como motivando") y reacciona al completar una serie (salta), al mover el peso (saca músculo) y al terminar las series (festeja).
 - [ ] **Músculo.** Dibujo minimalista del grupo que se trabaja; su zona se pone más roja conforme avanzan las series. Mantener apretado muestra la info del ejercicio: calorías, tips y postura.
@@ -113,6 +116,18 @@ Bocetos del usuario en `docs/design/sketches/ejercicio/` (1 a 6, en orden). Pedi
 - [ ] **Swipes laterales.** Izquierda → derecha: el siguiente ejercicio (elegirlo o verlo) con el tiempo de la rutina. Derecha → izquierda: dashboard de ese ejercicio (aún sin diseñar: registros anteriores de reps, peso y tiempo, mejor marca y consulta de registros previos).
 - [ ] **Terminar ejercicio.** Arco de "continuar" abajo: swipe hacia arriba y mantener para confirmar.
 - [ ] **Descanso.** Contador (5:00) con la personita descansando; abajo, la siguiente rutina en rojo y un botón para saltar. Mientras menos tiempo queda, más se prepara la personita. Si llega a 0 y no avanzas, el contador cambia de color y cuenta hacia arriba lo que tardes, con la animación de "te estoy esperando". Así hasta terminar la rutina.
+
+Prototype verification: `node --test docs/design/tests/exercise-session.test.cjs` checks mood exclusions, weighted memory, all behavior lifecycles, finite joints/SVG transforms, floor/chair interruptions, depth ordering, small stages, reduced motion, gesture rebinding and peek animation state. Browser visual review is pending: the browser URL policy rejected the local `file://` preview. These offline checks do not establish visual quality or Android behavior.
+
+**Selection flow refinement (HTML prototype, 2026-10-29):** every rest exit now opens an exercise picker, including the first exercise after warming up. Swipe through the predefined alternatives, then use Others for the full catalog. Selecting an item from Others previews it; Continue or the explicit stage swipe commits it. Navigation from the routine list also enters the picker. Browsing/canceling does not mutate recorded sets; switching back restores sets by routine slot and exercise ID. Canceling preserves the rest countdown/overtime. Start and finish now have introductory/closing copy; the final screen freezes elapsed time and reports recorded sets instead of assuming calories for custom exercises.
+
+Others includes a small custom-item form for warm-ups and exercises. Entries currently live only in memory until the prototype reloads; persistent catalog storage and Android integration remain pending. Animation metadata is optional: missing/unknown animations use a generic greeting/coach, and missing artwork uses a neutral pose. No technique animation, calorie estimate or previous history is invented for a new exercise. Offline regression tests cover selection/confirmation, Others, cancellation, set preservation and custom items without animations; visual acceptance remains pending.
+
+**Final entry-screen annotations (HTML prototype, 2026-10-29):** keep “Un momento para ti.”; remove the paragraph beneath it and the visible hold/drag instruction at the bottom. Retain the accessible button label. The start control now has continuously visible liquid, touch/fill ripples, drag-dependent tilt and deformation, destination proximity feedback, and a docking ripple with a character reaction. Starting still requires holding until full and releasing at the destination. Cancellation resets the control; leaving the screen disposes animation frames and pending navigation. Reduced-motion preferences suppress decorative motion. Offline tests cover premature release, canceled gestures, scaled target alignment, single confirmation, valid reactions and navigation cleanup. Visual acceptance and Android integration remain pending.
+
+- [ ] **Editable session phrases:** allow editing the opening and closing messages and keeping several alternatives. Choose a different phrase across sessions without immediately repeating the last one. Keep the currently approved “Un momento para ti.” as an available opening phrase. This request is recorded for implementation; no phrase editor or rotation is present yet.
+
+**Start-control sketch revision (HTML prototype, 2026-10-29):** supersedes the circular liquid-container design above. Use an irregular red-outlined ink blot with a readable play glyph and a small destination dot, without a dashed track or visible instructions. At rest the blot gently changes its silhouette; pressing squashes it, holding extends a pulsing lobe toward the destination, and the glyph nudges right once armed. Drag velocity stretches a trailing tail. Releasing over the destination gathers the blot with a settling bounce and confirms; an early release returns it. The hold/release gate, cancellation cleanup and reduced-motion support remain. Offline checks now also verify forward extension and drag-dependent outline changes. Browser visual acceptance and Android integration remain pending.
 
 ### Registro obligatorio
 
@@ -281,7 +296,7 @@ Pedido (2026-10-22): menos gris difícil de ver, más rojo para lo importante, i
 
 ## Por validar en el teléfono
 
-- [ ] Bancos: desbloquear con huella y revisar que las 12 apps sean las correctas (se cambió la librería `fragment`, que también muestra el diálogo de huella).
+- [x] Bancos: desbloquear con huella y revisar que las 12 apps sean las correctas (se cambió la librería `fragment`, que también muestra el diálogo de huella).
 - [ ] Ejercicio: una sesión completa a las 20:35 y que la semana la marque hecha.
 - [ ] Respaldo: exportar a Drive y guardarlo fuera del teléfono.
 

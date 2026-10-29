@@ -12,6 +12,8 @@ import androidx.room.Upsert
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.adrian.minimallauncher.feature.exercise.ExerciseDao
+import com.adrian.minimallauncher.feature.exercise.GuidedExerciseDao
+import com.adrian.minimallauncher.feature.exercise.GuidedExerciseRecord
 import com.adrian.minimallauncher.feature.exercise.SetLog
 import com.adrian.minimallauncher.feature.exercise.StackDao
 import com.adrian.minimallauncher.feature.exercise.StackExercise
@@ -29,8 +31,9 @@ import kotlinx.coroutines.flow.Flow
     entities = [
         NoteRecord::class, ReminderRecord::class, FinanceRecord::class, MealRecord::class, BodyMetricRecord::class, DayCheck::class, SetLog::class,
         Recipe::class, Ingredient::class, RecipeItem::class, MealItem::class, BudgetLimit::class, PendingPayment::class, StackExercise::class,
+        GuidedExerciseRecord::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -40,15 +43,23 @@ abstract class LauncherDatabase : RoomDatabase() {
     abstract fun budgets(): BudgetDao
     abstract fun pending(): PendingDao
     abstract fun stack(): StackDao
+    abstract fun guidedExercise(): GuidedExerciseDao
 
     companion object {
         @Volatile private var instance: LauncherDatabase? = null
 
         fun get(context: Context): LauncherDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context.applicationContext, LauncherDatabase::class.java, "launcher.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
                 .also { instance = it }
+        }
+
+        /** Version 6 stores resumable guided sessions and editable exercise choices. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `guided_exercise_records` (`id` TEXT NOT NULL, `payload` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+            }
         }
 
         /** Version 2 adds pinned notes; existing notes start unpinned. */

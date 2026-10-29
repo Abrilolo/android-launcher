@@ -32,28 +32,60 @@
   .rig .sh { fill: #FFFFFF; fill-opacity: .09; }
   .rig .chair path { fill: none; stroke: #B0B0B0; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; transition: stroke-dashoffset .8s ease; }
   .rig .chair.on path { stroke-dashoffset: 0; }
+  .rig .prop { opacity: 0; transition: opacity .35s ease; fill: #090909; stroke: #B0B0B0; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .rig .prop.on { opacity: 1; }
+  .rig .mat { fill: #151515; stroke: #484848; }
+  .rig .eyes { fill: #F5F5F5; }
+  .rig .sweat { fill: none; stroke: #B0B0B0; stroke-width: 1.3; }
   .rig .zzz { opacity: 0; transition: opacity .5s; }
   .rig .zzz.on { opacity: 1; }
   .rig .zzz path { fill: none; stroke: #F5F5F5; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform-box: fill-box; transform-origin: center; animation: zz 2.4s linear infinite; }
   @keyframes zz { 0% { opacity: 0; transform: translate(0, 0) scale(.6) } 20% { opacity: 1 } 100% { opacity: 0; transform: translate(12px, -26px) scale(1.2) } }
-  .peekSvg { color: var(--white); overflow: visible; }
+  .peekSvg { color: var(--white); overflow: hidden; }
   .peekSvg circle, .peekSvg ellipse { fill: #000; stroke: currentColor; stroke-width: 2; }
   .peekSvg .eye { fill: currentColor; stroke: none; }
+  .peekHead { transform-origin: 50px 51px; }
+  .peekHand { transform-origin: center; transform-box: fill-box; }
+  .peekSvg .peekArm { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .peekSvg .peekBody { fill: var(--red); stroke: currentColor; stroke-width: 2; }
+  .detail-open #stage > .rig { opacity: 0; pointer-events: none; }
+  #stage > .rig { transition: opacity .25s; }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .rig .prop, #stage > .rig { transition: none; }
+    .rig .zzz path { animation: none; opacity: .7; }
+  }
 
   .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; touch-action: none; }
   .chev { position: absolute; top: 50%; font: 18px 'Space Mono', monospace; color: #2E2E2E; transform: translateY(-50%); pointer-events: none; }
   .groups { display: flex; gap: 14px; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 18px; background: #0B0B0B; box-shadow: 0 6px 18px #000; }
   .groups span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 
-  /* Start: hold until the water fills, then drag to the dot. */
+  /* Start: a living ink blot reaches toward the destination when held. */
   .startTrack { position: relative; height: 80px; margin: 0 auto; width: 240px; touch-action: none; }
-  .startTrack .line { position: absolute; left: 40px; right: 16px; top: 39px; border-top: 1.5px dashed #2A2A2A; opacity: 0; transition: opacity .3s; }
-  .startTrack.armed .line { opacity: 1; }
-  .target { position: absolute; right: 0; top: 24px; width: 32px; height: 32px; border-radius: 16px; border: 1.5px solid #2A2A2A; box-sizing: border-box; transition: border-color .3s; }
+  .target { position: absolute; right: 8px; top: 32px; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #5C5C5C; box-sizing: border-box; transition: border-color .3s, transform .25s, box-shadow .25s; }
   .startTrack.armed .target { border-color: var(--red); }
-  .play { position: absolute; left: 0; top: 4px; width: 72px; height: 72px; border-radius: 36px; border: 1.5px solid #3A3A3A; background: #000; overflow: hidden; cursor: grab; padding: 0; touch-action: none; }
-  .water { position: absolute; left: -50%; width: 200%; height: 200%; top: 115%; border-radius: 42%; background: var(--red); animation: spin 2.4s linear infinite; transition: top .12s linear; }
-  @keyframes spin { to { transform: rotate(360deg) } }
+  .play { position: absolute; left: 0; top: 4px; width: 72px; height: 72px; border: 0; background: transparent; overflow: visible; cursor: grab; padding: 0; touch-action: none; transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+  .play:focus-visible { outline: 1px solid var(--white); outline-offset: 10px; border-radius: 22px; }
+  .play .blobSvg { position: absolute; left: -20px; top: -20px; width: 112px; height: 112px; overflow: visible; pointer-events: none; animation: inkFloat 4.8s ease-in-out infinite; }
+  .blobOutline { fill: #210507; stroke: var(--red); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: fill .3s; }
+  .play.pressed { cursor: grabbing; }
+  .play.pressed .blobSvg { animation: none; }
+  .play.pressed .blobOutline { fill: #410A0E; }
+  .play > svg:not(.blobSvg) { pointer-events: none; }
+  .startTrack.armed .play > svg:not(.blobSvg) { animation: inviteRight 1.3s ease-in-out infinite; }
+  @keyframes inkFloat { 0%,100% { transform: rotate(-4deg) scale(.98,1.03); } 45% { transform: rotate(4deg) scale(1.04,.97); } 72% { transform: rotate(-1deg) skewX(3deg); } }
+  @keyframes inviteRight { 0%,100% { transform: translateX(0); } 55% { transform: translateX(7px); } }
+  .startTrack.near .target { transform: scale(1.35); box-shadow: 0 0 0 7px #D7192122; }
+  .startTrack.docked .target { animation: dockRipple .55s ease-out; }
+  .play.docked .blobSvg { animation: inkSettle .55s ease-out both; }
+  .play.docked .blobOutline { fill: var(--red); }
+  .startTrack.docked .play > svg:not(.blobSvg) { animation: none; }
+  @keyframes inkSettle { 0% { transform: scale(1.2,.82); } 38% { transform: scale(.85,1.12); } 70% { transform: scale(1.05,.96); } 100% { transform: scale(1); } }
+  @keyframes dockRipple { from { transform: scale(1); box-shadow: 0 0 0 0 #D7192188; } to { transform: scale(2.5); box-shadow: 0 0 0 16px #D7192100; opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .play .blobSvg, .play.docked .blobSvg, .startTrack.armed .play > svg:not(.blobSvg), .startTrack.docked .target { animation: none; }
+    .play, .blobOutline, .target { transition: none; }
+  }
   .play svg { position: relative; z-index: 1; }
 
   /* Warm-ups: a stack of cards. */
@@ -68,8 +100,8 @@
 
   .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 22px 24px 32px; transform: translateY(105%); transition: transform .3s ease; z-index: 5; touch-action: none; max-height: 78%; box-sizing: border-box; overflow: visible; }
   .sheet.open { transform: none; }
-  .peek { position: absolute; top: -46px; left: 50%; margin-left: -28px; transition: transform .5s ease; }
-  .sheet:not(.open) .peek { transform: translateY(40px); }
+  .peek { position: absolute; top: -82px; left: 50%; margin-left: -50px; height: 88px; pointer-events: none; }
+  .peekSvg { pointer-events: auto; cursor: pointer; }
   .sheet h3 { margin: 0 0 6px; font-weight: 500; font-size: 20px; }
   .sec { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--red); margin: 16px 0 6px; }
   .sheet p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
@@ -130,6 +162,14 @@
   .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
   .note b { color: #fff; font-weight: 500; }
   .sim { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .intro { text-align: center; padding: 16px 8px 0; }
+  .intro h1 { font-size: 27px; font-weight: 500; margin: 0 0 10px; }
+  .intro p { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
+  .sheet .scroll { overflow-y: auto; max-height: 420px; touch-action: pan-y; }
+  .entry { display: flex; flex-direction: column; gap: 12px; }
+  .entry label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); }
+  .entry input { min-width: 0; background: #111; border: 1px solid #444; border-radius: 10px; padding: 10px; color: var(--white); font: inherit; }
+  .entry .row label { flex: 1; min-width: 0; }
 </style>
 </head>
 <body>
@@ -143,35 +183,48 @@
 <div class="side">
   <div class="card note">
     <b>1 · Entrada.</b> Si es hora de entrenar, Ejercicio abre directo aquí; si no, en la vista general (el boceto actual). Arriba flotan los grupos de hoy, con home a la vista general y el engrane. La personita se prepara a su manera (ver abajo) y recorre la pantalla. Tócala y reacciona.<br>
-    <b>Iniciar:</b> mantén ▷ hasta que se llene de agua y arrástralo al punto rojo. Si lo sueltas antes, se vacía.<br><br>
-    <b>2 · Calentamiento.</b> Abajo, el stack de calentamientos de esta rutina: desliza ← → entre las 3 opciones; después viene <b>otros</b>, que abre la lista completa. La personita imita la opción que estás viendo.<br>
+    <b>Iniciar:</b> mantén la mancha ▷: se aplasta y estira hacia el punto para invitarte a arrastrarla. Al moverla deja una cola elástica; al soltarla sobre el punto se recoge y confirma. Si sueltas antes, vuelve a su lugar.<br><br>
+    <b>2 · Elegir.</b> Tanto para calentar como después de cada descanso: desliza ← → por las opciones definidas y luego <b>Otros</b>. Tocar una opción de Otros vuelve a su vista previa; <b>Elegir y continuar</b> o deslizar → sobre la personita confirma. Explorar no cambia tus series; si vuelves a una opción ya usada, recupera lo registrado en ese lugar de la rutina.<br>
     · <b>Desliza hacia arriba</b> la tarjeta: insights, tu progreso y tips, con la personita espiando arriba.<br>
     · <b>Desliza a la derecha</b> sobre la personita (o en el detalle) para empezar ese calentamiento.<br><br>
     <b>3 · Durante.</b> Arriba, la personita chica y el tiempo de la rutina. Te motiva todo el tiempo (rebota, aplaude, levanta el puño, te señala, saltitos, trote); al marcar una serie salta, al subir el peso saca músculo y al terminar las series festeja.<br>
     · El músculo se pone más rojo con cada serie. <b>Mantén</b> el dibujo: calorías, tips y postura.<br>
     · Cada serie es una fila con su número, reps y kg propios. ○ la marca; tocar reps o kg abre los pasos; + agrega otra; <b>desliza a la izquierda</b> para borrar.<br>
-    · <b>Desliza → sobre el músculo</b>: siguiente ejercicio y tiempo. <b>Desliza ←</b>: dashboard de ese ejercicio (aún por diseñar).<br><br>
+    · <b>Desliza → sobre el músculo</b>: ejercicios de la rutina y tiempo; tocar uno abre su elección antes de continuar. <b>Desliza ←</b>: dashboard de ese ejercicio (aún por diseñar).<br><br>
     <b>4 · Terminar.</b> Abajo, el arco: <b>desliza hacia arriba y mantén</b> para confirmar.<br><br>
-    <b>5 · Descanso.</b> Cuenta regresiva; mientras menos falta, más se prepara la personita (descansa → se estira → calienta). Abajo, el siguiente ejercicio en rojo (tócalo o salta). Si llega a 0, el contador se pone rojo y cuenta lo que tardas, y la personita te espera.<br><br>
+    <b>5 · Descanso.</b> Cuenta regresiva; mientras menos falta, más se prepara la personita (descansa → se estira → calienta). Tocar la tarjeta o saltar el descanso lleva a <b>elegir el siguiente</b>. Si llega a 0, el contador se pone rojo y cuenta lo que tardas, y la personita te espera.<br><br>
+    <b>Ejercicios propios.</b> En Otros puedes agregar un calentamiento o ejercicio y revisarlo antes de empezar. Las altas de este boceto duran mientras la página siga abierta. Las animaciones son opcionales: si no existe una específica, la personita acompaña y motiva; no intenta mostrar la técnica. El catálogo y las animaciones son independientes.<br><br>
     <b>Personita · estilo.</b> Dibujada como las referencias: torso rojo redondo con el color un poco desfasado del contorno, cabeza que flota, brazos y piernas curvos y sueltos, manos y pies ovalados y una línea que tiembla como lápiz. Casi siempre de frente; gira de lado para caminar, boxear y el trabajo de piso. Cada articulación sigue a su pose con un resorte: las manos llegan tarde, la cabeza flota y todo rebota antes de quedarse.<br><br>
-    <b>Personita · se mueve por la pantalla.</b> Camina a lo ancho, al fondo, hacia ti y en diagonal. Con perspectiva: al alejarse se hace más chica (hasta ~40%), sube hacia el horizonte, se junta hacia el centro (punto de fuga) y se ve más tenue. Entre una acción y otra casi siempre camina a otro punto (1 a 3 paradas, a veces mira alrededor); para cambiar de dirección voltea de frente y luego gira.<br><br>
-    <b>Personita · decide sola.</b> Nada es una secuencia fija: al terminar algo elige al azar lo siguiente, sin repetir lo último, con más peso a lo que tiene sentido en ese momento:<br>
+    <b>Personita · se mueve por la pantalla.</b> Camina a lo ancho, al fondo, hacia ti y en diagonal. Al alejarse se hace más chica (hasta ~49%), sube hacia el horizonte, se junta hacia el punto de fuga y se ve más tenue. Los saludos, el reloj y los bailes se acercan al frente; los paseos entre acciones son más cortos para dejar ver lo que hace. Para cambiar de dirección voltea de frente y luego gira.<br><br>
+    <b>Personita · decide sola.</b> Al terminar algo elige al azar lo siguiente, sin repetir lo último. Recuerda tres acciones y, tras el esfuerzo, aumenta la probabilidad de caminar, estirar, tomar agua o usar la toalla. Cada momento conserva sus propias opciones:<br>
     · <b>Entrada:</b> saltitos antes de pelear, sombra de boxeo larga con combinaciones al azar (jab, cruzado, gancho, uppercut, esquivas), calentamiento de futbolista (tobillos, cuádriceps, isquios, balanceo de piernas, zancadas por la pantalla, trote). Después de 15 s se impacienta: ve el reloj, lo señala, alza los hombros, cruza los brazos y golpea el pie.<br>
     · <b>Vista general:</b> camina, saluda, mira alrededor, se sienta con las piernas cruzadas, rueda y se queda acostada de lado un rato antes de levantarse.<br>
     · <b>Descanso:</b> sentada abrazando las rodillas, acostada, estirando sentada → estiramientos de pie → saltitos y sombra.<br>
     · <b>Espera (descanso pasado de 0):</b> camina de un lado a otro, se impacienta, saca una silla (se dibuja sola), se sienta y a veces se duerme con “z”, o se acuesta en el piso con las piernas cruzadas y se duerme. Mientras más tardas, más probable que se duerma.<br>
     · <b>Final:</b> baile tipo Fortnite, pasitos de funk brasileño, salsa con vuelta, baile libre, saltos y aplausos.<br>
     · Calentamiento “Saltos y plancha”: saltos de tijera, plancha y perro boca abajo en una sola rutina.<br><br>
+    <b>Objetos y detalle.</b> Botella y toalla siguen la mano; el reloj aparece en la muñeca; la colchoneta acompaña el trabajo de piso. Al abrir el detalle, la misma personita deja de entrenar, apoya las manos y se asoma: parpadea, mira hacia tus movimientos y baja la cabeza con curiosidad. Tócala para que vuelva a asomarse. Con movimiento reducido, se mantiene en una pose tranquila.<br><br>
     <b>Nota:</b> la personita se mueve todo el tiempo (excepción pedida a la regla de “nada en bucle”). Dentro de la sesión sí hay texto: es la app en uso.
     <div class="sim">
       <button class="btn" onclick="go('start')">ES HORA</button>
       <button class="btn" onclick="go('general')">NO ES HORA</button>
       <button class="btn" onclick="go('warm')">CALENTAMIENTO</button>
-      <button class="btn" onclick="S.exIdx=0;go('ex')">EJERCICIO</button>
+      <button class="btn" onclick="beginExerciseSelection(0,'general')">EJERCICIO</button>
       <button class="btn" onclick="S.next=1;go('rest')">DESCANSO</button>
       <button class="btn" onclick="S.next=1;S.restLeft=2;go('rest')">DESCANSO AL 0</button>
       <button class="btn" onclick="go('end')">FINAL</button>
       <button class="btn on" id="speedBtn" onclick="toggleSpeed()">TIEMPO ×10</button>
+    </div>
+    <div class="sec">PROBAR LOS GESTOS</div>
+    <div class="sim">
+      <button class="btn" onclick="go('warm');openDetail(WARMUPS[S.warm] || WARMUPS[0])">ESPIAR</button>
+      <button class="btn" onclick="previewAction('start','box')">SOMBRA</button>
+      <button class="btn" onclick="previewAction('start','impatient')">RELOJ</button>
+      <button class="btn" onclick="previewAction('rest','drink')">BOTELLA</button>
+      <button class="btn" onclick="previewAction('rest','towel')">TOALLA</button>
+      <button class="btn" onclick="previewAction('general','roll')">RODAR</button>
+      <button class="btn" onclick="previewAction('rest','crossNap','waiting')">SIESTA</button>
+      <button class="btn" onclick="previewAction('end','salsa')">SALSA</button>
     </div>
   </div>
 </div>
@@ -194,6 +247,12 @@ const POSES = {
   stand: {},
   standB: { sq: 1.03, hx: 1.5, t: -2, aL: [-13, -6], aR: [12, 8] },
   standC: { t: 3, hx: -1, aL: [-8, 4], aR: [14, 2], lL: [-5, -1], lR: [3, 3] },
+  drinkLift: { turn: .35, t: -3, aR: [35, 155], aL: [-12, 8] },
+  drinkSip: { turn: .35, t: -7, hx: 2, aR: [52, 166], aL: [-12, 8] },
+  wipe: { t: -5, hx: 2, aR: [100, 165], aL: [-12, 8] },
+  wipeB: { t: 2, hx: -2, aR: [115, 180], aL: [-12, 8] },
+  sleepyCross: { ...SIT_CROSS, t: 13, hx: 4, sq: .96 },
+  sleepyCrossB: { ...SIT_CROSS, t: 10, hx: 3, sq: .99 },
   // Boxing (side): guard, jab, cross, hook, uppercut, duck
   guard: GUARD,
   guardUp: { ...GUARD, lift: 3 },
@@ -351,8 +410,8 @@ const B = {
       { seq: [['lieSide', 300], ['sitHug', 500], ['crouch', 400], ['stand', 300]] }];
   },
   sitCross: f => [{ seq: [['crouch', 400], ['sitCross', 500]] }, { loop: [['sitCross', 1600], ['sitCrossB', 1600]], dur: rnd(4000, 7000) }, { seq: [['crouch', 450], ['stand', 300]] }],
-  box: f => [{ seq: boxCombo() }, ...(Math.random() < .5 ? [{ seq: boxCombo() }] : [])],
-  goku: f => [{ loop: [['gokuA', 170], ['gokuB', 170]], reps: ri(8, 18) }],
+  box: f => [{ seq: [['gokuA', 220], ['guard', 300]] }, { seq: boxCombo(), effort: true }, { seq: boxCombo(), effort: true }, { seq: [['guard', 400], ['standB', 450]] }],
+  goku: f => [{ loop: [['gokuA', 180], ['gokuB', 210], ['gokuA', 110]], reps: ri(6, 12) }],
   ankles: f => [{ loop: [['stand', 350], ['ankleTouch', 700], ['ankleTouchB', 500]], reps: ri(2, 4) }],
   quad: f => [{ seq: [['stand', 300], ['quadL', 2400], ['stand', 400], ['quadR', 2400], ['stand', 300]] }],
   hamstring: f => [{ seq: [['stand', 300], ['hamstring', 2600], ['stand', 300]] }],
@@ -362,8 +421,8 @@ const B = {
   stretch: f => [{ seq: [['up', 900], ['bendL', 1100], ['up', 700], ['bendR', 1100], ['stand', 400]] }],
   circles: f => [{ loop: ANIMS.circles.f, reps: ri(2, 4) }],
   impatient: f => [
-    { loop: [['watch', 500], ['watchTap', 220], ['watch', 220], ['watchTap', 220]], reps: ri(2, 3) },
-    { seq: [['pointOut', 900], ['shrug', 700], ['stand', 300]] },
+    { loop: [['watch', 500], ['watchTap', 220], ['watch', 220], ['watchTap', 220]], reps: ri(2, 3), prop: 'watch' },
+    { seq: [['pointOut', 900], ['shrug', 700], ['stand', 300]], prop: 'watch' },
     { loop: [['armsCross', 320], ['armsCrossTap', 320]], reps: ri(4, 8) }],
   chair: f => [
     { seq: [['stand', 200], ['reach', 600], ['stand', 400]], prop: 'chair' },
@@ -375,6 +434,19 @@ const B = {
     { seq: [['crouch', 400], ['sitHug', 600], ['sleepBack', 700]] },
     { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(6000, 11000), zzz: true },
     { seq: [['sitHug', 700], ['crouch', 450], ['stand', 300]] }],
+  crossNap: f => [
+    { seq: [['crouch', 550], ['sitCross', 650]] },
+    { loop: [['sitCross', 1600], ['sleepyCross', 2200]], reps: 2 },
+    { loop: [['sleepyCross', 2000], ['sleepyCrossB', 2400]], dur: rnd(5000, 9000), zzz: true },
+    { seq: [['sitCross', 800], ['crouch', 650], ['stand', 500]] }],
+  drink: f => [
+    { seq: [['reach', 650], ['drinkLift', 650]], prop: 'bottle' },
+    { loop: [['drinkLift', 650], ['drinkSip', 950]], reps: ri(2, 3), prop: 'bottle' },
+    { seq: [['drinkLift', 450], ['reach', 700], ['stand', 500]], prop: 'bottle' }],
+  towel: f => [
+    { seq: [['stand', 350], ['wipe', 650]], prop: 'towel' },
+    { loop: [['wipe', 650], ['wipeB', 750]], reps: ri(2, 3), prop: 'towel' },
+    { seq: [['wipe', 450], ['stand', 650]], prop: 'towel' }],
   restSit: f => [{ seq: [['crouch', 400], ['sitHug', 500]] }, { loop: [['sitHug', 1700], ['sitHugB', 1700]], dur: rnd(4000, 8000) }, { seq: [['crouch', 450], ['stand', 300]] }],
   restLie: f => [{ seq: [['crouch', 400], ['sitHug', 500], ['sleepBack', 600]] }, { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(4000, 7000) }, { seq: [['sitHug', 600], ['crouch', 400], ['stand', 300]] }],
   seatedReach: f => [{ seq: [['crouch', 400], ['sitReachB', 500]] }, { loop: [['sitReachB', 900], ['sitReach', 1500]], reps: ri(2, 4) }, { seq: [['crouch', 450], ['stand', 300]] }],
@@ -393,21 +465,38 @@ const B = {
 // What the person tends to do in each moment. A weight can depend on how long the moment has lasted (ms).
 const MOODS = {
   greet: [['idle', 3], ['wave', 2], ['walk', 4], ['stroll', 2.5], ['roll', 1.5], ['sitCross', 1.5], ['look', 1]],
-  prep: [['box', 4], ['goku', 3], ['ankles', 1.5], ['quad', 1.5], ['hamstring', 1.2], ['legSwing', 1.2], ['lunges', 1.5], ['jog', 1.5], ['walk', 2], ['stroll', 1], ['stretch', 1], ['idle', .6],
+  prep: [['box', 4], ['goku', 3], ['ankles', 1.5], ['quad', 1.5], ['hamstring', 1.2], ['legSwing', 1.2], ['lunges', 1.5], ['jog', 1.5], ['walk', 2], ['stroll', 1], ['stretch', 1], ['idle', .6], ['restLie', .7], ['drink', .8], ['towel', .6],
     ['impatient', t => t > 15000 ? 4 : 0]],
-  rest: [['restSit', 4], ['restLie', 2], ['seatedReach', 2], ['walkSlow', 1.5], ['idle', 1]],
+  rest: [['restSit', 4], ['restLie', 2], ['seatedReach', 2], ['walkSlow', 1.5], ['idle', 1], ['drink', 2], ['towel', 1.5]],
   stretch: [['stretch', 3], ['quad', 2], ['hamstring', 2], ['ankles', 2], ['circles', 2], ['legSwing', 1.5], ['walkSlow', 1]],
   ready: [['goku', 4], ['box', 4], ['jog', 2], ['legSwing', 1], ['walk', .8]],
-  waiting: [['walk', 3], ['impatient', 3], ['chair', t => t > 6000 ? 3 : 1], ['floorNap', t => t > 10000 ? 3 : .5], ['idle', 1]],
+  waiting: [['walk', 3], ['impatient', 3], ['chair', t => t > 6000 ? 3 : 1], ['floorNap', t => t > 10000 ? 3 : .5], ['crossNap', t => t > 15000 ? 2 : 0], ['drink', 1], ['idle', 1]],
   coach: [['bounce', 4], ['clap', 2.5], ['pump', 2], ['goku', 1.5], ['point', 1.5], ['jog', 1], ['flex', .8], ['idle', 1.5]],
   party: [['defaultDance', 3], ['passinho', 3], ['salsa', 3], ['freeDance', 2], ['hips', 1], ['clap', 1], ['jumps', 1.5], ['walk', 1]],
 };
+
+const ACTIVE_BEHAVIORS = new Set(['box', 'goku', 'jog', 'jumps', 'defaultDance', 'passinho', 'salsa', 'freeDance']);
+const RECOVERY_BEHAVIORS = new Set(['drink', 'towel', 'walk', 'walkSlow', 'stretch', 'restLie', 'restSit', 'ankles']);
+const CLOSE_BEHAVIORS = new Set(['wave', 'impatient', 'drink', 'towel', 'look']);
+const FLOOR_BEHAVIORS = new Set(['floorNap', 'crossNap', 'restSit', 'restLie', 'sitCross', 'seatedReach']);
+// Recent memory and exertion bias the next choice without imposing a scripted sequence.
+function behaviorPool(mood, elapsed, history = [], energy = 0) {
+  return MOODS[mood].map(([name, weight]) => {
+    let w = typeof weight === 'function' ? weight(elapsed) : weight;
+    if (name === history[history.length - 1]) w = 0;
+    else if (history.includes(name)) w *= .25;
+    if (ACTIVE_BEHAVIORS.has(name)) w *= 1 - energy * .65;
+    if (RECOVERY_BEHAVIORS.has(name)) w *= 1 + energy * 1.8;
+    return [name, w];
+  }).filter(([, w]) => w > 0);
+}
 
 // Soft in-betweens: half linear, half eased, so the motion never stops dead on a key pose.
 const ease = k => .5 * k + .5 * (.5 - .5 * Math.cos(Math.PI * k));
 function lerpPose(a, b, k) {
   const o = {};
-  for (const key in a) o[key] = Array.isArray(a[key]) ? a[key].map((v, i) => v + (b[key][i] - v) * k) : a[key] + (b[key] - a[key]) * k;
+  // Joint angles cross ±180 via the short arc (claps and hands used to sweep a whole circle).
+  for (const key in a) o[key] = Array.isArray(a[key]) ? a[key].map((v, i) => v + ((b[key][i] - v + 540) % 360 - 180) * k) : a[key] + (b[key] - a[key]) * k;
   return o;
 }
 const frameSum = f => f.reduce((s, x) => s + x[1], 0);
@@ -458,31 +547,40 @@ const angDown = d => Math.atan2(d[0], d[1]) / R;
 const ZPATH = 'M0 0h6l-6 7h6';
 // Perspective: z = 1 is at the front of the stage, z = -1 at the back. Farther means smaller, higher (toward the
 // horizon) and closer to the center, where the vanishing point is.
-const PERSP = 1.6, DEPTH_WORLD = 260;
+const PERSP = 1.05, DEPTH_WORLD = 180;
 const depthScale = z => 1 / (1 + (1 - z) / 2 * PERSP);
 const WALK_CYCLE = [['w1', 190], ['w2', 190], ['w3', 190], ['w4', 190]], STEP_CYCLE = [['s1', 300], ['s2', 300]], LUNGE_CYCLE = [['lungeA', 650], ['lungeUp', 350], ['lungeB', 650], ['lungeUp', 350]];
 
 const FIGS = new Set();
+const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 class Figure {
   constructor(svg) {
     this.svg = svg; svg._fig = this;
     this.roam = svg.classList.contains('roam');
     this.h = +svg.dataset.h || 150;
     svg.innerHTML = `<ellipse class="sh" cx="0" cy="0" rx="16" ry="2.6"/><g class="root" filter="url(#sketchy)">
+      <path class="prop mat" d="M-65 3Q-70 0-61-3L57-3Q70 0 64 4L-65 3Z"/>
       <g class="chair"><path pathLength="1" d="M-15 -48L-12 -19"/><path pathLength="1" d="M-14 -19H10"/><path pathLength="1" d="M-11 -19L-12 0"/><path pathLength="1" d="M7 -19L8 0"/></g>
       <path class="lb lL"/><ellipse class="ft fL"/><path class="lb lR"/><ellipse class="ft fR"/>
       <g class="back"></g>
       <path class="tfill"/><path class="tline"/><circle class="head" r="9.5"/>
-      <g class="front"><path class="lb aL"/><ellipse class="hn hL" rx="3" ry="4.3"/><path class="lb aR"/><ellipse class="hn hR" rx="3" ry="4.3"/></g></g>
+      <g class="eyes"><ellipse cx="-3" cy="0" rx=".9" ry="1.4"/><ellipse cx="3" cy="0" rx=".9" ry="1.4"/></g>
+      <g class="front"><path class="lb aL"/><ellipse class="hn hL" rx="3" ry="4.3"/><path class="lb aR"/><ellipse class="hn hR" rx="3" ry="4.3"/></g>
+      <g class="prop bottle"><path d="M-3-13H3V-10L5-7V4Q0 7-5 4V-7L-3-10Z"/><path d="M-4 0Q0-2 4 0M-3-15H3"/></g>
+      <path class="prop towel" d="M-8-3Q0 0 7-3L9 15Q0 12-7 15ZM-5 11L6 11"/>
+      <g class="prop watch"><path d="M-5 0H5"/><circle r="3.5"/><path d="M0-2V0L2 1"/></g>
+      <g class="sweat"><path d="M0 0q4 4 1 7q-4 0-1-7M-7-2l-2 4"/></g></g>
       <g class="zzz"><path d="${ZPATH}"/><path d="${ZPATH}" style="animation-delay:.8s"/><path d="${ZPATH}" style="animation-delay:1.6s"/></g>`;
     this.q = n => svg.querySelector('.' + n);
     this.phase = Math.random() * 10;
+    this.history = []; this.energy = 0;
     this.pos = { x: 0, z: this.roam ? .4 : 0 };
     this.face = 1;
     this.pose = poseOf('stand');
     this.J = null; this.V = {};
     this.last = performance.now();
-    this.vb = { w: 0, h: 0, xMax: 0, depth: 0 };
+    this.vb = { w: 0, h: 0, xMax: 0, depth: 0, horizon: 0 };
+    this.fitView();
     this.setMode(svg.dataset.anim || 'idle', true);
     FIGS.add(this);
   }
@@ -504,33 +602,57 @@ class Figure {
     const W = this.svg.clientWidth, H = this.svg.clientHeight;
     if (!W || !H || (W === this.vb.pw && H === this.vb.ph)) return;
     const k = 128 / this.h, w = W * k, h = H * k;
-    this.vb = { pw: W, ph: H, w, h, xMax: Math.max(0, w / 2 - 26), horizon: -h * .95 };
+    this.vb = { pw: W, ph: H, w, h, xMax: Math.max(0, w / 2 - 68), horizon: -h * .78 };
     this.svg.setAttribute('viewBox', `${(-w / 2).toFixed(1)} ${(-h + 6).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
     this.pos.x = clamp(this.pos.x, -this.vb.xMax, this.vb.xMax);
   }
   /** A mood (random behaviors), a fixed loop, or "=pose" to hold still. */
   setMode(name, instant = false) {
+    if (typeof name !== 'string' || !(Object.hasOwn(MOODS, name) || Object.hasOwn(ANIMS, name) || (name.startsWith('=') && Object.hasOwn(POSES, name.slice(1))))) name = 'idle';
+    const recovery = instant ? [] : this.recovery();
     this.mode = name; this.svg.dataset.anim = name; this.queue = [];
-    if (MOODS[name]) { this.mood = name; this.moodT0 = performance.now(); this.lastB = null; this.nextBehavior(instant); return; }
+    if (MOODS[name]) {
+      this.mood = name; this.moodT0 = performance.now(); this.history = [];
+      if (recovery.length) { this.queue = recovery; this.begin(this.queue.shift()); }
+      else this.nextBehavior(instant);
+      return;
+    }
     this.mood = null;
     this.loopSeg = name.startsWith('=') ? { loop: [[name.slice(1), 1000]], dur: Infinity } : { loop: ANIMS[name].f, dur: Infinity };
-    this.begin({ ...this.loopSeg }, instant);
+    this.queue = [...recovery, { ...this.loopSeg }];
+    this.begin(this.queue.shift(), instant);
   }
   play(name) { if (name !== this.mode) this.setMode(name); }
   /** A one-shot reaction; afterwards the person goes on with the moment. */
   react(name = 'cheer') {
-    this.queue = this.mood ? [] : [{ ...this.loopSeg }];
-    this.begin({ seq: ANIMS[name].f });
+    this.queue = [...this.recovery(), { seq: ANIMS[name].f }, ...(this.mood ? [] : [{ ...this.loopSeg }])];
+    this.begin(this.queue.shift());
+  }
+  recovery() {
+    if (this.seg?.prop === 'chair') return [{ seq: [['sitChair', 450], ['stand', 700]], prop: 'chair' }];
+    if (this.pose.t > 50 || this.pose.t < -45 || Math.abs(this.pose.lL[0]) > 65) {
+      return [{ seq: [['sitHug', 550], ['crouch', 650], ['stand', 500]], prop: 'mat' }];
+    }
+    return [];
   }
   nextBehavior(instant) {
     const t = performance.now() - this.moodT0;
-    const pool = MOODS[this.mood].map(([n, w]) => [n, typeof w === 'function' ? w(t) : w]).filter(([n, w]) => w > 0 && n !== this.lastB);
+    const pool = behaviorPool(this.mood, t, this.history, this.energy);
     let r = Math.random() * pool.reduce((s, x) => s + x[1], 0), name = pool[0][0];
     for (const [n, w] of pool) { if ((r -= w) <= 0) { name = n; break; } }
     this.lastB = name;
-    // On a stage the person usually travels somewhere else before the next thing, so it never stays put.
-    const travel = this.roam && !MOVERS.has(name) && Math.random() < .7 ? B.wander(this) : [];
-    this.queue = [...travel, ...B[name](this)];
+    this.history = [...this.history.slice(-2), name];
+    this.energy = clamp(this.energy + (ACTIVE_BEHAVIORS.has(name) ? .3 : -.2), 0, 1);
+    // Expressive gestures come forward; floor work stays mid-stage. Travel is one purposeful leg.
+    let travel = [];
+    if (this.roam && !MOVERS.has(name)) {
+      const close = CLOSE_BEHAVIORS.has(name) || this.mood === 'party';
+      if (close && this.pos.z < .55) travel = [{ walk: [this.pos.x * .45, rnd(.65, .95)], speed: 48 }];
+      else if (Math.random() < .32) travel = B.wander(this, 1);
+    }
+    const segments = B[name](this).map(seg => FLOOR_BEHAVIORS.has(name) ? { ...seg, prop: seg.prop || 'mat' } : seg);
+    this.svg.dataset.behavior = name;
+    this.queue = [...travel, ...segments];
     this.begin(this.queue.shift(), instant);
   }
   next() {
@@ -541,6 +663,7 @@ class Figure {
   begin(seg, instant = false) {
     const now = performance.now();
     seg.t0 = now; this.from = instant ? null : { ...this.pose };
+    seg.blend = seg.effort ? 140 : seg.walk ? 300 : 320;
     if (seg.walk || seg.roll != null) {
       // Moving only makes sense on a stage; a fixed figure skips it.
       if (!this.roam) return this.next();
@@ -557,32 +680,39 @@ class Figure {
       }
       if (seg.sideways || seg.roll != null) this.face = face;
       seg.cycle = seg.roll != null ? [['tuck', 1000]] : seg.cyc === 'lunge' ? LUNGE_CYCLE : seg.sideways ? WALK_CYCLE : STEP_CYCLE;
-      seg.dur = dist / (seg.roll != null ? 75 : seg.speed || 34) * 1000;
+      seg.dur = dist / (seg.roll != null ? 75 : seg.speed || 46) * 1000;
     } else if (seg.seq) seg.dur = frameSum(seg.seq);
     else if (seg.reps) seg.dur = frameSum(seg.loop) * seg.reps;
     this.seg = seg;
   }
   target(now) {
-    const seg = this.seg, e = now - seg.t0;
+    const seg = this.seg, e = Math.max(0, now - seg.t0);
     if (e >= seg.dur) {
       if (seg.p1) this.pos = { ...seg.p1 };
+      if (seg.roll != null) this.pose.spin = 0;
       this.next(); return this.target(now);
     }
     let p;
     if (seg.p1) {
-      const k = e / seg.dur;
+      const k = ease(e / seg.dur);
       this.pos = { x: seg.p0.x + (seg.p1.x - seg.p0.x) * k, z: seg.p0.z + (seg.p1.z - seg.p0.z) * k };
       p = framesAt(seg.cycle, e, true);
-      if (seg.roll != null) p.spin = (this.pos.x - seg.p0.x) * this.face / 15 / R;
+      if (seg.roll != null) p.spin = 360 * k;
     } else p = framesAt(seg.seq || seg.loop, e, !seg.seq);
     if (this.from) {
-      const kb = e / 420;
+      const kb = e / seg.blend;
       if (kb < 1) p = lerpPose(this.from, p, ease(kb)); else this.from = null;
     }
     return p;
   }
   tick(now) {
     this.fitView();
+    if (this.paused) { this.seg.t0 += now - this.last; this.last = now; return; }
+    if (motionPreference.matches) {
+      this.last = now; this.seg.t0 = now;
+      this.pose = poseOf(this.mood === 'rest' || this.mood === 'waiting' ? 'sitCross' : 'stand');
+      this.J = solve(this.pose); for (const k in this.J) this.V[k] = [0, 0]; this.draw(this.pose); return;
+    }
     const dt = Math.min(.05, (now - this.last) / 1000); this.last = now;
     const p = this.target(now);
     this.pose = p;
@@ -595,9 +725,11 @@ class Figure {
     // Small fixed steps keep the springs stable even when a frame comes late.
     const steps = Math.ceil(dt / (1 / 240)), h = dt / Math.max(1, steps);
     for (const k in T) {
-      const [kk, c] = SPRING[k], J = this.J[k], V = this.V[k];
+      const [kk, c] = this.seg.effort && ['hL', 'hR', 'eL', 'eR'].includes(k) ? [780, 39] : SPRING[k], J = this.J[k], V = this.V[k];
       for (let i = 0; i < steps; i++) for (const a of [0, 1]) { V[a] += (kk * (T[k][a] - J[a]) - c * V[a]) * h; J[a] += V[a] * h; }
     }
+    // Spring overshoot must not push a planted foot through the floor.
+    for (const k of ['fL', 'fR']) if (this.J[k][1] > -2.8) { this.J[k][1] = -2.8; this.V[k][1] = Math.min(0, this.V[k][1]); }
     this.draw(p);
   }
   draw(p) {
@@ -621,6 +753,8 @@ class Figure {
     q('tfill').setAttribute('d', d); q('tfill').setAttribute('transform', `translate(1.6 1.4) ${tr}`);
     q('tline').setAttribute('d', d); q('tline').setAttribute('transform', tr);
     q('head').setAttribute('cx', J.head[0].toFixed(2)); q('head').setAttribute('cy', J.head[1].toFixed(2));
+    const blink = !motionPreference.matches && Math.sin(this.last / 1000 * 1.3 + this.phase) > .994;
+    q('eyes').setAttribute('transform', `translate(${J.head[0] + p.turn * 4} ${J.head[1] + 1}) scale(${1 - p.turn * .45} ${this.seg.zzz || blink ? .12 : 1})`);
     const so = 7 * (1 - p.turn), ho = 4.5 * (1 - p.turn);
     const at = { aL: add(J.sh, mul(perp, -so)), aR: add(J.sh, mul(perp, so)), lL: add(J.hip, mul(perp, -ho)), lR: add(J.hip, mul(perp, ho)) };
     // In side view the far arm goes behind the body.
@@ -639,6 +773,14 @@ class Figure {
     }
     // Props: the chair draws itself in; the z's float up from the head while asleep.
     q('chair').classList.toggle('on', this.seg.prop === 'chair');
+    const mat = this.seg.prop === 'mat' || this.mode === 'legRaise' || this.mode === 'jacksPlank';
+    for (const prop of ['mat', 'bottle', 'towel', 'watch']) q(prop).classList.toggle('on', prop === 'mat' ? mat : this.seg.prop === prop);
+    const handR = J.hR, wristL = add(J.hL, mul(sub(J.eL, J.hL), .18));
+    q('bottle').setAttribute('transform', `translate(${handR}) rotate(${-p.aR[1] + 110})`);
+    q('towel').setAttribute('transform', `translate(${handR}) rotate(${p.t * .5})`);
+    q('watch').setAttribute('transform', `translate(${wristL})`);
+    q('sweat').setAttribute('transform', `translate(${J.head[0] - 14} ${J.head[1] - 4})`);
+    q('sweat').style.opacity = this.seg.effort ? (.3 + .3 * Math.sin(this.last / 180)).toFixed(2) : '0';
     const zz = q('zzz');
     zz.classList.toggle('on', !!this.seg.zzz);
     if (this.seg.zzz) zz.setAttribute('transform', `translate(${(gx + J.head[0] * face * s + 8 * face).toFixed(1)} ${(gy + J.head[1] * s - 12).toFixed(1)})`);
@@ -654,9 +796,10 @@ document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="
   <feTurbulence id="sketchNoise" type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="1"/>
   <feDisplacementMap in="SourceGraphic" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`);
 let seed = 1;
-setInterval(() => { seed = seed % 4 + 1; document.getElementById('sketchNoise').setAttribute('seed', seed); }, 130);
+setInterval(() => { if (document.hidden || motionPreference.matches) return; seed = seed % 4 + 1; document.getElementById('sketchNoise').setAttribute('seed', seed); }, 180);
 (function loop(now) {
   for (const f of FIGS) { if (!f.svg.isConnected) FIGS.delete(f); else f.tick(now); }
+  tickPeek(now);
   requestAnimationFrame(loop);
 })(performance.now());
 function mountFigs() { document.querySelectorAll('svg.rig:not([data-mounted])').forEach(s => { s.dataset.mounted = '1'; new Figure(s); }); }
@@ -673,6 +816,18 @@ function fig(h, mode, id = '', roam = false) {
 }
 function setFig(el, mode) { if (!el) return; if (el._fig) el._fig.play(mode); else el.dataset.anim = mode; }
 function react(el, kind = 'cheer') { el?._fig?.react(kind); }
+function previewAction(stage, name, mood) {
+  if (stage === 'rest') { S.next = 1; S.restLeft = mood === 'waiting' ? 0 : 300; }
+  go(stage);
+  if (mood === 'waiting') S.restLeft = 0;
+  mountFigs();
+  const f = $('fig')._fig;
+  if (mood) f.setMode(mood);
+  f.pos = { x: 0, z: .8 };
+  f.lastB = name; f.svg.dataset.behavior = name;
+  f.queue = B[name](f).map(s => FLOOR_BEHAVIORS.has(name) ? { ...s, prop: s.prop || 'mat' } : s);
+  f.begin(f.queue.shift(), true);
+}
 
 // ---------- Icons (continuous stroke, from the Ejercicio concept) ----------
 const ICONS = {
@@ -686,7 +841,7 @@ const ICONS = {
   close: { main: 'M6 6l12 12M18 6 6 18' },
 };
 function icon(name, size = 18, color = '#B0B0B0', red = true) {
-  const i = ICONS[name];
+  const i = ICONS[name] || ICONS.grid;
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="${i.main}" stroke="${color}"/>${i.red && red ? `<path d="${i.red}" stroke="#D71921"/>` : ''}</svg>`;
 }
 const PLAY = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F5F5F5" stroke-width="1.75" stroke-linejoin="round"><path d="M8 5l11 7-11 7z"/></svg>`;
@@ -711,30 +866,59 @@ const EXS = [
   { name: 'Press militar', zone: 'hombros', sets: [[10, 30], [10, 30], [8, 32.5]], kcal: 35, posture: 'Abdomen firme, no arquees la espalda; la barra sube en línea recta.', tips: 'Mete la cabeza bajo la barra al final de cada rep.', best: '35 kg × 6', hist: [25, 27.5, 30, 30, 30, 32.5, 35] },
   { name: 'Elevaciones laterales', zone: 'hombros', sets: [[15, 8], [15, 8], [12, 8]], kcal: 20, posture: 'Sube hasta la altura del hombro, codos guiando el movimiento.', tips: 'Ligero y controlado; si balanceas, baja el peso.', best: '10 kg × 12', hist: [6, 6, 7, 8, 8, 10, 8] },
 ];
+EXS.forEach((e, i) => e.id = 'exercise-' + i);
+OTHERS.forEach((e, i) => e.id = 'warmup-' + i);
+// The exercise catalog is independent from the animation library. New items need no animation key.
+const CUSTOM = { warm: [], exercise: [] };
+const htmlText = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+function movementFor(item, active = false) {
+  return item?.anim && Object.hasOwn(ANIMS, item.anim) && !ANIMS[item.anim].once ? item.anim : active ? 'coach' : 'greet';
+}
+function thumbnailFor(item) { return item?.pose && Object.hasOwn(POSES, item.pose) ? '=' + item.pose : '=stand'; }
+function exerciseAt(i) { return S.choices[i]; }
+function selectionCatalog(kind) { return kind === 'warm' ? [...OTHERS, ...CUSTOM.warm] : [...EXS, ...CUSTOM.exercise]; }
+function selectionOptions(slot) {
+  const current = exerciseAt(slot);
+  return [current, ...selectionCatalog('exercise').filter(e => e.zone === EXS[slot].zone && e.id !== current.id)].slice(0, 3);
+}
+function replaceExercise(slot, item) {
+  S.setCache[slot].set(exerciseAt(slot).id, S.sets[slot]);
+  S.choices[slot] = item;
+  S.sets[slot] = S.setCache[slot].get(item.id) || item.sets.map(([r, kg]) => ({ r, kg, done: false }));
+}
 
-const S = { stage: 'start', warm: 0, warmChoice: null, exIdx: 0, next: 0, startedAt: null, restLeft: 300, restOver: 0, warmLeft: 0, speed: 10, sets: null };
-function freshSets() { S.sets = EXS.map(e => e.sets.map(([r, kg]) => ({ r, kg, done: false }))); }
+const S = { stage: 'start', warm: 0, warmChoice: null, exIdx: 0, next: 0, startedAt: null, endedAt: null, restLeft: 300, restOver: 0, warmLeft: 0, speed: 10, sets: null, selection: null };
+function freshSets() {
+  S.choices = EXS.slice(); S.setCache = EXS.map(() => new Map());
+  S.sets = EXS.map(e => e.sets.map(([r, kg]) => ({ r, kg, done: false })));
+}
 freshSets();
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
 const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const elapsed = () => S.startedAt ? (Date.now() - S.startedAt) / 1000 : 0;
+const elapsed = () => S.startedAt ? ((S.endedAt || Date.now()) - S.startedAt) / 1000 : 0;
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 1600); }
 function toggleSpeed() { S.speed = S.speed === 10 ? 1 : 10; $('speedBtn').textContent = S.speed === 10 ? 'TIEMPO ×10' : 'TIEMPO REAL'; $('speedBtn').classList.toggle('on', S.speed === 10); }
 
 /** Calls h.left/right/up/down on a swipe over el. */
 function swipe(el, h) {
+  el._swipe?.abort(); el._swipe = new AbortController();
+  const options = { signal: el._swipe.signal };
   let x0 = null, y0 = null;
-  el.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
+  el.addEventListener('pointerdown', e => {
+    // Capturing a button's pointer would retarget its click to the sheet and swallow the action.
+    if (e.target.closest('button, input, textarea, select, a, .peekSvg')) { x0 = null; return; }
+    x0 = e.clientX; y0 = e.clientY; el.setPointerCapture(e.pointerId);
+  }, options);
   el.addEventListener('pointerup', e => {
     if (x0 == null) return;
     const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) (dx > 0 ? h.right : h.left)?.(e);
     else if (Math.abs(dy) > 45) (dy < 0 ? h.up : h.down)?.(e);
     else h.tap?.(e);
-  });
-  el.addEventListener('pointercancel', () => { x0 = null; });
+  }, options);
+  el.addEventListener('pointercancel', () => { x0 = null; }, options);
 }
 /** Calls fn after keeping a finger still on el for ms. */
 function hold(el, ms, fn) {
@@ -754,11 +938,15 @@ function topBar() {
 }
 
 // ---------- Stages ----------
+let startGestureCleanup = null;
 function go(stage) {
+  startGestureCleanup?.(); startGestureCleanup = null;
+  $('phone').classList.remove('detail-open');
+  const previous = S.stage;
   S.stage = stage;
-  if (stage === 'start') { freshSets(); S.startedAt = null; S.exIdx = 0; }
-  if (stage === 'rest' && S.restLeft <= 0) S.restLeft = 300;
-  ({ general, start, warm, warmRun, ex, rest, end })[stage]();
+  if (stage === 'start') { freshSets(); S.startedAt = null; S.endedAt = null; S.exIdx = 0; }
+  if (stage === 'rest' && previous !== 'pickExercise') S.restTotal = Math.max(1, S.restLeft);
+  ({ general, start, warm, pickExercise, warmRun, ex, rest, end })[stage]();
 }
 
 function general() {
@@ -775,104 +963,274 @@ function general() {
 
 function start() {
   $('view').innerHTML = `${topBar()}
+    <div class="intro"><h1>Un momento para ti.</h1></div>
     <div class="stage" id="stage">${fig(150, 'prep', 'fig', true)}</div>
-    <div class="startTrack" id="track"><div class="line"></div><div class="target"></div>
-      <button class="play" id="play" aria-label="Mantén y arrastra al punto para iniciar"><div class="water" id="water"></div>${PLAY}</button></div>
-    <div style="height:8px"></div>`;
+    <div class="startTrack" id="track"><div class="target"></div>
+      <button class="play" id="play" aria-label="Mantén y arrastra al punto para iniciar"><svg class="blobSvg" viewBox="-56 -56 112 112" aria-hidden="true"><path class="blobOutline"/></svg>${PLAY}</button></div>`;
   $('fig').addEventListener('click', () => react($('fig')));
-  const play = $('play'), water = $('water'), track = $('track');
-  const dist = 240 - 72 + 4;
-  let filling = null, fill = 0, armed = false, x0 = 0, dx = 0;
+  startGestureCleanup = bindLiquidStart($('play'), $('track'), () => { S.startedAt = Date.now(); go('warm'); }, kind => react($('fig'), kind));
+}
+
+/** Hold the blot until it reaches right, then drag and release over the target. */
+function bindLiquidStart(play, track, onComplete, onReact) {
+  const controller = new AbortController(), options = { signal: controller.signal };
+  const target = track.querySelector('.target');
+  const outline = play.querySelector('.blobOutline');
+  let frame = null, completion = null, pointer = null, started = 0, armed = false, committed = false;
+  let origin = 0, distance = 0, dx = 0, lastX = 0, tilt = 0, near = false;
+  // A closed spline, not a circular container: pressure grows a right-facing lobe;
+  // velocity pulls a tail behind the finger. The play glyph stays legible above it.
+  const paintBlob = (time, pressure, pull = 0) => {
+    const points = Array.from({ length: 16 }, (_, i) => {
+      const a = i * Math.PI / 8, c = Math.cos(a), s = Math.sin(a);
+      const r = 31 + 3.8 * Math.sin(5 * a + time * 1.6) + 2.6 * Math.cos(3 * a - time);
+      const reach = Math.pow(Math.max(0, c), 8) * pressure * (18 + 5 * Math.sin(time * 5));
+      const tail = Math.pow(Math.max(0, -c * Math.sign(pull)), 5) * Math.abs(pull) * 18;
+      return [c * (r + reach + tail), s * r * (1 - pressure * .16)];
+    });
+    const xy = p => p.map(v => v.toFixed(2)).join(' ');
+    let d = 'M' + xy(points[0]);
+    for (let i = 0; i < points.length; i++) {
+      const before = points[(i + 15) % 16], p = points[i], q = points[(i + 1) % 16], after = points[(i + 2) % 16];
+      d += 'C' + xy(p.map((v, a) => v + (q[a] - before[a]) / 6)) + ' ' + xy(q.map((v, a) => v - (after[a] - p[a]) / 6)) + ' ' + xy(q);
+    }
+    outline.setAttribute('d', d + 'Z');
+  };
+  paintBlob(0, 0);
   const reset = () => {
-    clearInterval(filling); filling = null; armed = false; fill = 0; dx = 0;
-    play.style.transition = 'transform .3s'; play.style.transform = ''; water.style.top = '115%'; track.classList.remove('armed');
+    cancelAnimationFrame(frame); frame = null; pointer = null; armed = false; dx = 0; tilt = 0; near = false;
+    play.style.transition = ''; play.style.transform = ''; paintBlob(0, 0);
+    play.classList.remove('pressed'); track.classList.remove('armed', 'near');
+  };
+  const animate = now => {
+    const fill = Math.min(1, (now - started) / 800);
+    if (fill >= 1 && !armed) { armed = true; track.classList.add('armed'); onReact('nod'); }
+    tilt *= .9;
+    paintBlob(motionPreference.matches ? 0 : (now - started) / 1000, fill, motionPreference.matches ? 0 : -tilt / 22);
+    frame = requestAnimationFrame(animate);
   };
   play.addEventListener('pointerdown', e => {
-    play.setPointerCapture(e.pointerId); x0 = e.clientX; play.style.transition = 'none';
-    filling = setInterval(() => {
-      fill = Math.min(1, fill + 0.05); water.style.top = (115 - fill * 175) + '%';
-      if (fill >= 1) { clearInterval(filling); filling = null; armed = true; track.classList.add('armed'); react($('fig'), 'nod'); }
-    }, 40);
-  });
-  play.addEventListener('pointermove', e => {
-    if (!armed) return;
-    dx = Math.max(0, Math.min(dist, e.clientX - x0)); play.style.transform = `translateX(${dx}px)`;
-  });
-  play.addEventListener('pointerup', () => {
-    if (armed && dx > dist - 26) { S.startedAt = Date.now(); react($('fig')); setTimeout(() => go('warm'), 700); return; }
+    if (committed || pointer !== null || e.button !== 0 || e.isPrimary === false) return;
+    // Measure untransformed centers, so the liquid button docks exactly on the destination.
     reset();
-  });
-  play.addEventListener('pointercancel', reset);
+    const scale = track.getBoundingClientRect().width / track.offsetWidth;
+    distance = target.offsetLeft + target.offsetWidth / 2 - play.offsetLeft - play.offsetWidth / 2;
+    pointer = e.pointerId; origin = lastX = e.clientX; started = performance.now();
+    play.dataset.dragScale = scale;
+    play.setPointerCapture(pointer); play.classList.add('pressed');
+    play.style.transform = motionPreference.matches ? '' : 'scale(1.06, .9)';
+    paintBlob(0, .3);
+    tilt = 12; onReact('look'); frame = requestAnimationFrame(animate);
+  }, options);
+  play.addEventListener('pointermove', e => {
+    if (e.pointerId !== pointer || committed) return;
+    const scale = +play.dataset.dragScale;
+    tilt = Math.max(-22, Math.min(22, tilt - (e.clientX - lastX) / scale * .7)); lastX = e.clientX;
+    if (!armed) { origin = e.clientX; return; }
+    dx = Math.max(0, Math.min(distance, (e.clientX - origin) / scale));
+    const nextNear = distance > 0 && Math.abs(distance - dx) < 18;
+    if (nextNear && !near) onReact('flexOnce');
+    near = nextNear; track.classList.toggle('near', near);
+    const stretch = motionPreference.matches ? 0 : Math.min(.09, Math.abs(tilt) / 240);
+    play.style.transition = 'border-color .2s';
+    play.style.transform = `translateX(${dx}px) scale(${1 + stretch}, ${1 - stretch})`;
+  }, options);
+  play.addEventListener('pointerup', e => {
+    if (e.pointerId !== pointer || committed) return;
+    if (armed && near) {
+      committed = true; pointer = null; cancelAnimationFrame(frame);
+      play.classList.remove('pressed'); play.classList.add('docked'); track.classList.remove('near'); track.classList.add('docked');
+      play.style.transition = ''; play.style.transform = `translateX(${distance}px) scale(1)`; paintBlob(0, 0);
+      play.disabled = true; onReact('cheer');
+      completion = setTimeout(onComplete, motionPreference.matches ? 0 : 550); return;
+    }
+    reset();
+  }, options);
+  for (const event of ['pointercancel', 'lostpointercapture']) play.addEventListener(event, e => { if (!committed && e.pointerId === pointer) reset(); }, options);
+  return () => { controller.abort(); cancelAnimationFrame(frame); clearTimeout(completion); };
 }
 
 function warm() {
-  const cards = [...WARMUPS, null];
+  S.selection = { kind: 'warm', options: WARMUPS.slice(), index: Math.min(S.warm, WARMUPS.length), returnStage: 'start' };
+  renderSelection();
+}
+function beginExerciseSelection(slot, returnStage = 'ex') {
+  S.selection = { kind: 'exercise', slot, options: selectionOptions(slot), index: 0, returnStage };
+  go('pickExercise');
+}
+function pickExercise() { renderSelection(); }
+function selectionItem() { return S.selection.options[S.selection.index]; }
+function selectionSummary(item) {
+  return S.selection.kind === 'warm' ? `${item.min} MIN` : `${item.sets.length} SERIES · ${item.sets[0]?.[0] || 0} REPS`;
+}
+function renderSelection() {
+  const sel = S.selection, cards = [...sel.options, null];
   $('view').innerHTML = `${topBar()}
-    <div class="stage" id="stage">${fig(150, WARMUPS[S.warm]?.anim || 'look', 'fig')}<span class="chev" style="right:0">›</span></div>
+    <div class="intro"><h1>${sel.kind === 'warm' ? 'Vamos entrando en calor.' : 'Elige cómo seguir.'}</h1><p>Desliza entre tus opciones.<br>Si ninguna te convence, busca en Otros.</p></div>
+    <div class="stage" id="stage">${fig(150, movementFor(selectionItem()), 'fig')}<span class="chev" style="right:0">›</span></div>
     <div class="carousel" id="car"><div class="track" id="trk">${cards.map(w => w ? `
-      <div class="wcard"><div class="art">${fig(58, '=' + w.pose)}</div><div style="flex:1"><div class="wname">${w.name}</div><div class="num">${w.min} MIN</div></div><span class="num gray">⌃</span></div>` : `
+      <div class="wcard"><div class="art">${fig(58, thumbnailFor(w))}</div><div style="flex:1"><div class="wname">${htmlText(w.name)}</div><div class="num">${selectionSummary(w)}</div></div><span class="num gray">⌃</span></div>` : `
       <div class="wcard" id="otros" style="cursor:pointer"><div class="art">${icon('grid', 26)}</div><div style="flex:1"><div class="wname">Otros</div><div class="num">VER TODOS</div></div></div>`).join('')}</div></div>
     <div class="pips" id="pips">${cards.map((_, i) => `<i class="pip"></i>`).join('')}</div>
+    <div class="row"><button class="btn" onclick="cancelSelection()">VOLVER</button><button class="btn" id="selectContinue" onclick="confirmSelection()">ELEGIR Y CONTINUAR</button></div>
     <div class="sheet" id="detail"></div>
     <div class="sheet" id="others"></div>`;
   const f = $('fig');
   const show = () => {
-    $('trk').style.transform = `translateX(${-S.warm * 100}%)`;
-    [...$('pips').children].forEach((p, i) => p.classList.toggle('on', i === S.warm));
-    const w = WARMUPS[S.warm];
-    setFig(f, w ? w.anim : 'look');
+    $('trk').style.transform = `translateX(${-sel.index * 100}%)`;
+    [...$('pips').children].forEach((p, i) => p.classList.toggle('on', i === sel.index));
+    const w = selectionItem();
+    setFig(f, movementFor(w));
+    $('selectContinue').textContent = w ? 'ELEGIR Y CONTINUAR' : 'VER OTROS';
+    if (sel.kind === 'warm') S.warm = sel.index;
   };
   show();
   f.addEventListener('click', () => react(f));
   swipe($('car'), {
-    left: () => { if (S.warm < cards.length - 1) { S.warm++; show(); } },
-    right: () => { if (S.warm > 0) { S.warm--; show(); } },
-    up: () => WARMUPS[S.warm] ? openDetail(WARMUPS[S.warm]) : openOthers(),
-    tap: () => { if (!WARMUPS[S.warm]) openOthers(); },
+    left: () => { if (sel.index < cards.length - 1) { sel.index++; show(); } else openOthers(); },
+    right: () => { if (sel.index > 0) { sel.index--; show(); } },
+    up: () => selectionItem() ? openDetail(selectionItem()) : openOthers(),
+    tap: () => { if (!selectionItem()) openOthers(); },
   });
-  hold($('car'), 500, () => { if (!WARMUPS[S.warm]) openOthers(); });
-  swipe($('stage'), { right: () => chooseWarm(WARMUPS[S.warm] || WARMUPS[0]) });
+  hold($('car'), 500, () => { if (!selectionItem()) openOthers(); });
+  swipe($('stage'), { right: confirmSelection });
+}
+function cancelSelection() { go(S.selection.returnStage === 'start' ? 'general' : S.selection.returnStage); }
+function confirmSelection(item = selectionItem()) {
+  // Swipe callbacks receive an event, not a catalog item.
+  if (!item?.id) item = selectionItem();
+  if (!item) { openOthers(); return; }
+  if (S.selection.kind === 'warm') { chooseWarm(item); return; }
+  replaceExercise(S.selection.slot, item);
+  S.exIdx = S.selection.slot; S.restOver = 0;
+  go('ex');
 }
 function openDetail(w) {
+  mountFigs();
   const d = $('detail');
   d.innerHTML = `<div class="peek">${peek()}</div>
-    <h3>${w.name}</h3><div class="num">${w.min} MIN</div>
-    <div class="sec">POR QUÉ</div><p>${w.why}</p>
+    <h3>${htmlText(w.name)}</h3><div class="num">${selectionSummary(w)}</div>
+    <div class="sec">${S.selection.kind === 'warm' ? 'POR QUÉ' : 'POSTURA'}</div><p>${htmlText(w.why || w.posture || 'Sigue las indicaciones que guardaste para este ejercicio.')}</p>
     <div class="sec">TU PROGRESO</div>
-    <div class="row" style="justify-content:flex-start;gap:8px">${[1, 1, 0, 1, 1, 1, 0, 1].map(v => `<i style="width:8px;height:8px;border-radius:4px;background:${v ? '#F5F5F5' : '#2A2A2A'}"></i>`).join('')}<span class="num" style="margin-left:8px">${w.avg} PROMEDIO</span></div>
-    <p style="margin-top:6px">Un punto por sesión reciente: blanco si calentaste con esto.</p>
-    <div class="sec">TIP</div><p>${w.tip}</p>
-    <div class="row" style="margin-top:22px"><span class="num gray">⌄ CERRAR</span><span class="num">DESLIZA → PARA EMPEZAR</span></div>`;
+    <p>${w.avg ? htmlText(w.avg) + ' de referencia · datos de ejemplo' : 'Tu progreso aparecerá después de registrar sesiones.'}</p>
+    <div class="sec">TIP</div><p>${htmlText(w.tip || w.tips || 'Ajusta la carga y el ritmo a tu entrenamiento.')}</p>
+    <div class="row" style="margin-top:22px"><button class="btn" onclick="closeDetail()">⌄ CERRAR</button><span class="num">DESLIZA → PARA EMPEZAR</span></div>`;
+  d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', w.name);
+  $('phone').classList.add('detail-open');
+  if ($('fig')?._fig) $('fig')._fig.paused = true;
   d.classList.add('open');
-  swipe(d, { down: () => d.classList.remove('open'), right: () => chooseWarm(w) });
+  const svg = $('peekFig');
+  svg._peek = { start: performance.now(), x: 0, y: .5, tx: 0, ty: .5, pointerAt: -Infinity };
+  d.onpointermove = e => {
+    const r = svg.getBoundingClientRect();
+    svg._peek.tx = clamp((e.clientX - r.left - r.width / 2) / 100, -1, 1);
+    svg._peek.ty = clamp((e.clientY - r.top - 50) / 120, -.5, 1);
+    svg._peek.pointerAt = performance.now();
+  };
+  svg.onclick = () => { svg._peek.start = performance.now(); };
+  d.onkeydown = e => { if (e.key === 'Escape') closeDetail(); };
+  d.querySelector('button').focus({ preventScroll: true });
+  swipe(d, { down: closeDetail, right: () => confirmSelection(w) });
+}
+function closeDetail() {
+  $('detail')?.classList.remove('open');
+  $('phone').classList.remove('detail-open');
+  if ($('fig')?._fig) $('fig')._fig.paused = false;
 }
 function peek() {
-  // The person spying over the sheet edge: head, eyes and two hands on the border.
-  return `<svg id="peekFig" class="peekSvg" viewBox="0 0 56 50" width="56" height="50">
-    <circle cx="28" cy="24" r="13"/><circle class="eye" cx="23" cy="23" r="1.8"/><circle class="eye" cx="33" cy="23" r="1.8"/>
-    <ellipse cx="12" cy="44" rx="5" ry="3.4"/><ellipse cx="44" cy="44" rx="5" ry="3.4"/></svg>`;
+  return `<svg id="peekFig" class="peekSvg" viewBox="0 0 100 88" width="100" height="88" aria-label="La personita se asoma al detalle">
+    <g class="peekTorso"><path class="peekBody" d="M39 90Q35 65 49 65Q64 65 62 90Z"/>
+      <path class="peekArm" d="M40 72Q26 65 25 81M61 72Q75 65 76 81"/></g>
+    <g class="peekHead"><circle cx="50" cy="48" r="13"/>
+      <g class="peekEyes"><ellipse class="eye" cx="45" cy="49" rx="1.3" ry="1.8"/><ellipse class="eye" cx="55" cy="49" rx="1.3" ry="1.8"/></g></g>
+    <path fill="#0B0B0B" d="M0 82H100V88H0Z"/>
+    <ellipse class="peekHand leftHand" cx="25" cy="82" rx="5" ry="3.4"/>
+    <ellipse class="peekHand rightHand" cx="76" cy="82" rx="5" ry="3.4"/></svg>`;
+}
+function tickPeek(now) {
+  const svg = document.getElementById('peekFig'), a = svg?._peek;
+  if (!a || !svg.closest('.open')) return;
+  const t = (now - a.start) / 1000, reduced = motionPreference.matches;
+  if (now - a.pointerAt > 2000 && !reduced) { a.tx = Math.sin(t * .65) * .65; a.ty = .5 + Math.sin(t * .8) * .2; }
+  if (reduced) { a.x = 0; a.y = .5; }
+  else { a.x += (a.tx - a.x) * .08; a.y += (a.ty - a.y) * .08; }
+  const reveal = reduced ? 1 : clamp((t - .18) / .8, 0, 1);
+  const rise = 1 - Math.pow(1 - reveal, 3);
+  // Hands arrive first, then a hesitant look over the edge, followed by small curious glances.
+  const duck = !reduced && t > 3 ? Math.pow(Math.max(0, Math.sin((t - 3) * .7)), 18) * 12 : 0;
+  const bob = reduced ? 0 : Math.sin(t * 1.8) * 1.2;
+  svg.querySelector('.peekHead').setAttribute('transform', `translate(${a.x * 3} ${(1 - rise) * 48 + duck + bob}) rotate(${a.x * 7} 50 65)`);
+  svg.querySelector('.peekTorso').setAttribute('transform', `translate(0 ${(1 - rise) * 32 + duck * .35})`);
+  for (const [cls, delay] of [['leftHand', 0], ['rightHand', .13]]) {
+    const k = reduced ? 1 : clamp((t - delay) / .4, 0, 1);
+    svg.querySelector('.' + cls).setAttribute('transform', `translate(0 ${(1 - k) * 12})`);
+  }
+  const blink = !reduced && Math.sin(t * 1.7) > .993;
+  svg.querySelector('.peekEyes').setAttribute('transform', `translate(${a.x * 2} ${a.y * 2}) translate(0 49) scale(1 ${blink ? .1 : 1}) translate(0 -49)`);
 }
 function openOthers() {
   const o = $('others');
-  o.innerHTML = `<div class="row"><span class="label red">CALENTAMIENTOS</span><button class="tool" onclick="$('others').classList.remove('open')">${icon('close', 18)}</button></div>
-    <div class="grid">${OTHERS.map((w, i) => `<button onclick="chooseWarm(OTHERS[${i}])">${fig(52, '=' + w.pose)}${w.name}</button>`).join('')}</div>`;
+  o.innerHTML = `<div class="row"><span class="label red">${S.selection.kind === 'warm' ? 'CALENTAMIENTOS' : 'EJERCICIOS'}</span><button class="tool" aria-label="Cerrar otros" onclick="$('others').classList.remove('open')">${icon('close', 18)}</button></div>
+    <div class="scroll"><div class="grid">${selectionCatalog(S.selection.kind).map((w, i) => `<button onclick="previewOther(${i})">${fig(52, thumbnailFor(w))}${htmlText(w.name)}</button>`).join('')}</div></div>
+    <button class="btn" style="margin-top:16px" onclick="openNewExercise()">+ AGREGAR ${S.selection.kind === 'warm' ? 'CALENTAMIENTO' : 'EJERCICIO'}</button>`;
   o.classList.add('open');
   swipe(o, { down: () => o.classList.remove('open') });
 }
+function previewOther(index) {
+  const item = selectionCatalog(S.selection.kind)[index];
+  if (!item) return;
+  const sel = S.selection;
+  let i = sel.options.findIndex(x => x.id === item.id);
+  if (i < 0) { sel.options.push(item); i = sel.options.length - 1; }
+  sel.index = i;
+  renderSelection(); // Inspect first; committing still requires Continue or the explicit stage swipe.
+}
+function createCustomItem(kind, fields, zone) {
+  const name = fields.name.trim(), notes = fields.notes.trim();
+  if (!name || name.length > 80) throw new Error('Escribe un nombre de hasta 80 caracteres.');
+  const base = { id: 'custom-' + Date.now() + '-' + CUSTOM[kind].length, name };
+  if (kind === 'warm') {
+    const min = Number(fields.min);
+    if (!Number.isInteger(min) || min < 1 || min > 60) throw new Error('El tiempo debe ser de 1 a 60 minutos.');
+    return { ...base, min, why: notes, tip: notes };
+  }
+  const count = Number(fields.count), reps = Number(fields.reps), kg = Number(fields.kg);
+  if (!Number.isInteger(count) || count < 1 || count > 12 || !Number.isInteger(reps) || reps < 1 || reps > 100 || !Number.isFinite(kg) || kg < 0 || kg > 500) throw new Error('Revisa las series, repeticiones y carga.');
+  return { ...base, zone, sets: Array.from({ length: count }, () => [reps, kg]), posture: notes, tips: notes, hist: [], best: null, kcal: null };
+}
+function openNewExercise() {
+  const warm = S.selection.kind === 'warm';
+  $('others').innerHTML = `<form class="entry" id="newExercise">
+    <h3>Tu ${warm ? 'calentamiento' : 'ejercicio'}</h3>
+    <label>Nombre<input name="name" required maxlength="80" autocomplete="off"></label>
+    ${warm ? '<label>Minutos<input name="min" type="number" value="3" min="1" max="60" step="1" required></label>' : '<div class="row"><label>Series<input name="count" type="number" value="3" min="1" max="12" required></label><label>Reps<input name="reps" type="number" value="10" min="1" max="100" required></label><label>Kg<input name="kg" type="number" value="0" min="0" max="500" step="0.5" required></label></div>'}
+    <label>Tus indicaciones<input name="notes" maxlength="300" placeholder="Lo que quieres recordar"></label>
+    <p id="entryError" role="alert"></p>
+    <div class="row"><button type="button" class="btn" onclick="openOthers()">VOLVER</button><button class="btn" type="submit">GUARDAR Y VER</button></div></form>`;
+  $('newExercise').onsubmit = event => {
+    event.preventDefault();
+    try {
+      const fields = Object.fromEntries(new FormData(event.currentTarget));
+      const kind = S.selection.kind;
+      CUSTOM[kind].push(createCustomItem(kind, fields, kind === 'exercise' ? EXS[S.selection.slot].zone : null));
+      previewOther(selectionCatalog(kind).length - 1);
+    } catch (error) { $('entryError').textContent = error.message; }
+  };
+}
 function chooseWarm(w) {
+  closeDetail();
   S.warmChoice = w; S.warmLeft = w.min * 60;
   if (!S.startedAt) S.startedAt = Date.now();
-  react($('fig'));
-  setTimeout(() => go('warmRun'), 500);
+  go('warmRun');
 }
 
 function warmRun() {
   const w = S.warmChoice || WARMUPS[0];
   $('view').innerHTML = `
     <div class="row"><span class="num js-clock">${fmt(elapsed())}</span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
-    <div style="text-align:center"><div class="wname" style="font-size:20px">${w.name}</div></div>
+    <div style="text-align:center"><div class="wname" style="font-size:20px">${htmlText(w.name)}</div></div>
     <div class="huge js-warm">${fmt(S.warmLeft)}</div>
-    <div class="stage" id="stage">${fig(160, w.anim, 'fig')}</div>
+    <div class="stage" id="stage">${fig(160, movementFor(w, true), 'fig')}</div>
     <div style="height:70px"></div>
     ${arcHtml(true)}`;
   $('fig').addEventListener('click', () => react($('fig')));
@@ -895,13 +1253,13 @@ function muscleSvg(zone, p) {
 function exProgress(i) { const s = S.sets[i]; return s.length ? s.filter(x => x.done).length / s.length : 0; }
 
 function ex() {
-  const e = EXS[S.exIdx];
+  const e = exerciseAt(S.exIdx);
   if (!S.startedAt) S.startedAt = Date.now();
   $('view').innerHTML = `
     <div class="row">${fig(64, 'coach', 'mini')}<span class="big js-clock" style="font-size:26px">${fmt(elapsed())}</span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
     <div class="area" id="area">
       <div class="exdots">${EXS.map((_, i) => `<i class="${i < S.exIdx ? 'w' : i === S.exIdx ? 'r' : ''}"></i>`).join('')}</div>
-      <div class="wname" style="font-size:18px;margin-top:6px">${e.name}</div>
+      <div class="wname" style="font-size:18px;margin-top:6px">${htmlText(e.name)}</div>
       <div style="position:relative;width:100%;display:grid;place-items:center">${muscleSvg(e.zone, exProgress(S.exIdx))}
         <span class="chev" style="left:0">‹</span><span class="chev" style="right:0">›</span></div>
       <span class="num gray" style="font-size:10px">MANTÉN PARA INFO</span>
@@ -954,7 +1312,7 @@ function bindRowSwipe(wrap) {
   };
   row.addEventListener('pointerup', end); row.addEventListener('pointerleave', end);
 }
-function updateMuscle() { $('muscle').outerHTML = muscleSvg(EXS[S.exIdx].zone, exProgress(S.exIdx)); }
+function updateMuscle() { $('muscle').outerHTML = muscleSvg(exerciseAt(S.exIdx).zone, exProgress(S.exIdx)); }
 function markSet(i) {
   const s = S.sets[S.exIdx][i]; s.done = !s.done;
   renderSets(); updateMuscle();
@@ -972,8 +1330,8 @@ function delSet(i) { S.sets[S.exIdx].splice(i, 1); renderSets(); updateMuscle();
 
 function openInfo(e) {
   const d = $('info');
-  d.innerHTML = `<h3>${e.name}</h3><div class="num">≈ ${e.kcal} KCAL · ${S.sets[S.exIdx].length} SERIES</div>
-    <div class="sec">POSTURA</div><p>${e.posture}</p><div class="sec">TIPS</div><p>${e.tips}</p>
+  d.innerHTML = `<h3>${htmlText(e.name)}</h3><div class="num">${e.kcal == null ? '' : '≈ ' + e.kcal + ' KCAL · '}${S.sets[S.exIdx].length} SERIES</div>
+    <div class="sec">POSTURA</div><p>${htmlText(e.posture)}</p><div class="sec">TIPS</div><p>${htmlText(e.tips)}</p>
     <div class="row" style="margin-top:20px"><span class="num gray">⌄ CERRAR</span></div>`;
   d.classList.add('open');
   swipe(d, { down: () => d.classList.remove('open'), tap: () => d.classList.remove('open') });
@@ -982,17 +1340,21 @@ function openNext() {
   const p = $('pNext');
   p.innerHTML = `<div class="row">${fig(52, 'look')}<button class="tool" onclick="$('pNext').classList.remove('open')">${icon('close', 20)}</button></div>
     <div class="sec" style="margin:0">TIEMPO EN LA RUTINA</div><div class="huge js-clock" style="text-align:left">${fmt(elapsed())}</div>
-    <div>${EXS.map((x, i) => `<div class="exrow" onclick="S.exIdx=${i};go('ex')">${icon(x.zone, 22, i < S.exIdx ? '#F5F5F5' : i === S.exIdx ? '#F5F5F5' : '#5C5C5C', i === S.exIdx)}
-      <span style="flex:1;color:${i <= S.exIdx ? '#F5F5F5' : '#5C5C5C'}">${x.name}</span>
-      ${S.sets[i].every(s => s.done) && S.sets[i].length ? icon('check', 16, '#F5F5F5', false) : i === S.exIdx ? '<i style="width:6px;height:6px;border-radius:3px;background:#D71921"></i>' : ''}</div>`).join('')}</div>
-    <span class="num gray" style="margin-top:auto;text-align:center">TOCA UNO PARA IR A ÉL · DESLIZA ← PARA VOLVER</span>`;
+    <div>${S.choices.map((x, i) => `<button class="exrow tool" style="width:100%;text-align:left" onclick="beginExerciseSelection(${i})">${icon(x.zone, 22, i <= S.exIdx ? '#F5F5F5' : '#5C5C5C', i === S.exIdx)}
+      <span style="flex:1;color:${i <= S.exIdx ? '#F5F5F5' : '#5C5C5C'}">${htmlText(x.name)}</span>
+      ${S.sets[i].every(s => s.done) && S.sets[i].length ? icon('check', 16, '#F5F5F5', false) : i === S.exIdx ? '<i style="width:6px;height:6px;border-radius:3px;background:#D71921"></i>' : ''}</button>`).join('')}</div>
+    <span class="num gray" style="margin-top:auto;text-align:center">TOCA PARA ELEGIR · DESLIZA ← PARA VOLVER</span>`;
   p.classList.add('open');
   swipe(p, { left: () => p.classList.remove('open') });
 }
 function openDash() {
-  const e = EXS[S.exIdx], p = $('pDash'), max = Math.max(...e.hist);
+  const e = exerciseAt(S.exIdx), p = $('pDash'), max = Math.max(1, ...e.hist);
+  if (!e.hist.length) {
+    p.innerHTML = `<div class="row"><span class="wname">${htmlText(e.name)}</span><button class="tool" onclick="$('pDash').classList.remove('open')">${icon('close', 20)}</button></div><p class="note">Todavía no hay sesiones anteriores. Aquí verás tu progreso cuando las registres.</p>`;
+    p.classList.add('open'); swipe(p, { right: () => p.classList.remove('open') }); return;
+  }
   p.innerHTML = `<div class="row"><span class="tag">POR DISEÑAR</span><button class="tool" onclick="$('pDash').classList.remove('open')">${icon('close', 20)}</button></div>
-    <div class="wname" style="font-size:20px">${e.name}</div>
+    <div class="wname" style="font-size:20px">${htmlText(e.name)}</div>
     <div class="sec" style="margin:0">MEJOR MARCA</div><div class="big">${e.best}</div>
     <div class="sec" style="margin:0">PESO POR SESIÓN</div>
     <div class="bars">${e.hist.map(v => `<i class="${v === max ? 'best' : ''}" style="height:${(v / max * 100).toFixed(0)}%"></i>`).join('')}</div>
@@ -1027,14 +1389,14 @@ function bindArc(onDone) {
 }
 
 function rest() {
-  const n = EXS[S.next];
+  const n = exerciseAt(S.next);
   $('view').innerHTML = `
     <div class="row"><span class="num js-clock">${fmt(elapsed())}</span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
     <div class="huge js-rest" id="restClock" style="margin-top:28px">${fmt(S.restLeft)}</div>
     <div class="stage" id="stage">${fig(150, 'rest', 'fig', true)}</div>
     <div class="nextCard" onclick="endRest()">${icon(n.zone, 26, '#F5F5F5')}
-      <div style="flex:1"><div class="wname">${n.name}</div><div class="num">${S.sets[S.next].length} SERIES · ${n.sets[0][1]} KG</div></div><span class="red" style="font-size:20px">›</span></div>
-    <button class="btn" style="align-self:center" onclick="endRest()">SALTAR</button>`;
+      <div style="flex:1"><div class="wname">${htmlText(n.name)}</div><div class="num">ELEGIR EL SIGUIENTE</div></div><span class="red" style="font-size:20px">›</span></div>
+    <button class="btn" style="align-self:center" onclick="endRest()">SALTAR DESCANSO Y ELEGIR</button>`;
   $('fig').addEventListener('click', () => react($('fig'), 'nod'));
   restFigure();
 }
@@ -1044,16 +1406,18 @@ function restFigure() {
   const mode = S.restLeft <= 0 ? 'waiting' : frac > .6 ? 'rest' : frac > .3 ? 'stretch' : 'ready';
   setFig(f, mode);
 }
-function endRest() { S.exIdx = S.next; S.restOver = 0; go('ex'); }
+function endRest() { beginExerciseSelection(S.next, 'rest'); }
 
 function end() {
-  const kcal = EXS.reduce((a, e) => a + e.kcal, 0);
+  S.endedAt ||= Date.now();
+  const completed = S.sets.reduce((total, rows) => total + rows.filter(s => s.done).length, 0);
   $('view').innerHTML = `
     <div class="row"><span></span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
+    <div class="intro"><h1>Hoy te hiciste un espacio.</h1><p>Tu sesión ha terminado.<br>Respira, toma agua y quédate con lo que avanzaste.</p></div>
     <div class="stage">${fig(150, 'party', 'fig', true)}</div>
-    <div class="row" style="justify-content:center;gap:18px">${EXS.map(e => icon(e.zone, 26, '#F5F5F5', false)).join('')}</div>
+    <div class="row" style="justify-content:center;gap:18px">${S.choices.map(e => icon(e.zone, 26, '#F5F5F5', false)).join('')}</div>
     <div class="row" style="justify-content:space-around"><div style="text-align:center"><div class="big">${fmt(elapsed())}</div><div class="num">TIEMPO</div></div>
-      <div style="text-align:center"><div class="big">${kcal}</div><div class="num">KCAL</div></div></div>
+      <div style="text-align:center"><div class="big">${completed}</div><div class="num">SERIES REGISTRADAS</div></div></div>
     <button class="btn" style="align-self:center" onclick="go('general')">VOLVER</button>`;
   $('fig').addEventListener('click', () => react($('fig')));
 }
@@ -1076,7 +1440,7 @@ setInterval(() => {
       el.style.color = S.restLeft > 0 ? '#F5F5F5' : '#D71921';
     }
     restFigure();
-  } else S.restTotal = 0;
+  }
 }, 250);
 
 go('start');
