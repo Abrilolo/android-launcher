@@ -28,42 +28,110 @@ Vista en curso: **Alarmas y recordatorios (lenguaje visual)**
 | Inicio y páginas | `ui/HomeGrid.kt`, `ui/LauncherScreen.kt` | Hecho | Validado en el teléfono |
 | Página de Apps (antes cajón) | `ui/AppsPage.kt` | Hecho | Página principal |
 | Semana (izquierda del inicio) | `ui/WeekSummaryScreen.kt` | Pendiente | |
-| Ejercicio · hoy / semana / ajustes | `feature/exercise/ExerciseScreen.kt` | Pendiente | |
+| Ejercicio · hoy / semana / cuerpo / ajustes | `feature/exercise/ExerciseScreen.kt` | Por validar | Boceto: `docs/design/concept/EjercicioVisual.html` |
 | Bancos | `feature/vault/VaultModule.kt` | Por validar | Desbloqueo con huella sin probar |
-| Finanzas | `feature/finance/FinanceScreen.kt` | Pendiente | |
-| Dieta | `ui/ModulePages.kt` (`DietPage`) | Pendiente | |
+| Finanzas | `feature/finance/FinanceScreen.kt` | Por validar | Boceto: `docs/design/concept/FinanzasVisual.html` (modelo nuevo) |
+| Comida (antes Dieta) | `ui/DietPage.kt`, `feature/food/` | Por validar | Boceto: `docs/design/concept/ComidaVisual.html` |
 | Notas | `feature/notes/NotesScreen.kt` | Pendiente | |
 | Alarmas y recordatorios | `ui/ModulePages.kt` (`AlarmsPage`) | Pendiente | Los recordatorios usan el formulario anterior |
 | Reloj mundial | `ui/ModulePages.kt` (`WorldClockPage`) | Pendiente | |
 | Módulos y respaldo | `ui/ModulesScreen.kt` | Pendiente | |
 | Apps y espacios (configuración) | `ui/SettingsScreen.kt` | Pendiente | Aún con el estilo anterior (campos y botones de Material) |
 | Pausa de apps restringidas | `ui/FrictionScreen.kt` | Pendiente | Aún con el estilo anterior |
-| Rutinas (nueva) | `ui/RoutinesScreen.kt` | Por validar | Boceto: `docs/design/concept/RutinasVisual.html` |
+| Rutinas (nueva) | `ui/RoutinesScreen.kt` | Hecho | Boceto: `docs/design/concept/RutinasVisual.html` |
 
 Detalles por vista: se agregan debajo de esta línea, con un encabezado por vista, cuando se empiece a trabajar en ella.
 
 ### Rutinas (2026-10-28)
 
-Boceto aprobado (2026-10-28). Programado en `ui/RoutinesScreen.kt` con íconos de trazo (`ui/components/StrokeIcon.kt`); instalado en el S24+, por validar ([~]):
+Boceto aprobado (2026-10-28). Programado en `ui/RoutinesScreen.kt` con íconos de trazo (`ui/components/StrokeIcon.kt`); instalado en el S24+, validado por el usuario (2026-10-28):
 
-- [~] Arriba, las fases como íconos de trazo: hechas en blanco, la actual blanca con su detalle rojo y las que siguen en gris. Debajo va la hora (la siguiente en rojo) o un alfiler si empieza por lugar.
-- [~] El día como una línea: gris = hay rutina, blanco = ya pasó, marca roja = ahora.
-- [~] Una tarjeta con la fase tocada, sin texto: su ícono y su hora; las acciones como íconos (con hora si la tienen). Llegar a casa es una cadena en orden con un punto rojo sobre la que sigue, y el descanso es un anillo que se acorta.
-- [~] Engrane arriba para los ajustes de Rutinas (lugares, apps por fase, contacto de WhatsApp).
-- [~] Pedido (2026-10-28): "no tienen que ser fijos ni los nombres ni las acciones". El lápiz muestra los nombres y permite cambiar el nombre, elegir si la fase empieza por hora o por lugar (llegar o salir), quitar acciones (✕) y agregarlas (+). También permite agregar fases (+ al final) y quitarlas (papelera). La lista de acciones deja lugar para las nuevas.
-- [~] Iniciar el día se define una vez y se queda así hasta que se edite; en la vista solo se ven las acciones encendidas.
+- [x] Arriba, las fases como íconos de trazo: hechas en blanco, la actual blanca con su detalle rojo y las que siguen en gris. Debajo va la hora (la siguiente en rojo) o un alfiler si empieza por lugar.
+- [x] El día como una línea: gris = hay rutina, blanco = ya pasó, marca roja = ahora.
+- [x] Una tarjeta con la fase tocada, sin texto: su ícono y su hora; las acciones como íconos (con hora si la tienen). Llegar a casa es una cadena en orden con un punto rojo sobre la que sigue, y el descanso es un anillo que se acorta.
+- [x] Engrane arriba para los ajustes de Rutinas (lugares, apps por fase, contacto de WhatsApp).
+- [x] Pedido (2026-10-28): "no tienen que ser fijos ni los nombres ni las acciones". El lápiz muestra los nombres y permite cambiar el nombre, elegir si la fase empieza por hora o por lugar (llegar o salir), quitar acciones (✕) y agregarlas (+). También permite agregar fases (+ al final) y quitarlas (papelera). La lista de acciones deja lugar para las nuevas.
+- [x] Iniciar el día se define una vez y se queda así hasta que se edite; en la vista solo se ven las acciones encendidas.
 - [x] Sin contadores "6/6": quitados también de Dieta, Semana y Ejercicio (regla en `docs/design/PLAN_VISUAL.md`).
 - [x] Sin texto en la vista y con íconos de trazo continuo (reglas en `docs/design/PLAN_VISUAL.md`).
 
 #### Widget de Rutinas (2026-10-28)
 
-Boceto aprobado (2026-10-28). Programado en `ui/components/RoutineWidget.kt` (widget "Rutinas" en el catálogo: 2×2, 4×2, 4×1); compila, falta instalar (el teléfono no estaba conectado). Por validar ([~]):
+Boceto aprobado (2026-10-28). Programado en `ui/components/RoutineWidget.kt` (widget "Rutinas" en el catálogo: 2×2, 4×2, 4×1); instalado en el S24+. validado por el usuario (2026-10-28):
 
-- [~] Muestra primero lo más urgente: pago sin registrar (tarjeta y monto en rojo), comida cerca o entrenar cerca (ícono con un anillo que se cierra en los 30 min previos y la hora en rojo) y, si no hay nada de eso, lo que sigue en la fase.
-- [~] 2×2: solo lo más urgente. 4×2: a la derecha, los recordatorios de la fase actual por hora (acciones con hora y recordatorios ligados a la fase, con campana), hasta 4; el siguiente con su hora en rojo. En una fase en orden, la cadena. 4×1: las fases del día y lo más urgente a la derecha.
-- [~] Pedido (2026-10-28): "recordatorios que se muestran dependiendo en qué rutina o fase estemos". Cada recordatorio pertenece a una fase y solo aparece y suena mientras esa fase está activa (backend pedido a la sesión de backend).
-- [~] Al tocarlo: pago → registro; comida → Dieta; entreno → Ejercicio; paso → se marca; el resto abre Rutinas.
-- [~] Sin texto ni contadores; el ícono nuevo se dibuja una vez cuando cambia lo que muestra.
+- [x] Muestra primero lo más urgente: pago sin registrar (tarjeta y monto en rojo), comida cerca o entrenar cerca (ícono con un anillo que se cierra en los 30 min previos y la hora en rojo) y, si no hay nada de eso, lo que sigue en la fase.
+- [x] 2×2: solo lo más urgente. 4×2: a la derecha, los recordatorios de la fase actual por hora (acciones con hora y recordatorios ligados a la fase, con campana), hasta 4; el siguiente con su hora en rojo. En una fase en orden, la cadena. 4×1: las fases del día y lo más urgente a la derecha.
+- [x] Pedido (2026-10-28): "recordatorios que se muestran dependiendo en qué rutina o fase estemos". Cada recordatorio pertenece a una fase y solo aparece y suena mientras esa fase está activa (backend pedido a la sesión de backend).
+- [x] Al tocarlo: pago → registro; comida → Dieta; entreno → Ejercicio; paso → se marca; el resto abre Rutinas.
+- [x] Sin texto ni contadores; el ícono nuevo se dibuja una vez cuando cambia lo que muestra.
+
+### Ajustes de Rutinas
+
+Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/RutinasAjustesVisual.html`. Programado en `ui/RoutineSettingsScreen.kt` (lo abre el engrane de Rutinas); el panel de prueba `ui/RoutinePlaceholderScreen.kt` se borró.
+
+Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
+
+- [ ] Lugares: pin blanco si tiene ubicación y gris si no; tocar el nombre para renombrar, "Fijar aquí" guarda la ubicación actual, ✕ quita y "Nuevo lugar" agrega. Aviso rojo con PERMITIR si falta la ubicación "todo el tiempo". **Por validar.**
+- [ ] Fases en orden con ↑↓. Al tocar una: modo (elegir / en orden), apps permitidas (esenciales, otras, entretenimiento, con cuántas abren y cuántas se bloquean) y sus acciones. **Por validar.**
+- [ ] Cada acción con solo lo que usa: hora (reloj del sistema, ✕ la quita), minutos del descanso (− +), app de música o podcast (lista de apps) y teléfono y mensaje de WhatsApp (vacío = el general). **Por validar.**
+- [ ] Pruebas, cerrado y abajo: simular llegar/salir por lugar, el WhatsApp general (teléfono y mensaje por defecto), pago de prueba, probar WhatsApp y abrir accesibilidad. **Por validar.**
+- [ ] Falta: la lista de apps de audio muestra todas las apps (no filtra las de audio); el WhatsApp general quedó en Pruebas y quizá deba ir en su propio lugar; el permiso no se vuelve a revisar al regresar de Ajustes del sistema; no se ve en mapa dónde quedó fijado un lugar ni su radio; la papelera de lugar no pide confirmar; el resumen de registros del panel viejo ya no existe.
+
+### Ejercicio (stack y kcal)
+
+Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/EjercicioVisual.html`. Programado en `feature/exercise/ExerciseScreen.kt`, `ExerciseBodyTab.kt` y `ExerciseSettings.kt`, con 15 íconos de trazo nuevos en `ui/components/StrokeIcon.kt`.
+
+Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
+
+- [ ] Arriba, tres íconos en lugar de pestañas: hoy (pesa), semana (calendario) y cuerpo (báscula). El engrane abre los ajustes. **Por validar.**
+- [ ] Hoy: los grupos musculares del día, la hora de inicio (en rojo si no has empezado) y los minutos. Cada ejercicio muestra el ícono de su grupo, kg × reps y un punto por serie; el siguiente punto tiene borde rojo. El ícono abre los pasos de kg y reps, y la "i" muestra el nombre y cómo se hace. **Por validar.**
+- [ ] Descanso como anillo que se vacía (rojo en los últimos 10 s, vibra al terminar), con 60, 90 o 120. Palomita de sesión hecha. **Por validar.**
+- [ ] Exceso de kcal: si la comida del día pasa la meta, una tarjeta con la llama y el excedente propone un ejercicio del stack del mismo grupo de hoy, con minutos y kcal; ⟳ cambia de opción. **Por validar.**
+- [ ] Semana: los 7 días como íconos (hecho en blanco, hoy con detalle rojo), la llama con los días entrenados y el plan del día tocado en números. **Por validar.**
+- [ ] Cuerpo: peso con línea de inicio a meta y tres puntos de mañanas, IMC en una regla (rango sano, tú y tu meta), cintura (meta: la mitad de la altura), pecho, brazo y muslo con flecha de tendencia. Tocar abre la captura. **Por validar.**
+- [ ] Ajustes: el stack por grupo (nombre, intensidad suave/media/fuerte, minutos, ✕ y +) y "Borrar ejemplos" mientras haya ejemplos; altura y peso meta (los mismos de Comida); hora de inicio y descanso. **Por validar.**
+- [ ] Falta: guardar el ejercicio extra como hecho (hoy se olvida al cerrar la app) y restar sus kcal; elegir qué medidas seguir; teclado de números propio en lugar del del sistema; racha real entre semanas; widget de Ejercicio con íconos de trazo; el calentamiento tampoco se guarda.
+
+### Registro obligatorio
+
+Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/RegistroVisual.html`. Programado en `ui/ForcedEntryScreen.kt`, con 5 íconos de trazo nuevos (bolsa, transferencia, regalo, servicio, borrar). Se prueba con el mosaico "Pago de prueba".
+
+Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
+
+- [ ] Arriba, un punto por pago pendiente (el actual en rojo) y el candado; atrás no hace nada y no hay engrane. **Por validar.**
+- [ ] Toque 1: el monto grande y, en la misma pantalla, comida (presupuesto de comida o bolsa de extras, con lo que queda hoy) o no comida (transferencia, regalo, servicio). Si el pago pasa lo que queda de comida, la bolsa sale en rojo. No comida se guarda con ese toque. **Por validar.**
+- [ ] Tocar el monto abre un teclado numérico propio para corregirlo; ✓ confirma. **Por validar.**
+- [ ] Toque 2 (comida): recetas en círculos con foto (inicial si no tiene), las más usadas primero; la hoja abre ingredientes (buscar, tocar, los gramos suben de 50 en 50); ✓ la marca como comida sin detalle. **Por validar.**
+- [ ] Salida: las comidas que ya pasaron con su hora (la siguiente en rojo); tocarlas las marca y ✓ termina. **Por validar.**
+- [ ] Falta: la lectura real de notificaciones del banco (hoy solo el mosaico); transferencia, regalo y servicio se guardan como gasto extra con su categoría (la app los cuenta como ingreso cuando son entradas); la bolsa usa la categoría "antojo"; receta siempre 1 porción; los gramos solo de 50 a 300; sin cuenta compartida ni "paga otro"; sin deshacer después de guardar.
+
+### Comida (recetas y metas)
+
+Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/ComidaVisual.html`. Programado en `ui/DietPage.kt` y `feature/food/` (`FoodUi.kt`, `FoodLogSheet.kt`, `RecipeScreen.kt`, `FoodWeek.kt`), con íconos de trazo nuevos en `ui/components/StrokeIcon.kt` (snack, cena, termo, huevo, vitamina, sinazucar, hoy, tazon, camara).
+
+Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
+
+- [ ] Arriba, dos íconos (hoy y semana) en lugar de pestañas; a la derecha, el libro abre las recetas y el engrane los ajustes. **Por validar.**
+- [ ] Hoy: anillo con las kcal que quedan y la meta en gris; se llena en blanco y, si te pasas, lo que sobra sale en rojo junto con el número (+). Debajo van proteína (huevo) y fibra (hoja) con su barra. **Por validar.**
+- [ ] Comidas del día: cada fila lleva la hora (la siguiente en rojo), el ícono de trazo, la foto de la receta registrada y sus kcal. Tocarla abre el registro de esa comida; mantenerla presionada la marca o desmarca sin registrar. **Por validar.**
+- [ ] Agua y hábitos con íconos de trazo: los vasos se llenan uno tras otro y solo se ven los ml tomados, sin contador. **Por validar.**
+- [ ] +: registrar una receta (foto con sus kcal) o armar la comida con ingredientes. Se busca en la base USDA o se agrega uno propio; la porción usual se cambia con − / +, los gramos se editan, el lápiz corrige el ingrediente y el total se suma en vivo. **Por validar.**
+- [ ] Receta: foto (cámara para elegirla), minutos, kcal, proteína, fibra, vitaminas, ingredientes con gramos y pasos. El lápiz la edita, la papelera la borra y ✓ registra una porción. **Por validar.**
+- [ ] Semana: peso con la meta y lo que falta en rojo, línea de los últimos registros y + para anotar el peso; IMC en una regla de rangos; kcal por día contra la meta (en rojo lo que se pasa) y puntos de proteína y fibra cumplidas. **Por validar.**
+- [ ] Falta: la receta planeada de cada comida (pedida al backend: `MealSlot.recipeId`); mientras tanto, cada comida registrada se asigna a la comida más cercana en hora. También faltan las vitaminas del día (no hay meta ni se guardan con la comida), las porciones distintas de 1 al registrar una receta y el registro rápido por texto ("¿Qué comiste?"). El widget de Comida sigue con íconos de puntos, y las metas de kcal y proteína se editan solo en ajustes.
+
+### Notas y recordatorios
+
+Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/NotasRecordatoriosVisual.html`. Programado en `feature/notes/NotesScreen.kt` y `AlarmsPage` en `ui/ModulePages.kt`, con 2 íconos de trazo nuevos (circulo, nota_hecha).
+
+Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
+
+- [ ] Notas: los 5 aspectos (Trabajo, Escuela, Ejercicio, Comida, Dieta) con un punto por nota pendiente sobre cada ícono; el aspecto de la fase actual en rojo; sin pendientes, gris. Las notas de General, Ideas y Finanzas van en un sexto ícono solo si hay alguna. **Por validar.**
+- [ ] Notas: al abrir, los puntos salen uno a uno; al marcar una nota, el círculo dibuja la palomita, la nota pasa a gris y su punto se encoge. Campo "Nueva nota" guarda en el aspecto elegido (Enter o al salir). **Por validar.**
+- [ ] Notas · lápiz: nombres bajo los íconos, fijar arriba (solo una) o borrar cada nota. **Por validar.**
+- [ ] Recordatorios: siguiente alarma del reloj arriba (tocar abre el reloj); fases con una marca por recordatorio (blanca hecho, roja el siguiente, gris el resto); en la tarjeta, campana con su hora. Solo se marcan durante su fase. **Por validar.**
+- [ ] Recordatorios · lápiz: título, hora (selector del sistema), mover a otra fase tocando su ícono, borrar, + agrega uno a la fase elegida. **Por validar.**
+- [ ] Falta: el engrane de Notas abre Módulos sin ajustes propios (el aspecto por fase está fijo en `WidgetSelector.focusOf`: Trabajo→Trabajo, Llegar a casa→Ejercicio, Iniciar el día→Dieta); las notas hechas se quedan en gris sin limpiarse; no se puede mover una nota a otro aspecto ni editar su texto; un recordatorio nuevo nace sin título a la siguiente hora en punto; los recordatorios de las acciones de la fase siguen en Rutinas, no aquí; la página Notas ya no muestra la fecha de cada nota.
 
 ### Inicio y páginas
 
@@ -123,6 +191,22 @@ Lenguaje visual (2026-10-22), probado en el S24+; por validar contigo:
 - [~] Borrar con deshacer: el × lo oculta y abajo sale "BORRADO · … DESHACER" por 4 segundos (en lugar del +).
 - [~] "N REGISTROS · SEMANA $X" pasa a ícono de cartera + "SEMANA $X".
 - [~] Widget: "GASTO HOY" en rojo, total en rojo al pasarte del presupuesto, y la semana en columnas de puntos como en la página (antes eran barras).
+
+### Finanzas (modelo nuevo)
+
+Boceto `docs/design/concept/FinanzasVisual.html`; código en `feature/finance/` (`FinanceScreen.kt`, `EntrySheet.kt`, `FinanceSettings.kt`). Reemplaza la vista de arriba.
+
+Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
+
+- [ ] Arriba, en grande, lo que queda para gastar hoy; 20 puntos (blancos lo gastado, rojos al pasarte). **Por validar.**
+- [ ] Lo que queda del mes (bolsa), de la semana, y el tamaño de la bolsa, con íconos mes / semana / bolsa. **Por validar.**
+- [ ] Semana en columnas de puntos: cada columna es lo que el día podía gastar; gastar de más baja las columnas de los días que faltan. La letra de mañana en rojo. **Por validar.**
+- [ ] Barra del ingreso fijo: fijos (gris), ahorro (rayado) y bolsa (blanco lo gastado); transferencias, regalos y servicios aparte. **Por validar.**
+- [ ] Presupuestos por tema (comida al día, etc.) con sus puntos y lo que queda hoy. **Por validar.**
+- [ ] Por cobrar: total en rojo; tocar una cuenta la marca como cobrada. **Por validar.**
+- [ ] + abre el registro: extra, compartido (con "te deben"), fijo o ingreso; el ingreso pregunta si es para tu estabilidad (sí → presupuesto, no → transferencia, regalo o servicio). Aviso rojo si el gasto no cabe en lo de hoy. **Por validar.**
+- [ ] Engrane: ingreso y fijos del mes, % de ahorro, límite diario (vacío = sale de la bolsa), presupuestos por tema y movimientos del mes con borrar. **Por validar.**
+- [ ] Pendiente: los gastos fijos e ingresos fijos se registran cada mes a mano (no hay recurrentes); cobro parcial de una cuenta compartida; editar un movimiento; categorías propias más allá de comida / transporte / otro; conectar con Comida (antojo fuera del presupuesto); el widget aún usa el modelo anterior.
 
 ### Inicio · lenguaje visual (2026-10-22)
 
@@ -200,7 +284,7 @@ Reparto: el backend (datos, lógica, servicios) lo hace una sesión aparte; las 
 | 5 | Pago detectado y modo forzoso | Por validar |
 | 6 | Ubicación: geocercas, pendientes al salir, WhatsApp | Por validar |
 | 7 | Notas por aspecto y lógica de widgets | Por validar |
-| 2b | Recordatorios por fase: cada recordatorio pertenece a una fase y solo suena en ella; marca de hecho por día; lista de la fase para el widget Rutinas | En curso · compila, falta instalar |
+| 2b | Recordatorios por fase: cada recordatorio pertenece a una fase y solo suena en ella; marca de hecho por día; lista de la fase para el widget Rutinas | Por validar |
 | 8 | Vista web | En curso · el respaldo (formato 2) ya trae todo; falta la página |
 
 Avance (2026-10-28): solo lógica y datos; las vistas las diseña la otra sesión. Compila y pasan las pruebas de lógica (`app/src/test`). Instalado en el S24+ el 2026-10-28 (la base migró a la versión 3 sin cierres). En la versión de prueba hay dos mosaicos de ajustes rápidos: **Rutina** (panel de prueba) y **Pago de prueba**. Qué probar en cada paso al instalar:

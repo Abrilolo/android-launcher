@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ajustes de Rutinas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; max-width: 100%; height: 844px; background: #000; border-radius: 36px; box-sizing: border-box; }
+  .scroll { height: 100%; overflow-y: auto; padding: 56px 24px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; scrollbar-width: none; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .muted { color: var(--muted); } .red { color: var(--red); } .gray { color: var(--gray); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; color: var(--muted); }
+  .sep { height: 1px; background: var(--line); margin: 14px 0; }
+  .item { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+  .item .grow { flex: 1; min-width: 0; }
+  .name { font-size: 16px; font-weight: 500; }
+  .sub { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 2px; text-transform: uppercase; }
+  .sub.red { color: var(--red); }
+  input.edit { background: none; border: 0; border-bottom: 1px solid #333; color: #fff; font: 500 16px 'Space Grotesk', sans-serif; width: 100%; padding: 2px 0; outline: none; }
+  input.field { background: none; border: 1px solid #333; border-radius: 10px; color: #fff; font: 13px 'Space Grotesk', sans-serif; padding: 8px 10px; width: 100%; box-sizing: border-box; outline: none; }
+  input.field::placeholder { color: var(--gray); }
+  .chip { background: none; border: 1px solid #333; border-radius: 10px; padding: 5px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font: 10px 'Space Mono', monospace; letter-spacing: 1px; color: var(--muted); white-space: nowrap; }
+  .chip.on { background: #1C1C1C; color: #fff; }
+  .chip.red { border-color: var(--red); color: var(--red); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg { display: flex; border: 1px solid #333; border-radius: 10px; overflow: hidden; width: fit-content; }
+  .seg button { background: none; border: 0; padding: 6px 12px; cursor: pointer; font: 10px 'Space Mono', monospace; letter-spacing: 1px; color: var(--muted); }
+  .seg button.on { background: #1C1C1C; color: #fff; }
+  .slot { width: 40px; height: 40px; border: 1.5px dashed #3A3A3A; border-radius: 12px; display: grid; place-items: center; color: var(--gray); font-size: 20px; box-sizing: border-box; flex: none; }
+  .phase { cursor: pointer; }
+  .detail { display: flex; flex-direction: column; gap: 14px; padding: 6px 0 4px 52px; }
+  .act { display: flex; flex-direction: column; gap: 8px; }
+  .step { display: flex; align-items: center; gap: 8px; }
+  .step b { font: 13px 'Space Mono', monospace; min-width: 28px; text-align: center; }
+  .debug { border-style: dashed; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 70%; overflow-y: auto; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 18px 24px 32px; transform: translateY(105%); transition: transform .25s ease; }
+  .sheet.open { transform: none; }
+  .applist .item { cursor: pointer; }
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; max-width: 100%; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+  .toast { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); background: #1C1C1C; border: 1px solid #333; border-radius: 12px; padding: 8px 14px; font: 11px 'Space Mono', monospace; color: #fff; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<h2>AJUSTES DE RUTINAS · BOCETO (TOCA UNA FASE, LOS CHIPS Y PRUEBAS)</h2>
+
+<div class="phone">
+  <div class="scroll" id="screen"></div>
+  <div class="sheet" id="sheet">
+    <div class="row"><span class="label red" id="sheetTitle">APP</span><button class="tool" onclick="closeSheet()" aria-label="Cerrar"><span class="label">✕</span></button></div>
+    <div class="applist" id="sheetBody" style="margin-top:12px"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>Qué hay aquí y qué se queda en la vista</b><br>
+    · La vista de Rutinas (lápiz) sigue siendo donde cambias <b>nombre</b>, <b>hora o lugar</b> de inicio y <b>agregas o quitas</b> acciones y fases.<br>
+    · Estos ajustes llevan lo que no cabe ahí: <b>lugares</b>, <b>orden</b> de las fases, <b>modo</b>, <b>apps</b> permitidas y la <b>configuración de cada acción</b>.<br><br>
+    <b>Lugares</b><br>
+    · Pin blanco = ya tiene ubicación; gris = sin fijar. <b>Fijar aquí</b> guarda dónde estás ahora.<br>
+    · Toca el nombre para renombrar; ✕ lo quita (las fases que empezaba se quedan con su hora).<br>
+    · Si falta el permiso de ubicación aparece un aviso rojo arriba de la lista.<br><br>
+    <b>Fases</b><br>
+    · Flechas ↑↓ para el orden. Toca la fase para abrirla: <b>modo</b> (elegir / en orden), <b>apps</b> (esenciales, otras, entretenimiento; el número dice cuántas abren) y sus <b>acciones</b>.<br>
+    · Cada acción muestra solo lo que usa: hora (agua, caminar…), minutos (descanso), app (música, podcast) o contacto y texto (WhatsApp). Vacío = usa el valor general.<br><br>
+    <b>Pruebas</b><br>
+    · Cerrado y abajo. Simular llegar/salir de cada lugar, pago de prueba, probar WhatsApp y el servicio de accesibilidad.<br>
+    · El panel viejo (<b>RoutinePlaceholderScreen</b>) se borra: todo lo útil vive aquí. El resumen de registros que tenía no se pasa.
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  inicio:     { main: 'M2 18h4a6 6 0 0 1 12 0h4', red: 'M12 4v3M5 8l2 2M19 8l-2 2' },
+  traslado:   { main: 'M7 20v-2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1v2M4 11h16', red: 'M8 14.5h.01M16 14.5h.01' },
+  trabajo:    { main: 'M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7h4.5A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-10A1.5 1.5 0 0 1 4.5 7H9', red: 'M10.5 12.5h3' },
+  salida:     { main: 'M13 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H13', red: 'M10 12h10M17 9l3 3-3 3' },
+  casa:       { main: 'M5 20V10l7-6 7 6v10H5', red: 'M10 20v-5h4v5' },
+  agua:       { main: 'M5 4h14l-2 16H7L5 4', red: 'M6 10h12' },
+  caminar:    { main: 'M7 3c2 0 3 2.2 3 5s-1 5-3 5-3-2.2-3-5 1-5 3-5', red: 'M17 10c2 0 3 2.2 3 5s-1 5-3 5-3-2.2-3-5 1-5 3-5' },
+  colacion:   { main: 'M12 7.5C10 6 5 6 5 12s4 9.5 7 8c3 1.5 7-2 7-8s-5-6-7-4.5', red: 'M12 7.5c0-2 1-3.5 3-4.5' },
+  musica:     { main: 'M9 18V5l11-2v13', red: 'M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M20 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0' },
+  podcast:    { main: 'M9 6a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0V6', red: 'M5 11a7 7 0 0 0 14 0M12 18v3' },
+  whatsapp:   { main: 'M4 20l1.4-4.2A8 8 0 1 1 8.6 19z', red: 'M8.5 12h.01M12 12h.01M15.5 12h.01' },
+  pendientes: { main: 'M6 3h9l4 4v14H6V3', red: 'M9 12h6M9 16h4' },
+  ordenar:    { main: 'M3 8l9-4 9 4v9l-9 4-9-4V8l9 4 9-4', red: 'M12 12v9' },
+  descanso:   { main: 'M6 3h12M17 3c0 6-10 8-10 18M7 3c0 6 10 8 10 18M6 21h12', red: 'M10 18h4' },
+  gimnasio:   { main: 'M3 10v4M6 7v10M18 7v10M21 10v4', red: 'M6 12h12' },
+  dormir:     { main: 'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z', red: 'M17 3v3M15.5 4.5h3' },
+  apps:       { main: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
+  candado:    { main: 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z', red: 'M12 15v2' },
+  pin:        { main: 'M12 21s-6-5.7-6-11a6 6 0 0 1 12 0c0 5.3-6 11-6 11z', red: 'M12 10h.01' },
+  reloj:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 7v5l3 2' },
+  nueva:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 8v8M8 12h8' },
+  pago:       { main: 'M3 6h18v12H3V6', red: 'M3 10h18M7 15h3' },
+  papelera:   { main: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14' },
+};
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C' };
+function icon(name, state, size, animate = false) {
+  const ic = ICONS[name];
+  const main = state === 'off' ? C.gray : C.white;
+  const red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const style = document.createElement('style');
+style.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dashoffset:0}}';
+document.head.appendChild(style);
+
+const LABEL = { agua: 'Agua', caminar: 'Caminar', colacion: 'Colación', musica: 'Música', podcast: 'Podcast', whatsapp: 'WhatsApp', pendientes: 'Pendientes', ordenar: 'Ordenar', descanso: 'Descanso', gimnasio: 'Gimnasio', dormir: 'Dormir' };
+const CONFIG = { agua: ['at'], caminar: ['at'], colacion: ['at'], ordenar: ['at'], gimnasio: ['at'], dormir: ['at'], descanso: ['minutes', 'at'], musica: ['package'], podcast: ['package'], whatsapp: ['phone', 'text'], pendientes: [] };
+const APPS = ['Spotify', 'YouTube Music', 'Pocket Casts', 'Podcasts', 'Audible'];
+const GROUPS = [{ k: 'ESSENTIAL', n: 'ESENCIALES', count: 9 }, { k: 'OTHER', n: 'OTRAS', count: 14 }, { k: 'ENTERTAINMENT', n: 'ENTRETENIMIENTO', count: 6 }];
+
+let locationOk = false, debugOpen = false, openPhase = 2, renaming = null, flash = null;
+const places = [
+  { id: 'casa', name: 'Casa', located: true },
+  { id: 'oficina', name: 'Oficina', located: true },
+  { id: 'gimnasio', name: 'Gimnasio', located: false },
+];
+const phases = [
+  { icon: 'inicio', name: 'Iniciar el día', trig: '06:30', mode: 'chooser', groups: ['ESSENTIAL'],
+    actions: [{ type: 'musica', package: 'Spotify' }, { type: 'podcast' }, { type: 'agua' }, { type: 'caminar' }, { type: 'gimnasio' }] },
+  { icon: 'traslado', name: 'Traslado', trig: '07:30', mode: 'chooser', groups: ['ESSENTIAL', 'ENTERTAINMENT'], actions: [{ type: 'musica', package: 'Spotify' }, { type: 'podcast', package: 'Pocket Casts' }] },
+  { icon: 'trabajo', name: 'Trabajo', trig: '09:00', mode: 'chooser', groups: ['ESSENTIAL'],
+    actions: [{ type: 'agua', at: '12:00' }, { type: 'caminar', at: '13:30' }, { type: 'colacion', at: '16:00' }] },
+  { icon: 'salida', name: 'Dejar la oficina', trig: { place: 'oficina', leave: true }, mode: 'chooser', groups: ['ESSENTIAL', 'OTHER'], actions: [{ type: 'pendientes' }, { type: 'whatsapp', phone: '', text: '' }] },
+  { icon: 'casa', name: 'Llegar a casa', trig: { place: 'casa' }, mode: 'ordered', groups: ['ESSENTIAL', 'OTHER', 'ENTERTAINMENT'],
+    actions: [{ type: 'ordenar' }, { type: 'agua' }, { type: 'descanso', minutes: 5 }, { type: 'gimnasio' }, { type: 'dormir', at: '23:00' }] },
+];
+const placeName = id => (places.find(p => p.id === id) || { name: '—' }).name;
+const trigText = t => typeof t === 'string' ? t : `${t.leave ? 'SALIR' : 'LLEGAR'} · ${placeName(t.place)}`;
+
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1400); }
+
+function render() {
+  let h = `<div class="row"><span class="label red">AJUSTES · RUTINAS</span><button class="tool" onclick="toast('Vuelve a Rutinas')" aria-label="Cerrar"><span class="label">✕</span></button></div>`;
+
+  // Places
+  h += `<div class="card"><div class="row"><span class="label muted">LUGARES</span></div>`;
+  if (!locationOk) h += `<div class="row" style="margin-top:12px"><span class="sub red">Ubicación: falta “todo el tiempo”</span><button class="chip red" onclick="locationOk=true; render(); toast('Permiso concedido')">PERMITIR</button></div>`;
+  h += `<div class="sep"></div>`;
+  h += places.map((p, i) => {
+    const anim = flash === 'pl' + i;
+    const nameEl = renaming === i
+      ? `<input class="edit" value="${p.name}" onblur="places[${i}].name=this.value||places[${i}].name; renaming=null; render()" onkeydown="if(event.key==='Enter')this.blur()" aria-label="Nombre del lugar" autofocus>`
+      : `<div class="name" onclick="renaming=${i}; render()" style="cursor:text">${p.name}</div>`;
+    return `<div class="item">${icon('pin', p.located ? (anim ? 'now' : 'done') : 'off', 24, anim)}<div class="grow">${nameEl}<div class="sub">${p.located ? 'fijado' : 'sin fijar'}</div></div>
+      <button class="chip" onclick="fix(${i})">FIJAR AQUÍ</button><button class="tool" onclick="places.splice(${i},1); render()" aria-label="Quitar lugar">✕</button></div>`;
+  }).join('');
+  h += `<div class="item" style="margin-top:6px"><span class="slot">+</span><input class="field" placeholder="Nuevo lugar" onkeydown="if(event.key==='Enter'&&this.value.trim()){places.push({id:'p'+Date.now(),name:this.value.trim(),located:false}); render()}"></div></div>`;
+
+  // Phases
+  h += `<div class="card"><span class="label muted">FASES</span><div class="sep"></div>`;
+  h += phases.map((p, i) => {
+    const open = openPhase === i;
+    let r = `<div class="item phase" onclick="openPhase=${open ? -1 : i}; render()">${icon(p.icon, open ? 'now' : 'done', 32)}<div class="grow"><div class="name">${p.name}</div><div class="sub">${typeof p.trig === 'string' ? '' : '⌖ '}${trigText(p.trig)} · ${p.mode === 'ordered' ? 'en orden' : 'elegir'}</div></div>
+      <button class="tool" onclick="event.stopPropagation(); move(${i},-1)" aria-label="Subir" ${i === 0 ? 'style="opacity:.25"' : ''}>↑</button><button class="tool" onclick="event.stopPropagation(); move(${i},1)" aria-label="Bajar" ${i === phases.length - 1 ? 'style="opacity:.25"' : ''}>↓</button></div>`;
+    if (open) r += detail(p, i);
+    return r + (i < phases.length - 1 ? '<div class="sep" style="margin:8px 0"></div>' : '');
+  }).join('');
+  h += `</div>`;
+
+  // Debug
+  h += `<div class="card debug"><div class="row" style="cursor:pointer" onclick="debugOpen=!debugOpen; render()"><span class="label gray">PRUEBAS</span><span class="label gray">${debugOpen ? '−' : '+'}</span></div>`;
+  if (debugOpen) {
+    h += `<div class="sep"></div>` + places.map(p => `<div class="item">${icon('pin', 'off', 20)}<div class="grow name" style="font-size:14px">${p.name}</div><button class="chip" onclick="toast('Llegaste a ${p.name}')">LLEGAR</button><button class="chip" onclick="toast('Saliste de ${p.name}')">SALIR</button></div>`).join('');
+    h += `<div class="sep"></div><div class="chips"><button class="chip" onclick="toast('Pago de prueba · OXXO $85')">${icon('pago', 'off', 14)} PAGO DE PRUEBA</button><button class="chip" onclick="toast('Abre WhatsApp')">${icon('whatsapp', 'off', 14)} PROBAR WHATSAPP</button><button class="chip" onclick="toast('Abre Accesibilidad')">ACCESIBILIDAD · APAGADO</button></div>`;
+  }
+  h += `</div>`;
+  document.getElementById('screen').innerHTML = h;
+  flash = null;
+}
+
+function detail(p, i) {
+  let d = `<div class="detail" onclick="event.stopPropagation()">`;
+  d += `<div><div class="sub" style="margin-bottom:6px">Modo</div><div class="seg"><button class="${p.mode === 'chooser' ? 'on' : ''}" onclick="phases[${i}].mode='chooser'; render()">ELEGIR</button><button class="${p.mode === 'ordered' ? 'on' : ''}" onclick="phases[${i}].mode='ordered'; render()">EN ORDEN</button></div></div>`;
+  const open = GROUPS.filter(g => p.groups.includes(g.k)).reduce((s, g) => s + g.count, 0);
+  const total = GROUPS.reduce((s, g) => s + g.count, 0);
+  d += `<div><div class="row" style="margin-bottom:6px"><span class="sub">Apps</span><span style="display:flex;gap:14px"><span class="stat" style="display:flex;gap:6px;align-items:center">${icon('apps', 'done', 14)}<span class="label">${open}</span></span><span style="display:flex;gap:6px;align-items:center">${icon('candado', 'now', 14)}<span class="label red">${total - open}</span></span></span></div>
+    <div class="chips">${GROUPS.map(g => `<button class="chip ${p.groups.includes(g.k) ? 'on' : ''}" onclick="toggleGroup(${i},'${g.k}')">${g.n}</button>`).join('')}</div></div>`;
+  d += `<div class="sub">Acciones</div>`;
+  d += p.actions.map((a, j) => {
+    const keys = CONFIG[a.type];
+    let body = '';
+    keys.forEach(k => {
+      if (k === 'at') body += `<button class="chip ${a.at ? 'on' : ''}" onclick="setAt(${i},${j})">${icon('reloj', a.at ? 'done' : 'off', 14)} ${a.at || 'SIN HORA'}</button>${a.at ? `<button class="tool" onclick="phases[${i}].actions[${j}].at=''; render()" aria-label="Quitar hora">✕</button>` : ''}`;
+      if (k === 'minutes') body += `<span class="step"><button class="chip" onclick="bump(${i},${j},-1)">−</button><b>${a.minutes || 5}</b><button class="chip" onclick="bump(${i},${j},1)">+</button><span class="sub" style="margin:0">min</span></span>`;
+      if (k === 'package') body += `<button class="chip ${a.package ? 'on' : ''}" onclick="pickApp(${i},${j})">${a.package || 'ELEGIR APP'}</button>`;
+    });
+    if (keys.includes('phone')) body = `<input class="field" placeholder="Teléfono (5215512345678) · vacío = general" value="${a.phone || ''}" oninput="phases[${i}].actions[${j}].phone=this.value"><input class="field" placeholder="Mensaje · vacío = general" value="${a.text || ''}" oninput="phases[${i}].actions[${j}].text=this.value">`;
+    if (!keys.length) body = `<span class="sub" style="margin:0">sin ajustes</span>`;
+    const stack = keys.includes('phone');
+    return `<div class="act"><div class="item" style="min-height:32px">${icon(a.type, 'done', 24)}<span class="name" style="font-size:14px;flex:1">${LABEL[a.type]}</span>${stack ? '' : `<span class="chips" style="justify-content:flex-end;align-items:center">${body}</span>`}</div>${stack ? `<div style="display:flex;flex-direction:column;gap:8px;padding-left:36px">${body}</div>` : ''}</div>`;
+  }).join('');
+  return d + `</div>`;
+}
+
+function fix(i) { places[i].located = true; flash = 'pl' + i; render(); toast(places[i].name + ' guardada'); }
+function move(i, d) { const j = i + d; if (j < 0 || j >= phases.length) return; [phases[i], phases[j]] = [phases[j], phases[i]]; if (openPhase === i) openPhase = j; else if (openPhase === j) openPhase = i; render(); }
+function toggleGroup(i, k) { const g = phases[i].groups; const at = g.indexOf(k); at >= 0 ? g.splice(at, 1) : g.push(k); render(); }
+function setAt(i, j) { const v = prompt('Hora (HH:MM)', phases[i].actions[j].at || '12:00'); if (v && /^\d{1,2}:\d{2}$/.test(v)) { phases[i].actions[j].at = v.padStart(5, '0'); render(); } }
+function bump(i, j, d) { const a = phases[i].actions[j]; a.minutes = Math.max(1, Math.min(60, (a.minutes || 5) + d)); render(); }
+function pickApp(i, j) {
+  document.getElementById('sheetTitle').textContent = LABEL[phases[i].actions[j].type].toUpperCase();
+  document.getElementById('sheetBody').innerHTML = APPS.map(n => `<div class="item" onclick="phases[${i}].actions[${j}].package='${n}'; closeSheet(); render()"><span class="name" style="font-size:15px;flex:1">${n}</span>${phases[i].actions[j].package === n ? '<span class="label red">●</span>' : ''}</div>`).join('');
+  document.getElementById('sheet').classList.add('open');
+}
+function closeSheet() { document.getElementById('sheet').classList.remove('open'); }
+render();
+</script>
+</body>
+</html>

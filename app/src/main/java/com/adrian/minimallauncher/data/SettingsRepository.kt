@@ -66,7 +66,15 @@ enum class MealKind { MAIN, SNACK }
  * One meal of the day. [id] keys its "done" mark ("<date>|meal_<id>"), so renaming or moving it keeps the history;
  * the four default ids are "0".."3", the keys the meals had when they were fixed. [icon] is a DotIcons name.
  */
-data class MealSlot(val id: String, val name: String, val time: LocalTime, val kind: MealKind, val icon: String)
+data class MealSlot(
+    val id: String,
+    val name: String,
+    val time: LocalTime,
+    val kind: MealKind,
+    val icon: String,
+    /** The recipe planned for this meal; it stays planned every day until changed. Saved apart (see [SettingsRepository.setMealPlan]). */
+    val recipeId: String? = null,
+)
 
 val DEFAULT_MEAL_TIMES: List<LocalTime> = listOf(LocalTime.of(13, 0), LocalTime.of(16, 30), LocalTime.of(18, 30), LocalTime.of(21, 30))
 
@@ -144,6 +152,8 @@ class SettingsRepository(private val context: Context) {
     private val mealTimesKey = stringPreferencesKey("meal_times")
     private val waterGoalKey = intPreferencesKey("water_goal")
     private val mealSlotsKey = stringPreferencesKey("meals")
+    // Planned recipe per meal slot, "<slotId>=<recipeId>" pairs; kept apart so editing the meals keeps the plan.
+    private val mealPlanKey = stringPreferencesKey("meal_plan")
     private val waterGlassMlKey = intPreferencesKey("water_glass_ml")
     private val waterContainerKey = stringPreferencesKey("water_container")
     private val waterFromKey = stringPreferencesKey("water_from")
@@ -219,10 +229,10 @@ class SettingsRepository(private val context: Context) {
             vaultLockSeconds = prefs[vaultLockKey] ?: default.vaultLockSeconds,
             hiddenTiles = prefs[hiddenTilesKey].orEmpty(),
             // Before meals could be edited only their four times were saved; those become the default meals' times.
-            meals = prefs[mealSlotsKey]?.let(::decodeMeals)
+            meals = (prefs[mealSlotsKey]?.let(::decodeMeals)
                 ?: prefs[mealTimesKey]?.split(',')?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }
                     ?.takeIf { it.size == DEFAULT_MEAL_TIMES.size }?.let { defaultMeals(it) }
-                ?: default.meals,
+                ?: default.meals).let { slots -> decodePlan(prefs[mealPlanKey]).let { plan -> slots.map { it.copy(recipeId = plan[it.id]) } } },
             waterGoal = prefs[waterGoalKey] ?: default.waterGoal,
             waterGlassMl = prefs[waterGlassMlKey] ?: default.waterGlassMl,
             waterContainer = prefs[waterContainerKey] ?: default.waterContainer,
@@ -252,6 +262,25 @@ class SettingsRepository(private val context: Context) {
     private fun normalizeOrder(saved: List<String>) = saved.filter { it in DEFAULT_SECTION_ORDER }.distinct().let { it + (DEFAULT_SECTION_ORDER - it.toSet()) }
     private fun encode(value: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String) = String(Base64.getUrlDecoder().decode(value), Charsets.UTF_8)
+
+    private fun decodePlan(text: String?): Map<String, String> = text.orEmpty().split('|').mapNotNull { pair ->
+        val (slot, recipe) = pair.split('=').takeIf { it.size == 2 }?.let { decode(it[0]) to decode(it[1]) } ?: return@mapNotNull null
+        slot to recipe
+    }.toMap()
+
+    /** Plans [recipeId] for meal slot [slotId] (null clears it). */
+    suspend fun setMealPlan(slotId: String, recipeId: String?) {
+        context.settings.edit { prefs ->
+            val plan = decodePlan(prefs[mealPlanKey]).toMutableMap()
+            if (recipeId == null) plan.remove(slotId) else plan[slotId] = recipeId
+            prefs[mealPlanKey] = plan.entries.joinToString("|") { "${encode(it.key)}=${encode(it.value)}" }
+        }
+    }
+
+    /** Replaces the whole plan (backup import). */
+    suspend fun setMealPlans(plan: Map<String, String>) {
+        context.settings.edit { prefs -> prefs[mealPlanKey] = plan.entries.joinToString("|") { "${encode(it.key)}=${encode(it.value)}" } }
+    }
 
     private fun encodeMeals(meals: List<MealSlot>) =
         meals.joinToString("|") { "${encode(it.id)}~${encode(it.name)}~${it.time}~${it.kind}~${it.icon}" }

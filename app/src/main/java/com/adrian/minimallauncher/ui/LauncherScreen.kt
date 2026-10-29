@@ -318,28 +318,43 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
         } else if (openModule == "exercise") Box(overlay) {
             val exerciseSettings by exerciseViewModel.settings.collectAsState()
             val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
+            val exerciseStack by viewModel.exerciseStack.collectAsState()
+            val exerciseFood by viewModel.foodDay.collectAsState()
             ExerciseScreen(
                 day = exerciseDay,
                 settings = exerciseSettings,
                 bodyMetrics = exerciseMetrics,
+                stack = exerciseStack,
+                kcalOver = exerciseFood.over,
                 onLogSet = exerciseViewModel::logSet,
                 onUndoSet = exerciseViewModel::undoSet,
                 onSetCompleted = exerciseViewModel::setCompleted,
                 onAddBodyMetric = exerciseViewModel::addBodyMetric,
                 onSaveSettings = exerciseViewModel::saveSettings,
+                onSaveStackExercise = viewModel::saveStackExercise,
+                onDeleteStackExercise = viewModel::deleteStackExercise,
+                onClearPlaceholders = viewModel::clearPlaceholderStack,
                 onBack = closeModule,
                 modifier = screenModifier,
             )
         } else if (openModule == "alarms") Box(overlay) {
-            AlarmsPage(now, personalRecords, personalActions, space.name, closeModule, screenModifier)
+            AlarmsPage(viewModel, { openModule = "settings:alarms" }, closeModule, screenModifier)
         } else if (openModule == "world") Box(overlay) {
             WorldClockPage(now, moduleSettings.worldZones, closeModule, screenModifier)
         } else if (openModule == "diet") Box(overlay) {
-            DietPage(now, personalRecords, personalActions, moduleSettings, viewModel::setHabit, { openModule = "settings:diet" }, closeModule, screenModifier)
+            DietPage(now, personalRecords, personalActions, moduleSettings, viewModel, viewModel::setHabit,{ openModule = "settings:diet" }, closeModule, screenModifier)
         } else if (openModule == "finance") Box(overlay) {
-            FinanceScreen(finances, now, moduleSettings.dailyBudgetCents, viewModel::addFinance, viewModel::deleteFinance, { openModule = "settings:finance" }, closeModule, screenModifier)
+            val financeSummary by viewModel.financeSummary.collectAsState()
+            val money by viewModel.money.collectAsState()
+            FinanceScreen(
+                financeSummary, money, moduleSettings.dailyBudgetCents,
+                onAdd = viewModel::addMoney, onSettle = viewModel::settleShared, onSetBudget = viewModel::setBudget,
+                onSavingPct = viewModel::setSavingPct,
+                onDailyLimit = { cents -> viewModel.updateModuleSettings { it.copy(dailyBudgetCents = cents) } },
+                onDelete = viewModel::deleteFinance, onBack = closeModule, modifier = screenModifier,
+            )
         } else if (openModule == "notes") Box(overlay) {
-            NotesScreen(notes, viewModel::addNote, viewModel::deleteNote, viewModel::setNotePinned, closeModule, screenModifier)
+            NotesScreen(viewModel, { openModule = "settings:notes" }, closeModule, screenModifier)
         } else if (openModule == "vault") Box(overlay) {
             VaultScreen(
                 apps = vaultApps,

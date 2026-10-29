@@ -71,6 +71,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
                 JSONObject().put("id", it.id).put("description", it.description).put("createdAt", it.createdAt).put("recipeId", it.recipeId.orNull())
                     .put("servings", it.servings.toDouble()).put("kcal", it.kcal.toDouble()).put("proteinG", it.proteinG.toDouble())
                     .put("carbsG", it.carbsG.toDouble()).put("fatG", it.fatG.toDouble()).put("fiberG", it.fiberG.toDouble())
+                    .put("slotId", it.slotId.orNull())
             }))
             .put("bodyMetrics", JSONArray(metrics.map { JSONObject().put("id", it.id).put("type", it.type).put("value", it.value.toDouble()).put("createdAt", it.createdAt) }))
             .put("dayChecks", JSONArray(checks.map { JSONObject().put("key", it.key).put("kind", it.kind) }))
@@ -117,6 +118,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
                     it.getString("id"), it.getString("description"), it.getLong("createdAt"), recipeId = it.stringOrNull("recipeId"),
                     servings = it.optDouble("servings", 1.0).toFloat(), kcal = it.optDouble("kcal", 0.0).toFloat(), proteinG = it.optDouble("proteinG", 0.0).toFloat(),
                     carbsG = it.optDouble("carbsG", 0.0).toFloat(), fatG = it.optDouble("fatG", 0.0).toFloat(), fiberG = it.optDouble("fiberG", 0.0).toFloat(),
+                    slotId = it.stringOrNull("slotId"),
                 )
             })
             personal.insertBodyMetrics(root.array("bodyMetrics").map { BodyMetricRecord(it.getString("id"), it.getString("type"), it.getDouble("value").toFloat(), it.getLong("createdAt")) })
@@ -145,7 +147,11 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             })
             stack.insert(root.array("exerciseStack").map { StackExercise(it.getString("id"), it.getString("name"), it.getString("muscleGroup"), it.getDouble("met").toFloat(), it.getInt("minutes"), it.optInt("sortOrder"), it.optBoolean("placeholder")) })
         }
-        root.optJSONObject("moduleSettings")?.let { settings.setModuleSettings(it.toModuleSettings()) }
+        root.optJSONObject("moduleSettings")?.let { json ->
+            val imported = json.toModuleSettings()
+            settings.setModuleSettings(imported)
+            settings.setMealPlans(imported.meals.mapNotNull { slot -> slot.recipeId?.let { slot.id to it } }.toMap())
+        }
         root.optJSONObject("routine")?.let { routine.fromJson(it) }
         val total = RECORD_ARRAYS.sumOf { key -> root.optJSONArray(key)?.length() ?: 0 }
         BackupResult(records = total, added = count() - before)
@@ -169,7 +175,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
         .put("exerciseRestSeconds", exerciseRestSeconds)
         .put("vaultLockSeconds", vaultLockSeconds)
         .put("hiddenTiles", JSONArray(hiddenTiles.toList()))
-        .put("meals", JSONArray(meals.map { JSONObject().put("id", it.id).put("name", it.name).put("time", it.time.toString()).put("kind", it.kind.name).put("icon", it.icon) }))
+        .put("meals", JSONArray(meals.map { JSONObject().put("id", it.id).put("name", it.name).put("time", it.time.toString()).put("kind", it.kind.name).put("icon", it.icon).put("recipeId", it.recipeId ?: JSONObject.NULL) }))
         .put("waterGoal", waterGoal)
         .put("waterGlassMl", waterGlassMl)
         .put("waterContainer", waterContainer)
@@ -200,7 +206,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             hiddenTiles = strings("hiddenTiles")?.toSet() ?: default.hiddenTiles,
             // Older backups only have the four meal times.
             meals = runCatching {
-                array("meals").map { MealSlot(it.getString("id"), it.getString("name"), LocalTime.parse(it.getString("time")), MealKind.valueOf(it.getString("kind")), it.getString("icon")) }
+                array("meals").map { MealSlot(it.getString("id"), it.getString("name"), LocalTime.parse(it.getString("time")), MealKind.valueOf(it.getString("kind")), it.getString("icon"), if (it.isNull("recipeId")) null else it.optString("recipeId").ifBlank { null }) }
             }.getOrNull()?.takeIf { it.isNotEmpty() }
                 ?: strings("mealTimes")?.mapNotNull { runCatching { LocalTime.parse(it) }.getOrNull() }?.takeIf { it.size == DEFAULT_MEAL_TIMES.size }?.let { defaultMeals(it) }
                 ?: default.meals,
@@ -228,7 +234,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
 
     companion object {
         private const val APP_ID = "minimal-launcher"
-        private const val FORMAT = 3
+        private const val FORMAT = 4
         /** The arrays that hold records, for the counts shown after an export or import. */
         private val RECORD_ARRAYS = listOf(
             "notes", "reminders", "finances", "meals", "bodyMetrics", "dayChecks", "setLogs",

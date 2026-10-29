@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notas y recordatorios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; max-width: 100%; min-height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .muted { color: var(--muted); } .red { color: var(--red); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; color: var(--muted); }
+  button.icon { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: inherit; position: relative; }
+  .strip { display: grid; grid-template-columns: repeat(var(--n), 1fr); }
+  .time { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); height: 16px; display: flex; align-items: center; }
+  .time.next { color: var(--red); } .time.done { color: #fff; }
+  .sel::after { content: ''; position: absolute; bottom: -10px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: #fff; }
+  .head { display: flex; justify-content: space-between; align-items: center; }
+  .headl { display: flex; align-items: center; gap: 12px; flex: 1; margin-right: 12px; }
+  .sep { height: 1px; background: var(--line); margin: 16px 0 0; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--muted); text-align: center; text-transform: uppercase; }
+  .slot { width: 48px; height: 48px; border: 1.5px dashed #3A3A3A; border-radius: 14px; display: grid; place-items: center; color: var(--gray); font-size: 22px; box-sizing: border-box; }
+  .x { position: absolute; top: -6px; right: 4px; width: 18px; height: 18px; border-radius: 9px; background: #1C1C1C; border: 1px solid #333; color: var(--muted); font-size: 12px; line-height: 16px; text-align: center; cursor: pointer; }
+  input.edit, input.field { background: none; border: 0; border-bottom: 1px solid #333; color: #fff; font: 400 16px 'Space Grotesk', sans-serif; width: 100%; padding: 4px 0; outline: none; }
+  input.field::placeholder { color: var(--gray); }
+  input.time-in, select.place { background: none; border: 1px solid #333; border-radius: 8px; color: var(--muted); font: 12px 'Space Mono', monospace; padding: 3px 6px; color-scheme: dark; }
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; max-width: 100%; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+
+  /* Notas: una columna de puntos por aspecto, crece hacia arriba desde el ícono. */
+  .stacks { display: grid; grid-template-columns: repeat(var(--n), 1fr); height: 92px; align-items: end; margin-bottom: 12px; }
+  .stack { display: flex; flex-direction: column-reverse; align-items: center; gap: 5px; }
+  .pip { width: 6px; height: 6px; border-radius: 3px; background: var(--gray); transform-origin: center; }
+  .pip.w { background: #F5F5F5; } .pip.r { background: var(--red); }
+  .pip.in { animation: pop .28s ease both; }
+  .pip.out { animation: pop .28s ease reverse both; }
+  @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .notes { display: flex; flex-direction: column; margin-top: 4px; }
+  .n { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #161616; transition: opacity .3s; }
+  .n .t { flex: 1; font-size: 16px; line-height: 1.4; }
+  .n.done .t { color: var(--gray); }
+  .n button { background: none; border: 0; padding: 0; cursor: pointer; }
+  .addrow { display: flex; gap: 12px; align-items: center; }
+
+  /* Recordatorios */
+  .alarm { display: flex; align-items: center; gap: 12px; background: none; border: 0; color: #fff; cursor: pointer; padding: 0; }
+  .big { font-family: 'Space Mono', monospace; font-size: 34px; letter-spacing: 2px; }
+  .marks { display: flex; gap: 4px; height: 6px; justify-content: center; }
+  .marks i { width: 4px; height: 4px; border-radius: 2px; background: var(--gray); }
+  .marks i.w { background: #F5F5F5; } .marks i.r { background: var(--red); }
+  .items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 10px; margin-top: 18px; }
+  .rem { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid #161616; }
+  .rem .tool { padding: 2px; }
+</style>
+</head>
+<body>
+<h2>NOTAS Y RECORDATORIOS · BOCETO (TOCA ÍCONOS, CÍRCULOS, CAMPANAS Y EL LÁPIZ)</h2>
+
+<!-- NOTAS -->
+<div class="phone">
+  <div class="row"><span></span><button class="tool" aria-label="Ajustes de Notas" id="gear1"></button></div>
+  <div>
+    <div class="stacks" id="stacks"></div>
+    <div class="strip" id="aspects"></div>
+  </div>
+  <div class="card" id="ncard"></div>
+</div>
+
+<!-- RECORDATORIOS -->
+<div class="phone">
+  <div class="row">
+    <button class="alarm" aria-label="Siguiente alarma del reloj; abre el reloj" onclick="ping('alarmIcon')"><span id="alarmIcon"></span><span class="big">06:15</span></button>
+    <button class="tool" aria-label="Ajustes de Recordatorios" id="gear2"></button>
+  </div>
+  <div class="strip" id="phases"></div>
+  <div class="card" id="rcard" style="margin-top:6px"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>Notas por aspecto</b><br>
+    · Arriba, los 5 aspectos: Trabajo, Escuela, Ejercicio, Comida, Dieta. Sobre cada ícono, <b>un punto por nota pendiente</b>: la columna más alta es el aspecto con más pendientes, sin contar nada.<br>
+    · El aspecto de la <b>fase actual</b> (aquí Trabajo) va con su detalle y sus puntos en <b>rojo</b>. Con pendientes el ícono es blanco; sin pendientes, gris.<br>
+    · Al abrir, los puntos salen uno a uno, una vez. Al marcar una nota, su círculo dibuja la palomita, la nota baja a gris y el punto de arriba se encoge y desaparece. Una nota nueva hace aparecer un punto.<br>
+    · Toca un aspecto para ver sus notas. El campo de abajo guarda en el aspecto elegido (Enter o al salir).<br>
+    · Las notas sin aspecto (General, Ideas, Finanzas) quedan en un sexto ícono gris al final, solo si hay alguna.<br>
+    · <b>Lápiz:</b> nombres bajo los íconos, fijar (alfiler) o borrar (✕) cada nota. Una nota fija va primero.<br>
+    · <b>Engrane:</b> qué aspecto va primero en cada fase.<br><br>
+    <b>Recordatorios por fase</b><br>
+    · Arriba, la siguiente alarma del reloj; tocarla abre la app del reloj.<br>
+    · Debajo, las fases de la rutina con <b>una marca por recordatorio</b>: blanca si ya está hecho hoy, roja el que sigue, gris el resto.<br>
+    · En la tarjeta cada recordatorio es <b>una campana con su hora</b>. Solo suenan y se marcan durante su fase: en la fase actual, tocar la campana la marca hecha hoy (se dibuja); en otras fases quedan en gris.<br>
+    · <b>Lápiz:</b> aparece el título, cambias hora, lo mueves a otra fase o lo borras; el + agrega uno a esa fase.
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  trabajo:    { main: 'M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7h4.5A1.5 1.5 0 0 1 21 8.5v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5v-10A1.5 1.5 0 0 1 4.5 7H9', red: 'M10.5 12.5h3' },
+  escuela:    { main: 'M4 5h7a1 1 0 0 1 1 1v14a1 1 0 0 0-1-1H4zM20 5h-7a1 1 0 0 0-1 1v14a1 1 0 0 1 1-1h7z', red: 'M15 9h2' },
+  gimnasio:   { main: 'M3 10v4M6 7v10M18 7v10M21 10v4', red: 'M6 12h12' },
+  plato:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M16 12a4 4 0 1 1-8 0a4 4 0 1 1 8 0' },
+  hoja:       { main: 'M5 19C5 10 10 5 19 5c0 9-5 14-14 14z', red: 'M5 19l8-8' },
+  pendientes: { main: 'M6 3h9l4 4v14H6V3', red: 'M9 12h6M9 16h4' },
+  inicio:     { main: 'M2 18h4a6 6 0 0 1 12 0h4', red: 'M12 4v3M5 8l2 2M19 8l-2 2' },
+  traslado:   { main: 'M7 20v-2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1v2M4 11h16', red: 'M8 14.5h.01M16 14.5h.01' },
+  salida:     { main: 'M13 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H13', red: 'M10 12h10M17 9l3 3-3 3' },
+  casa:       { main: 'M5 20V10l7-6 7 6v10H5', red: 'M10 20v-5h4v5' },
+  campana:    { main: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4l2-2', red: 'M10 21h4' },
+  reloj:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 7v5l3 2' },
+  circulo:    { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0' },
+  listo:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M16 9l-5.5 6L8 12.5' },
+  pin:        { main: 'M12 21s-6-5.7-6-11a6 6 0 0 1 12 0c0 5.3-6 11-6 11z', red: 'M12 10h.01' },
+  lapiz:      { main: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z' },
+  check:      { main: 'M20 6 9 17l-5-5' },
+  papelera:   { main: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14' },
+};
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C', muted: '#B0B0B0' };
+
+function icon(name, state, size, animate = false, override) {
+  const ic = ICONS[name];
+  const main = override || (state === 'off' ? C.gray : C.white);
+  const red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const style = document.createElement('style');
+style.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.draw,.pip{animation:none!important;stroke-dashoffset:0}}';
+document.head.appendChild(style);
+const put = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+const tool = (name, label, fn, col) => `<button class="tool" onclick="${fn}" aria-label="${label}">${icon(name, col === 'red' ? 'now' : 'done', 20, false, col === 'red' ? C.red : C.muted)}</button>`;
+put('gear1', '<span style="font-size:22px;color:#B0B0B0">⚙︎</span>');
+put('gear2', '<span style="font-size:22px;color:#B0B0B0">⚙︎</span>');
+function ping(id) { put(id, icon('reloj', 'now', 28, true)); }
+put('alarmIcon', icon('reloj', 'done', 28));
+
+// ---------- NOTAS ----------
+const ASPECTS = [
+  { key: 'WORK', icon: 'trabajo', name: 'Trabajo' },
+  { key: 'SCHOOL', icon: 'escuela', name: 'Escuela' },
+  { key: 'EXERCISE', icon: 'gimnasio', name: 'Ejercicio' },
+  { key: 'FOOD', icon: 'plato', name: 'Comida' },
+  { key: 'DIET', icon: 'hoja', name: 'Dieta' },
+  { key: 'OTHER', icon: 'pendientes', name: 'Otras' },
+];
+const FOCUS = 'WORK'; // aspecto de la fase actual (Trabajo)
+let notes = [
+  ['WORK', 'Mandar el reporte de octubre'], ['WORK', 'Revisar el PR de pagos'], ['WORK', 'Agendar 1:1 con Laura'],
+  ['WORK', 'Actualizar el tablero'], ['WORK', 'Contestar a soporte'],
+  ['SCHOOL', 'Leer capítulo 4'], ['SCHOOL', 'Entregar ensayo el viernes'],
+  ['EXERCISE', 'Subir peso en sentadilla'], ['EXERCISE', 'Estirar después de correr'], ['EXERCISE', 'Comprar bandas'],
+  ['FOOD', 'Comprar avena'],
+  ['DIET', 'Menos azúcar en la tarde'], ['DIET', 'Pesarme el domingo'],
+  ['OTHER', 'Idea: app de recetas'],
+].map(([cat, text], i) => ({ id: i, cat, text, done: false, pinned: false }));
+notes[12].done = true;
+let aspect = 'WORK', nEdit = false;
+const pending = k => notes.filter(n => n.cat === k && !n.done).length;
+const visibleAspects = () => ASPECTS.filter(a => a.key !== 'OTHER' || notes.some(n => n.cat === 'OTHER'));
+
+function renderStacks(stagger = false, popKey = null, outKey = null) {
+  const as = visibleAspects();
+  document.getElementById('stacks').style.setProperty('--n', as.length);
+  let k = 0;
+  put('stacks', as.map(a => {
+    const p = pending(a.key) + (a.key === outKey ? 1 : 0);
+    const col = a.key === FOCUS ? 'r' : 'w';
+    return `<div class="stack">${Array.from({ length: p }, (_, i) => {
+      const last = i === p - 1;
+      const cls = last && a.key === outKey ? 'out' : (stagger || (last && a.key === popKey)) ? 'in' : '';
+      return `<span class="pip ${col} ${cls}" style="animation-delay:${stagger ? (k++) * 55 : 0}ms"></span>`;
+    }).join('')}</div>`;
+  }).join(''));
+  if (outKey) setTimeout(() => renderStacks(), 300);
+}
+function renderAspects(animKey = null) {
+  const as = visibleAspects();
+  const el = document.getElementById('aspects');
+  el.style.setProperty('--n', as.length);
+  el.innerHTML = as.map(a => {
+    const st = pending(a.key) === 0 ? 'off' : a.key === FOCUS ? 'now' : 'done';
+    return `<button class="icon${a.key === aspect ? ' sel' : ''}" onclick="pickAspect('${a.key}')" aria-label="${a.name}">${icon(a.icon, st, 36, a.key === animKey)}${nEdit ? `<span class="cap">${a.name}</span>` : ''}</button>`;
+  }).join('');
+}
+function pickAspect(k) { aspect = k; renderAspects(k); renderNotes(); }
+
+function renderNotes(drawId = null) {
+  const a = ASPECTS.find(x => x.key === aspect);
+  const list = notes.filter(n => n.cat === aspect).sort((x, y) => (x.done - y.done) || (y.pinned - x.pinned));
+  const tools = nEdit ? tool('check', 'Listo', 'toggleNEdit()', 'red') : tool('lapiz', 'Editar notas', 'toggleNEdit()');
+  let html = `<div class="head"><div class="headl">${nEdit ? `<span class="label muted">${a.name.toUpperCase()}</span>` : ''}</div>${tools}</div>`;
+  html += `<div class="notes">${list.map(n => {
+    const mark = n.done ? icon('listo', 'done', 22, n.id === drawId, C.gray) : icon('circulo', 'done', 22, false, n.pinned ? C.white : C.muted);
+    const side = nEdit
+      ? `<button onclick="pinNote(${n.id})" aria-label="Fijar">${icon('pin', n.pinned ? 'now' : 'off', 18)}</button><button onclick="delNote(${n.id})" aria-label="Borrar"><span class="label muted">✕</span></button>`
+      : (n.pinned ? icon('pin', 'now', 14) : '');
+    return `<div class="n ${n.done ? 'done' : ''}"><button onclick="toggleNote(${n.id})" aria-label="${n.done ? 'Marcar pendiente' : 'Marcar hecha'}">${mark}</button><span class="t">${n.text}</span>${side}</div>`;
+  }).join('')}</div>`;
+  html += `<div class="addrow" style="margin-top:16px">${icon(a.icon, 'off', 20)}<input class="field" placeholder="Nueva nota" onkeydown="if(event.key==='Enter'&&this.value.trim()){addNote(this.value.trim())}" aria-label="Nueva nota"></div>`;
+  put('ncard', html);
+}
+function toggleNote(id) {
+  const n = notes.find(x => x.id === id); n.done = !n.done;
+  renderNotes(n.done ? id : null); renderAspects();
+  renderStacks(false, n.done ? null : n.cat, n.done ? n.cat : null);
+}
+function addNote(text) {
+  notes.push({ id: Date.now(), cat: aspect, text, done: false, pinned: false });
+  renderNotes(); renderAspects(); renderStacks(false, aspect);
+  document.querySelector('#ncard input.field').focus();
+}
+function pinNote(id) { notes.forEach(n => { n.pinned = n.id === id ? !n.pinned : false; }); renderNotes(); }
+function delNote(id) { const n = notes.find(x => x.id === id); notes = notes.filter(x => x.id !== id); renderNotes(); renderAspects(); renderStacks(false, null, n.done ? null : n.cat); }
+function toggleNEdit() { nEdit = !nEdit; renderAspects(); renderNotes(); }
+
+// ---------- RECORDATORIOS ----------
+const NOW = '11:40';
+const phases = [
+  { id: 'inicio', icon: 'inicio', name: 'Iniciar el día', at: '06:30' },
+  { id: 'traslado', icon: 'traslado', name: 'Traslado', at: '07:30' },
+  { id: 'trabajo', icon: 'trabajo', name: 'Trabajo', at: '09:00' },
+  { id: 'salida', icon: 'salida', name: 'Dejar la oficina', at: '18:00' },
+  { id: 'casa', icon: 'casa', name: 'Llegar a casa', at: '19:00' },
+];
+const current = 2;
+let rems = [
+  { id: 1, phase: 'inicio', title: 'Vitaminas', at: '06:45', done: true },
+  { id: 2, phase: 'trabajo', title: 'Standup', at: '09:30', done: true },
+  { id: 3, phase: 'trabajo', title: 'Llamar al banco', at: '12:00', done: false },
+  { id: 4, phase: 'trabajo', title: 'Pagar luz', at: '15:00', done: false },
+  { id: 5, phase: 'trabajo', title: 'Enviar horas', at: '17:30', done: false },
+  { id: 6, phase: 'casa', title: 'Sacar la basura', at: '20:00', done: false },
+  { id: 7, phase: 'casa', title: 'Preparar mochila', at: '22:00', done: false },
+];
+let selected = current, rEdit = false;
+const pstate = i => i < current ? 'done' : i === current ? 'now' : 'off';
+const of = id => rems.filter(r => r.phase === id).sort((a, b) => a.at.localeCompare(b.at));
+const nextId = () => { const p = of(phases[current].id).find(r => !r.done); return p ? p.id : null; };
+
+function renderPhases() {
+  const el = document.getElementById('phases');
+  el.style.setProperty('--n', phases.length);
+  const nx = nextId();
+  el.innerHTML = phases.map((p, i) => {
+    const marks = of(p.id).map(r => `<i class="${r.done ? 'w' : r.id === nx ? 'r' : ''}"></i>`).join('');
+    return `<button class="icon${i === selected ? ' sel' : ''}" onclick="pickPhase(${i})" aria-label="${p.name}">${icon(p.icon, pstate(i), 40)}<span class="marks">${marks}</span></button>`;
+  }).join('');
+}
+function pickPhase(i) { selected = i; renderPhases(); renderRems(); }
+
+function renderRems(drawId = null) {
+  const p = phases[selected], list = of(p.id), nx = nextId(), live = selected === current;
+  const tools = rEdit ? tool('check', 'Listo', 'toggleREdit()', 'red') : tool('lapiz', 'Editar recordatorios', 'toggleREdit()');
+  const left = rEdit ? `<span class="label muted">${p.name.toUpperCase()}</span>` : `${icon(p.icon, pstate(selected), 32)}<span class="time ${live ? 'done' : ''}">${p.at}</span>`;
+  let html = `<div class="head"><div class="headl">${left}</div>${tools}</div><div class="sep"></div>`;
+  if (rEdit) {
+    html += list.map(r => `<div class="rem">
+      <input class="edit" value="${r.title}" placeholder="Recordatorio" oninput="rems.find(x=>x.id===${r.id}).title=this.value" aria-label="Título">
+      <input class="time-in" type="time" value="${r.at}" onchange="rems.find(x=>x.id===${r.id}).at=this.value; renderPhases()" aria-label="Hora">
+      <span style="display:flex;gap:2px;align-items:center"><select class="place" onchange="moveRem(${r.id}, this.value)" aria-label="Fase">${phases.map(q => `<option value="${q.id}" ${q.id === r.phase ? 'selected' : ''}>${q.name}</option>`).join('')}</select>${tool('papelera', 'Borrar', `delRem(${r.id})`)}</span>
+    </div>`).join('');
+    html += `<div style="margin-top:16px"><button class="icon" onclick="addRem()" aria-label="Agregar recordatorio"><span class="slot">+</span></button></div>`;
+  } else {
+    html += `<div class="items">${list.map(r => {
+      const st = r.done ? 'done' : r.id === nx ? 'now' : 'off';
+      const cls = 'time' + (r.done ? ' done' : r.id === nx ? ' next' : '');
+      return `<button class="icon" onclick="tapRem(${r.id})" aria-label="${r.title}">${icon('campana', st, 44, r.id === drawId)}<span class="${cls}">${r.at}</span></button>`;
+    }).join('')}</div>`;
+  }
+  put('rcard', html);
+}
+function tapRem(id) {
+  if (selected !== current) return; // solo en su fase
+  const r = rems.find(x => x.id === id); r.done = !r.done;
+  renderPhases(); renderRems(r.done ? id : null);
+}
+function moveRem(id, phaseId) { rems.find(x => x.id === id).phase = phaseId; renderPhases(); renderRems(); }
+function delRem(id) { rems = rems.filter(x => x.id !== id); renderPhases(); renderRems(); }
+function addRem() { rems.push({ id: Date.now(), phase: phases[selected].id, title: '', at: '12:00', done: false }); renderPhases(); renderRems(); const ins = document.querySelectorAll('#rcard input.edit'); ins[ins.length - 1].focus(); }
+function toggleREdit() { rEdit = !rEdit; renderRems(); }
+
+renderAspects(); renderStacks(true); renderNotes();
+renderPhases(); renderRems();
+</script>
+</body>
+</html>

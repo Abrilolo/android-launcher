@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .muted { color: var(--muted); } .red { color: var(--red); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; }
+  button.icon { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: inherit; position: relative; }
+  .num { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); height: 16px; }
+  .num.next { color: var(--red); } .num.done { color: #fff; }
+  .dots { display: flex; gap: 8px; height: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: #333; }
+  .dots i.now { background: var(--red); }
+  .amount { font: 500 72px/1 'Space Grotesk', sans-serif; letter-spacing: -2px; text-align: center; margin: 40px 0 8px; cursor: pointer; display: flex; justify-content: center; align-items: flex-start; gap: 4px; }
+  .amount small { font-size: 28px; color: var(--muted); margin-top: 8px; }
+  .amount.edit { color: var(--red); }
+  .amount.mini { font-size: 40px; margin: 24px 0 0; letter-spacing: -1px; }
+  .amount.mini small { font-size: 18px; margin-top: 4px; }
+  .stage { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 28px; }
+  .group { display: flex; justify-content: space-around; }
+  .sep { height: 1px; background: var(--line); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 10px; }
+  .photo { width: 72px; height: 72px; border-radius: 36px; background-size: cover; background-position: center; border: 1.5px solid #333; box-sizing: border-box; display: grid; place-items: center; font: 500 22px 'Space Grotesk', sans-serif; color: var(--muted); }
+  .photo.done { border-color: #F5F5F5; color: #fff; }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .keypad button { background: none; border: 0; color: #F5F5F5; font: 400 28px 'Space Grotesk', sans-serif; height: 64px; cursor: pointer; border-radius: 16px; display: grid; place-items: center; }
+  .keypad button:active { background: #1C1C1C; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 140px; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 18px 24px 28px; transform: translateY(105%); transition: transform .25s ease; display: flex; flex-direction: column; gap: 14px; }
+  .sheet.open { transform: none; }
+  input.search { background: none; border: 0; border-bottom: 1px solid #333; color: #fff; font: 400 20px 'Space Grotesk', sans-serif; padding: 6px 0; outline: none; width: 100%; }
+  .res { display: flex; flex-direction: column; overflow: auto; flex: 1; }
+  .res button { background: none; border: 0; border-bottom: 1px solid #161616; color: #F5F5F5; font: 400 16px 'Space Grotesk', sans-serif; text-align: left; padding: 12px 0; cursor: pointer; display: flex; justify-content: space-between; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid #333; border-radius: 12px; padding: 6px 10px; display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .chip .g { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--red); cursor: pointer; }
+  .bottom { display: flex; justify-content: center; min-height: 64px; align-items: center; }
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px 18px; margin: 10px 0 4px; }
+  .legend span { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; width: 60px; text-align: center; }
+  .ctrl { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ctrl button { background: #1C1C1C; border: 1px solid #333; color: var(--muted); border-radius: 10px; padding: 6px 10px; font: 12px 'Space Mono', monospace; cursor: pointer; }
+</style>
+</head>
+<body>
+<h2>REGISTRO OBLIGATORIO · BOCETO (TOCA LOS ÍCONOS Y EL MONTO)</h2>
+
+<div class="phone" id="phone">
+  <div class="row">
+    <div class="dots" id="dots" aria-label="Pagos pendientes"></div>
+    <span id="lock"></span>
+  </div>
+  <div id="screen" style="flex:1;display:flex;flex-direction:column"></div>
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>El flujo, en 1 o 2 toques</b><br>
+    · Un pago detectado abre esta pantalla al desbloquear. Arriba, un punto por pago pendiente (el rojo es el actual) y el candado: no hay atrás ni gear hasta guardar.<br>
+    · <b>Toque 1:</b> el monto grande y la respuesta a <b>¿fue comida?</b> en una sola pantalla. Arriba lo que <b>sí es comida</b>: del presupuesto de comida o de la bolsa de extras (debajo, lo que queda hoy en cada uno). Abajo lo que <b>no</b>: transferencia, regalo, servicio. Si el monto pasa lo que queda de comida, la bolsa sale en rojo como sugerencia.<br>
+    · Si no fue comida, ese toque ya lo guarda y pasa al siguiente pago o sale.<br>
+    · <b>Toque 2 (comida):</b> tus recetas como fotos (las más usadas primero), o la hoja para armarla con ingredientes. El ✓ solo la marca como comida sin detalle.<br>
+    · <b>Monto:</b> si el banco lo leyó mal, tócalo y sale un teclado numérico; ✓ lo confirma.<br><br>
+    <b>Salida</b><br>
+    · Sin pagos, si salida pidió registrar el día: las comidas que ya pasaron, con su hora. Tócalas para marcarlas; ✓ termina.<br><br>
+    <b>Íconos nuevos</b>
+    <div class="legend" id="legend"></div>
+    <div class="ctrl" id="ctrl"></div>
+  </div>
+</div>
+
+<script>
+// Same stroke icons as RutinasVisual.html: one continuous line (main) plus its red detail (red). 24 grid.
+const ICONS = {
+  plato:    { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M16 12a4 4 0 1 1-8 0a4 4 0 1 1 8 0' },
+  colacion: { main: 'M12 7.5C10 6 5 6 5 12s4 9.5 7 8c3 1.5 7-2 7-8s-5-6-7-4.5', red: 'M12 7.5c0-2 1-3.5 3-4.5' },
+  candado:  { main: 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z', red: 'M12 15v2' },
+  listo:    { main: 'M20 6 9 17l-5-5' },
+  hoja:     { main: 'M5 19C5 10 10 5 19 5c0 9-5 14-14 14z', red: 'M5 19l8-8' },
+  // New for this view.
+  bolsa:    { main: 'M5 8h14l-1 12H6L5 8M9 8V6a3 3 0 0 1 6 0v2', red: 'M10 13l2 2 2-2' },
+  transfer: { main: 'M4 8h15l-3-3M20 16H5l3 3', red: 'M19 8l-3 3M5 16l3-3' },
+  regalo:   { main: 'M4 11h16v9H4v-9M3 7h18v4H3V7M12 7v13', red: 'M12 7C10 3 6 4 8 7M12 7c2-4 6-3 4 0' },
+  servicio: { main: 'M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0V8', red: 'M12 17v4' },
+  borrar:   { main: 'M9 6h11v12H9l-6-6 6-6', red: 'M12 10l4 4M16 10l-4 4' },
+};
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C' };
+
+// off = gray · done = white · now = white with the red detail. animate = the line draws itself once.
+function icon(name, state, size, animate = false) {
+  const ic = ICONS[name], w = 1.75;
+  const main = state === 'off' ? C.gray : C.white;
+  const red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const style = document.createElement('style');
+style.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dashoffset:0}}';
+document.head.appendChild(style);
+const $ = id => document.getElementById(id);
+
+// Sample day: two payments waiting; $120 left of today's food budget, $640 in the extras bag.
+const FOOD_LEFT = 120, BAG_LEFT = 640;
+const RECIPES = [
+  { name: 'Pollo con arroz', photo: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=200&h=200&fit=crop' },
+  { name: 'Ensalada', photo: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&h=200&fit=crop' },
+  { name: 'Tacos', photo: '' },
+  { name: 'Avena', photo: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=200&h=200&fit=crop' },
+  { name: 'Sándwich', photo: '' },
+];
+const INGREDIENTS = ['Arroz blanco', 'Pechuga de pollo', 'Huevo', 'Tortilla de maíz', 'Frijoles', 'Aguacate', 'Plátano', 'Avena', 'Leche', 'Queso panela'];
+const MEALS = [ { kind: 'plato', at: '13:00' }, { kind: 'colacion', at: '16:30' }, { kind: 'plato', at: '18:30' } ];
+
+let payments, step, editing, typed, picked, mealsDone, routine;
+function reset(withRoutine = true) {
+  payments = [{ cents: 8500 }, { cents: 24000 }];
+  step = 'ask'; editing = false; typed = ''; picked = []; mealsDone = new Set(); routine = withRoutine;
+  closeSheet(); render();
+}
+
+const money = c => { const p = (c / 100).toFixed(2).split('.'); return `${p[0]}<small>.${p[1]}</small>`; };
+function amountHtml(mini = false) {
+  const p = payments[0];
+  if (editing) return `<div class="amount edit${mini ? ' mini' : ''}">${typed || '0'}</div>`;
+  return `<div class="amount${mini ? ' mini' : ''}" onclick="startEdit()" role="button" aria-label="Corregir monto"><small>$</small>${money(p.cents)}</div>`;
+}
+
+function render() {
+  $('dots').innerHTML = payments.length > 1 ? payments.map((_, i) => `<i class="${i === 0 ? 'now' : ''}"></i>`).join('') : '';
+  $('lock').innerHTML = step === 'free' ? '' : icon('candado', 'off', 20);
+  const s = $('screen');
+  if (step === 'ask') {
+    const pesos = payments[0].cents / 100, overFood = pesos > FOOD_LEFT;
+    s.innerHTML = amountHtml() + (editing ? keypad() : `
+      <div class="stage">
+        <div class="group">
+          <button class="icon" id="b-plato" onclick="choose('plato')" aria-label="Comida, del presupuesto de comida">${icon('plato', overFood ? 'off' : 'now', 72)}<span class="num ${overFood ? '' : 'next'}">${FOOD_LEFT}</span></button>
+          <button class="icon" id="b-bolsa" onclick="choose('bolsa')" aria-label="Comida, de la bolsa de extras">${icon('bolsa', overFood ? 'now' : 'done', 72)}<span class="num ${overFood ? 'next' : ''}">${BAG_LEFT}</span></button>
+        </div>
+        <div class="sep"></div>
+        <div class="group">
+          ${['transfer', 'regalo', 'servicio'].map(k => `<button class="icon" id="b-${k}" onclick="choose('${k}')" aria-label="${{ transfer: 'Transferencia', regalo: 'Regalo', servicio: 'Servicio externo' }[k]}">${icon(k, 'done', 52)}</button>`).join('')}
+        </div>
+      </div>`);
+  } else if (step === 'meal') {
+    s.innerHTML = amountHtml(true) + `
+      <div class="stage" style="justify-content:flex-start;margin-top:36px">
+        <div class="grid">
+          ${RECIPES.map((r, i) => `<button class="icon" onclick="pickRecipe(${i})" aria-label="${r.name}"><span class="photo" id="r${i}" style="${r.photo ? `background-image:url(${r.photo})` : ''}">${r.photo ? '' : r.name[0]}</span></button>`).join('')}
+          <button class="icon" onclick="openIngredients()" aria-label="Con ingredientes"><span class="photo" style="border-style:dashed">${icon('hoja', 'now', 32)}</span></button>
+        </div>
+      </div>
+      <div class="bottom"><button class="tool" id="quick" onclick="quickMeal()" aria-label="Solo marcar comida">${icon('listo', 'done', 32)}</button></div>`;
+  } else if (step === 'routine') {
+    const next = MEALS.findIndex((_, i) => !mealsDone.has(i));
+    s.innerHTML = `
+      <div class="stage">
+        <div class="group">
+          ${MEALS.map((m, i) => `<button class="icon" onclick="toggleMeal(${i})" aria-label="Comida de las ${m.at}"><span id="m${i}">${icon(m.kind, mealsDone.has(i) ? 'done' : 'off', 64)}</span><span class="num ${mealsDone.has(i) ? 'done' : i === next ? 'next' : ''}">${m.at}</span></button>`).join('')}
+        </div>
+      </div>
+      <div class="bottom"><button class="tool" onclick="finishRoutine()" aria-label="Listo">${icon('listo', 'now', 36)}</button></div>`;
+  } else {
+    s.innerHTML = `<div class="stage" style="align-items:center">${icon('listo', 'done', 72, true)}<div class="ctrl"><button onclick="reset()">otra vez</button></div></div>`;
+  }
+}
+
+function keypad() {
+  const k = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
+  return `<div class="stage" style="justify-content:flex-end;gap:12px"><div class="keypad">${k.map(d => `<button onclick="key('${d}')" aria-label="${d === '⌫' ? 'Borrar' : d}">${d === '⌫' ? icon('borrar', 'done', 26) : d}</button>`).join('')}</div>
+    <div class="bottom"><button class="tool" onclick="confirmEdit()" aria-label="Confirmar monto">${icon('listo', 'now', 36)}</button></div></div>`;
+}
+function startEdit() { editing = true; typed = ''; render(); }
+function key(d) {
+  if (d === '⌫') typed = typed.slice(0, -1);
+  else if (d === '.' ? !typed.includes('.') : !/\.\d\d$/.test(typed)) typed += d;
+  render();
+}
+function confirmEdit() {
+  const v = parseFloat(typed);
+  if (v > 0) payments[0].cents = Math.round(v * 100);
+  editing = false; render();
+}
+
+// Tap: the icon draws itself once, then the flow moves on.
+function choose(k) {
+  const b = $(`b-${k}`); b.firstElementChild.outerHTML = icon(k, 'now', k === 'plato' || k === 'bolsa' ? 72 : 52, true);
+  setTimeout(() => { if (k === 'plato' || k === 'bolsa') { step = 'meal'; render(); } else nextPayment(); }, 950);
+}
+function pickRecipe(i) { $(`r${i}`).classList.add('done'); setTimeout(nextPayment, 500); }
+function quickMeal() { $('quick').innerHTML = icon('listo', 'now', 32, true); setTimeout(nextPayment, 700); }
+function nextPayment() {
+  payments.shift(); closeSheet();
+  step = payments.length ? 'ask' : routine ? 'routine' : 'free';
+  render();
+}
+function toggleMeal(i) {
+  mealsDone.has(i) ? mealsDone.delete(i) : mealsDone.add(i);
+  render();
+  if (mealsDone.has(i)) $(`m${i}`).innerHTML = icon(MEALS[i].kind, 'done', 64, true);
+}
+function finishRoutine() { step = 'free'; render(); }
+
+function openIngredients() {
+  picked = [];
+  $('sheet').innerHTML = `
+    <div class="row">${icon('hoja', 'now', 24)}<button class="tool" onclick="closeSheet()" aria-label="Cerrar"><span class="label muted">✕</span></button></div>
+    <input class="search" id="q" placeholder="buscar" oninput="search()" autocomplete="off">
+    <div class="chips" id="chips"></div>
+    <div class="res" id="res"></div>
+    <div class="bottom"><button class="tool" onclick="saveIngredients()" aria-label="Guardar comida">${icon('listo', 'now', 36)}</button></div>`;
+  $('sheet').classList.add('open');
+  search();
+}
+function search() {
+  const q = ($('q').value || '').toLowerCase();
+  $('res').innerHTML = INGREDIENTS.filter(n => n.toLowerCase().includes(q)).map(n => `<button onclick="addIng('${n}')"><span>${n}</span><span class="label muted">+</span></button>`).join('');
+}
+function addIng(n) {
+  const have = picked.find(p => p.n === n);
+  if (have) have.g += 100; else picked.push({ n, g: 100 });
+  renderChips();
+}
+// Tapping the grams steps the portion: 50 → 300 g, then back to 50.
+function bump(i) { const p = picked[i]; p.g = p.g >= 300 ? 50 : p.g + 50; renderChips(); }
+function renderChips() {
+  $('chips').innerHTML = picked.map((p, i) => `<span class="chip">${p.n}<span class="g" onclick="bump(${i})" aria-label="Cambiar gramos">${p.g} g</span></span>`).join('');
+}
+function saveIngredients() { if (picked.length) nextPayment(); }
+function closeSheet() { $('sheet').classList.remove('open'); }
+
+$('legend').innerHTML = [['bolsa', 'bolsa extras'], ['transfer', 'transferencia'], ['regalo', 'regalo'], ['servicio', 'servicio'], ['hoja', 'ingredientes'], ['borrar', 'borrar']]
+  .map(([k, n]) => `<span>${icon(k, 'now', 32)}<span class="muted">${n}</span></span>`).join('');
+$('ctrl').innerHTML = `<button onclick="reset()">pagos + salida</button><button onclick="reset(false); payments=[{cents:15000}]; render()">pago de $150 (pasa comida)</button><button onclick="reset(); payments=[]; step='routine'; render()">solo salida</button>`;
+reset();
+</script>
+</body>
+</html>

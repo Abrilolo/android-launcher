@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finanzas visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; max-width: 100%; min-height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .muted { color: var(--muted); } .red { color: var(--red); } .gray { color: var(--gray); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; }
+  button.icon { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: inherit; position: relative; }
+  .num { font-family: 'Space Mono', monospace; letter-spacing: 1px; }
+  .big { font-size: 64px; line-height: 1; }
+  .big .cur { color: var(--red); font-size: 40px; vertical-align: top; }
+  .dots { display: flex; gap: 4px; flex-wrap: wrap; }
+  .dots i { width: 7px; height: 7px; border-radius: 4px; background: #2E2E2E; display: block; }
+  .dots i.w { background: #F5F5F5; } .dots i.r { background: var(--red); }
+  .stat { display: flex; align-items: center; gap: 8px; }
+  .stats { display: flex; justify-content: space-between; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); align-items: end; height: 132px; }
+  .col { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; }
+  .col i { width: 9px; height: 9px; border-radius: 5px; display: block; box-sizing: border-box; }
+  .col i.e { border: 1.5px solid #3A3A3A; } .col i.f { background: #A8A8A8; } .col i.t { background: #F5F5F5; } .col i.r { background: var(--red); }
+  .wd { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-top: 8px; }
+  .wd span { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--gray); }
+  .wd span.t { color: #fff; }
+  .flow { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; }
+  .flow b { display: block; height: 100%; }
+  .hatch { background: repeating-linear-gradient(135deg, #F5F5F5 0 2px, transparent 2px 5px); }
+  .legs { display: flex; justify-content: space-between; margin-top: 12px; }
+  .legs .stat { flex-direction: column; gap: 6px; }
+  .legs .num { font-size: 12px; }
+  .sep { height: 1px; background: var(--line); }
+  .topics { display: flex; flex-direction: column; gap: 14px; }
+  .topic { display: flex; align-items: center; gap: 12px; }
+  .topic .num { width: 56px; text-align: right; }
+  .shared { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .bill { display: flex; align-items: center; gap: 10px; }
+  .bill .num { font-size: 13px; }
+  .grow { flex: 1; }
+  .plus { position: absolute; right: 24px; bottom: 28px; width: 52px; height: 52px; border-radius: 26px; background: #F5F5F5; color: #000; border: 0; font-size: 26px; cursor: pointer; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 18px 24px 32px; transform: translateY(105%); transition: transform .25s ease; display: flex; flex-direction: column; gap: 18px; }
+  .sheet.open { transform: none; }
+  .kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--muted); text-align: center; text-transform: uppercase; }
+  .on .cap { color: #fff; }
+  input.amt { background: none; border: 0; border-bottom: 1px solid #333; color: #fff; font: 32px 'Space Mono', monospace; width: 100%; padding: 2px 0; outline: none; }
+  input.amt.sm { font-size: 18px; }
+  .q { display: flex; justify-content: center; gap: 40px; }
+  .save { align-self: flex-end; width: 52px; height: 52px; border-radius: 26px; background: #F5F5F5; border: 0; cursor: pointer; display: grid; place-items: center; }
+  .warn { border: 1px solid var(--red); border-radius: 12px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
+  .set { display: flex; flex-direction: column; gap: 18px; }
+  .set .row .label { color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: #D71921; }
+  input.lim { background: none; border: 1px solid #333; border-radius: 8px; color: #fff; font: 13px 'Space Mono', monospace; padding: 4px 8px; width: 70px; text-align: right; }
+  select.per { background: none; border: 1px solid #333; border-radius: 8px; color: var(--muted); font: 11px 'Space Mono', monospace; padding: 4px 6px; color-scheme: dark; }
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; max-width: 100%; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 0 4px; }
+  .legend span { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; }
+</style>
+</head>
+<body>
+<h2>FINANZAS · BOCETO (TOCA +, LA BOLSA, LAS CUENTAS Y EL ENGRANE)</h2>
+
+<!-- Vista normal: solo íconos y números -->
+<div class="phone" id="main">
+  <div class="row"><span></span><button class="tool" onclick="openSettings()" aria-label="Ajustes de Finanzas" id="gear"></button></div>
+
+  <div>
+    <div class="row" style="align-items:flex-end">
+      <div class="num big" id="todayLeft"></div>
+      <div id="todayIcon"></div>
+    </div>
+    <div class="dots" id="todayDots" style="margin-top:14px"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div>
+    <div class="week" id="week"></div>
+    <div class="wd" id="wd"></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div>
+    <div class="flow" id="flow"></div>
+    <div class="legs" id="legs"></div>
+  </div>
+
+  <div class="topics" id="topics"></div>
+
+  <div class="card" id="sharedCard" style="padding:14px 18px"></div>
+
+  <div style="height:56px"></div>
+  <button class="plus" onclick="openSheet()" aria-label="Registrar">+</button>
+
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<!-- Ajustes (engrane): aquí sí hay nombres -->
+<div class="phone" id="settings">
+  <div class="row"><span class="label red">AJUSTES · FINANZAS</span><span id="setIcon"></span></div>
+  <div class="set" id="set"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>Íconos de trazo continuo</b>
+    <div class="legend" id="legend"></div>
+    Gris = falta o apagado · blanco = hecho · blanco con detalle rojo = lo de ahora. Al tocar, la línea se dibuja una vez y el rojo sale al final.<br><br>
+    <b>Arriba: lo que te queda hoy</b><br>
+    · El número grande es lo que aún puedes gastar hoy. Los puntos: blancos lo gastado, grises lo que queda; si te pasas, rojos.<br>
+    · Debajo, lo que queda en el <b>mes</b> (bolsa) y en la <b>semana</b>.<br><br>
+    <b>La semana</b><br>
+    · Una columna por día. Cada columna mide lo que ese día podía gastar; relleno = lo gastado, rojo = lo que se pasó.<br>
+    · Gastar de más baja las columnas de los días que faltan: (semana − gastado) ÷ días que quedan.<br><br>
+    <b>De dónde sale la bolsa</b><br>
+    · La barra es el ingreso fijo: <b>fijos</b> (gris), <b>ahorro</b> (rayado) y la <b>bolsa de extras</b> (blanco = gastado). Las transferencias, regalos y servicios van aparte, a la derecha, y no la inflan.<br><br>
+    <b>Presupuestos por tema</b> (comida al día…) con sus puntos. <b>Por cobrar</b>: cuentas compartidas; tocar una cuenta la marca como pagada.<br><br>
+    <b>+</b> abre el registro: extra, compartido, fijo o ingreso. Un ingreso pregunta con el ancla si es para tu estabilidad: sí → entra al presupuesto; no → transferencia, regalo o servicio.<br><br>
+    <b>Engrane</b>: % de ahorro, límite diario total (o automático desde la bolsa) y presupuestos por tema.
+  </div>
+</div>
+
+<script>
+// Cada ícono: una línea continua (main) y, si tiene, su detalle rojo (red). Rejilla de 24.
+const ICONS = {
+  bolsa:         { main: 'M5 8h14l1 12H4L5 8', red: 'M9 8V6a3 3 0 0 1 6 0v2' },
+  ingreso:       { main: 'M4 14v5h16v-5', red: 'M12 3v10M8 9l4 4 4-4' },
+  fijos:         { main: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3', red: 'M9 8h6M9 12h6' },
+  ahorro:        { main: 'M6 8v11a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8M5 8h14M8 4h8v4', red: 'M12 12v4' },
+  extra:         { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 7v10M15 9.5c0-1.2-1.3-2-3-2s-3 .8-3 2c0 3 6 1.8 6 4.8 0 1.2-1.3 2-3 2s-3-.8-3-2' },
+  compartido:    { main: 'M12 8a3 3 0 1 1-6 0a3 3 0 0 1 6 0M3 20a6 6 0 0 1 12 0', red: 'M15 5a3 3 0 0 1 0 6M18 20a6 6 0 0 0-2.5-4.9' },
+  transferencia: { main: 'M4 8h15l-3-3', red: 'M20 16H5l3 3' },
+  regalo:        { main: 'M5 11h14v9H5zM4 8h16v3H4z', red: 'M12 8v12M12 8c-1.5-3.5-5.5-3-3.5 0M12 8c1.5-3.5 5.5-3 3.5 0' },
+  servicio:      { main: 'M14.5 6.5a4 4 0 0 0-5 5L3.5 17.5l3 3 6-6a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z', red: 'M6 18h.01' },
+  ancla:         { main: 'M12 8v13M5 14a7 7 0 0 0 14 0', red: 'M14 5a2 2 0 1 1-4 0a2 2 0 0 1 4 0M9 12h6' },
+  dia:           { main: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', red: 'M12 15h.01' },
+  semana:        { main: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', red: 'M7.5 15h9' },
+  mes:           { main: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', red: 'M7.5 13.5h9M7.5 17h9' },
+  comida:        { main: 'M12 7.5C10 6 5 6 5 12s4 9.5 7 8c3 1.5 7-2 7-8s-5-6-7-4.5', red: 'M12 7.5c0-2 1-3.5 3-4.5' },
+  transporte:    { main: 'M7 20v-2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1v2M4 11h16', red: 'M8 14.5h.01M16 14.5h.01' },
+  otro:          { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M8 12h.01M12 12h.01M16 12h.01' },
+  si:            { main: 'M20 6 9 17l-5-5' },
+  no:            { main: 'M6 6l12 12', red: 'M18 6 6 18' },
+  aviso:         { main: 'M12 3 2 20h20L12 3', red: 'M12 10v4M12 17h.01' },
+};
+
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C' };
+
+// off = todo gris · done = blanco · now = blanco con detalle rojo. animate = la línea se dibuja una vez.
+function icon(name, state, size, animate = false) {
+  const ic = ICONS[name], w = 1.75;
+  const main = state === 'off' ? C.gray : C.white;
+  const red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const style = document.createElement('style');
+style.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dashoffset:0}}';
+document.head.appendChild(style);
+const put = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+const GEAR = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+put('gear', GEAR); put('setIcon', GEAR);
+const $ = n => '$' + Math.round(n);
+
+// Ejemplo del diagrama: ingreso 12000, fijos 7000, ahorro 20 %. Hoy es jueves (índice 3).
+const TODAY = 3, DAYS_IN_MONTH = 30, MONTH_SPENT_BEFORE_WEEK = 1050;
+const state = {
+  fixedIncome: 12000, fixedCosts: 7000, savingPct: 20, apart: 1500, dayLimit: 0,
+  // gastos extras por día de la semana (lunes..hoy); los compartidos cuentan lo que pusiste tú
+  spent: [[{ c: 'comida', a: 133 }], [{ c: 'comida', a: 90 }, { c: 'transporte', a: 43 }], [{ c: 'otro', a: 200 }], [{ c: 'comida', a: 30 }], [], [], []],
+  topics: [{ topic: 'comida', period: 'dia', limit: 80 }, { topic: 'transporte', period: 'semana', limit: 250 }],
+  shared: [{ id: 1, icon: 'comida', total: 600, pending: 350 }, { id: 2, icon: 'otro', total: 300, pending: 150 }],
+};
+
+function model() {
+  const free = Math.max(0, state.fixedIncome - state.fixedCosts);
+  const saving = free * state.savingPct / 100, bag = free - saving;
+  const week = state.dayLimit ? state.dayLimit * 7 : bag * 7 / DAYS_IN_MONTH;
+  const daySum = d => state.spent[d].reduce((s, e) => s + e.a, 0);
+  // La parte del día que se podía gastar, recalculada día por día: (semana − gastado antes) ÷ días que quedan.
+  const allow = [];
+  let before = 0;
+  for (let d = 0; d < 7; d++) {
+    allow.push(Math.max(0, (week - before) / (7 - d)));
+    if (d < TODAY) before += daySum(d);
+    if (d === TODAY) before += daySum(d);
+  }
+  // Días por venir: lo que queda de la semana entre los días que faltan después de hoy.
+  const afterToday = Math.max(0, (week - before) / Math.max(1, 6 - TODAY));
+  for (let d = TODAY + 1; d < 7; d++) allow[d] = afterToday;
+  const weekSpent = state.spent.reduce((s, _, d) => s + daySum(d), 0);
+  const monthSpent = MONTH_SPENT_BEFORE_WEEK + weekSpent;
+  return { free, saving, bag, week, allow, daySum, weekSpent, monthSpent, todaySpent: daySum(TODAY), todayAllow: allow[TODAY] };
+}
+
+let lastDraw = null; // qué ícono se dibuja una vez tras el último toque
+
+function render() {
+  const m = model(), left = m.todayAllow - m.todaySpent, over = left < 0;
+  put('todayLeft', `<span class="cur">$</span><span style="color:${over ? C.red : C.white}">${Math.round(Math.abs(left))}</span>`);
+  put('todayIcon', icon('dia', 'now', 32, lastDraw === 'dia'));
+  const N = 20, lit = Math.min(N, Math.ceil(m.todaySpent / Math.max(1, m.todayAllow) * N));
+  put('todayDots', Array.from({ length: N }, (_, i) => `<i class="${i < lit ? (over ? 'r' : 'w') : ''}"></i>`).join(''));
+
+  put('stats', [
+    ['mes', m.bag - m.monthSpent], ['semana', m.week - m.weekSpent], ['bolsa', m.bag],
+  ].map(([k, v], i) => `<span class="stat">${icon(k, i < 2 ? 'done' : 'off', 20)}<span class="num ${v < 0 ? 'red' : ''}" style="font-size:15px">${$(v)}</span></span>`).join(''));
+
+  // Semana: un punto = $20.
+  const U = 20;
+  put('week', m.allow.map((a, d) => {
+    const s = m.daySum(d), cap = Math.round(a / U), fill = Math.min(cap, Math.round(s / U)), extra = Math.max(0, Math.round((s - a) / U));
+    const cls = d === TODAY ? 't' : 'f';
+    let dots = '';
+    for (let i = 0; i < cap; i++) dots += `<i class="${i < fill ? cls : 'e'}"></i>`;
+    for (let i = 0; i < extra; i++) dots += `<i class="r"></i>`;
+    return `<div class="col" title="${$(s)} / ${$(a)}">${dots}</div>`;
+  }).join(''));
+  put('wd', 'LMMJVSD'.split('').map((l, d) => `<span class="${d === TODAY ? 't' : ''}" style="${d === TODAY + 1 ? 'color:' + C.red : ''}">${l}</span>`).join(''));
+
+  // Barra del ingreso fijo: fijos · ahorro · bolsa gastada · bolsa libre.
+  const T = state.fixedIncome, pct = v => (v / T * 100) + '%';
+  const spentBag = Math.min(m.bag, m.monthSpent);
+  put('flow', `<b style="width:${pct(state.fixedCosts)};background:${C.gray}"></b><b class="hatch" style="width:${pct(m.saving)}"></b><b style="width:${pct(spentBag)};background:${C.white}"></b><b style="flex:1;background:#2E2E2E"></b>`);
+  put('legs', [['ingreso', T, 'done'], ['fijos', state.fixedCosts, 'off'], ['ahorro', m.saving, 'done'], ['bolsa', m.bag, 'now'], ['transferencia', state.apart, 'off']]
+    .map(([k, v, st]) => `<span class="stat" ${k === 'transferencia' ? 'style="border-left:1px solid #222;padding-left:12px"' : ''}>${icon(k, st, 20)}<span class="num ${st === 'off' ? 'gray' : ''}">${Math.round(v)}</span></span>`).join(''));
+
+  // Presupuestos por tema: lo que queda hoy de cada uno.
+  put('topics', state.topics.map(t => {
+    const today = state.spent[TODAY].filter(e => e.c === t.topic).reduce((s, e) => s + e.a, 0);
+    const before = state.spent.slice(0, TODAY).flat().filter(e => e.c === t.topic).reduce((s, e) => s + e.a, 0);
+    const weekLim = t.period === 'dia' ? t.limit * 7 : t.limit;
+    const allow = Math.max(0, (weekLim - before) / (7 - TODAY)), l = allow - today;
+    const n = 10, lit = Math.min(n, Math.ceil(today / Math.max(1, allow) * n));
+    return `<div class="topic">${icon(t.topic, l < 0 ? 'now' : 'done', 24)}<div class="dots grow">${Array.from({ length: n }, (_, i) => `<i class="${i < lit ? (l < 0 ? 'r' : 'w') : ''}"></i>`).join('')}</div><span class="num ${l < 0 ? 'red' : ''}">${$(l)}</span>${icon(t.period, 'off', 16)}</div>`;
+  }).join(''));
+
+  // Por cobrar: total en rojo; cada cuenta se toca para marcarla pagada.
+  const pend = state.shared.reduce((s, b) => s + b.pending, 0);
+  put('sharedCard', `<div class="row">${icon('compartido', pend ? 'now' : 'done', 24, lastDraw === 'compartido')}<span class="num ${pend ? 'red' : 'muted'}" style="font-size:18px">${$(pend)}</span></div>
+    <div class="shared">${state.shared.map(b => `<button class="icon bill" style="flex-direction:row" onclick="settle(${b.id})" aria-label="Marcar cobrada">${icon(b.icon, b.pending ? 'off' : 'done', 18)}<span class="grow"></span><span class="num muted">${$(b.total)}</span><span class="num ${b.pending ? 'red' : 'gray'}" style="width:52px;text-align:right">${b.pending ? $(b.pending) : ''}</span>${icon('si', b.pending ? 'off' : 'done', 16, lastDraw === 'bill' + b.id)}</button>`).join('')}</div>`);
+  lastDraw = null;
+}
+
+function settle(id) {
+  const b = state.shared.find(x => x.id === id);
+  if (!b.pending) return;
+  // Lo que te pagan baja lo que pusiste tú: el gasto real del día también baja.
+  b.pending = 0; lastDraw = 'bill' + id; render();
+}
+
+// ——— Registro (+) ———
+let draft = null;
+const KINDS = { extra: 'extra', compartido: 'compartido', fijos: 'fijo', ingreso: 'ingreso' };
+const CATS = ['comida', 'transporte', 'otro'];
+function openSheet() { draft = { kind: 'extra', cat: 'comida', amount: '', others: '', stable: null, apart: null }; renderSheet(); document.getElementById('sheet').classList.add('open'); }
+function closeSheet() { document.getElementById('sheet').classList.remove('open'); }
+function setDraft(k, v) { draft[k] = v; renderSheet(k); }
+function renderSheet(changed) {
+  const d = draft, pick = (k, val, ic, cap) => `<button class="icon ${d[k] === val ? 'on' : ''}" onclick="setDraft('${k}','${val}')" aria-label="${cap}">${icon(ic, d[k] === val ? 'now' : 'off', 36, changed === k && d[k] === val)}<span class="cap">${cap}</span></button>`;
+  let h = `<div class="row"><span class="label red">REGISTRAR</span><button class="tool" onclick="closeSheet()" aria-label="Cerrar"><span class="label muted">✕</span></button></div>`;
+  h += `<div class="kinds">${Object.entries(KINDS).map(([ic, cap]) => pick('kind', ic, ic, cap)).join('')}</div>`;
+  h += `<input class="amt" inputmode="decimal" placeholder="$0" value="${d.amount}" oninput="draft.amount=this.value; hint()" aria-label="Monto">`;
+  if (d.kind === 'extra' || d.kind === 'compartido') h += `<div class="kinds" style="grid-template-columns:repeat(3,1fr)">${CATS.map(c => pick('cat', c, c, c)).join('')}</div>`;
+  if (d.kind === 'compartido') h += `<div class="row" style="gap:12px">${icon('compartido', 'now', 24)}<input class="amt sm" inputmode="decimal" placeholder="Te deben" value="${d.others}" oninput="draft.others=this.value" aria-label="Lo que te deben"></div>`;
+  if (d.kind === 'ingreso') {
+    h += `<div class="row" style="justify-content:center;gap:10px">${icon('ancla', 'now', 28)}<span class="label muted">¿PARA TU ESTABILIDAD?</span></div><div class="q">${pick('stable', 'si', 'si', 'sí')}${pick('stable', 'no', 'no', 'no')}</div>`;
+    if (d.stable === 'no') h += `<div class="kinds" style="grid-template-columns:repeat(3,1fr)">${pick('apart', 'transferencia', 'transferencia', 'transfer.')}${pick('apart', 'regalo', 'regalo', 'regalo')}${pick('apart', 'servicio', 'servicio', 'servicio')}</div>`;
+  }
+  h += `<div id="hint"></div><button class="save" onclick="saveDraft()" aria-label="Guardar">${icon('si', 'done', 24)}</button>`;
+  put('sheet', h); hint();
+}
+// Un gasto de comida que no cabe en lo de hoy avisa antes de guardar: queda como antojo de la bolsa.
+function hint() {
+  const d = draft, a = parseFloat(d.amount) || 0, m = model();
+  const t = state.topics.find(t => t.topic === d.cat);
+  const left = m.todayAllow - m.todaySpent;
+  const show = (d.kind === 'extra' || d.kind === 'compartido') && a > left;
+  put('hint', show ? `<div class="warn">${icon('aviso', 'now', 20)}<span class="num red">${$(left - a)}</span><span class="grow"></span>${icon('bolsa', 'done', 18)}</div>` : '');
+}
+function saveDraft() {
+  const d = draft, a = parseFloat(d.amount) || 0;
+  if (!a) return;
+  if (d.kind === 'extra') { state.spent[TODAY].push({ c: d.cat, a }); lastDraw = 'dia'; }
+  if (d.kind === 'compartido') { const o = Math.min(a, parseFloat(d.others) || 0); state.spent[TODAY].push({ c: d.cat, a: a - o }); if (o) state.shared.push({ id: Date.now(), icon: d.cat, total: a, pending: o }); lastDraw = 'compartido'; }
+  if (d.kind === 'fijos') state.fixedCosts += a;
+  if (d.kind === 'ingreso') { if (d.stable === 'si') state.fixedIncome += a; else if (d.stable === 'no' && d.apart) state.apart += a; else return; }
+  closeSheet(); render(); renderSettings();
+}
+
+// ——— Ajustes ———
+function openSettings() { document.getElementById('settings').scrollIntoView({ behavior: 'smooth' }); }
+function renderSettings() {
+  const m = model();
+  let h = `<div class="row"><span class="label">INGRESO FIJO</span><span class="num">${$(state.fixedIncome)}</span></div>
+    <div class="row"><span class="label">GASTOS FIJOS</span><span class="num">${$(state.fixedCosts)}</span></div>
+    <div><div class="row"><span class="label">AHORRO</span><span class="num red">${state.savingPct} % · ${$(m.saving)}</span></div>
+    <input type="range" min="0" max="60" step="5" value="${state.savingPct}" oninput="state.savingPct=+this.value; render(); renderSettings()" aria-label="Porcentaje de ahorro"></div>
+    <div class="row"><span class="label">BOLSA DE EXTRAS</span><span class="num">${$(m.bag)}</span></div>
+    <div class="sep"></div>
+    <div class="row"><span class="label">LÍMITE DIARIO</span><input class="lim" placeholder="auto ${Math.round(m.bag / DAYS_IN_MONTH)}" value="${state.dayLimit || ''}" onchange="state.dayLimit=+this.value||0; render(); renderSettings()" aria-label="Límite diario total"></div>
+    <div class="sep"></div><span class="label red">PRESUPUESTOS POR TEMA</span>`;
+  h += state.topics.map((t, i) => `<div class="row" style="gap:10px">${icon(t.topic, 'done', 22)}<span class="label grow" style="color:#fff">${t.topic.toUpperCase()}</span>
+    <select class="per" onchange="state.topics[${i}].period=this.value; render()"><option value="dia" ${t.period === 'dia' ? 'selected' : ''}>AL DÍA</option><option value="semana" ${t.period === 'semana' ? 'selected' : ''}>SEMANA</option><option value="mes" ${t.period === 'mes' ? 'selected' : ''}>MES</option></select>
+    <input class="lim" value="${t.limit}" onchange="state.topics[${i}].limit=+this.value||0; render()" aria-label="Límite de ${t.topic}">
+    <button class="tool" onclick="state.topics.splice(${i},1); render(); renderSettings()" aria-label="Quitar"><span class="label muted">✕</span></button></div>`).join('');
+  const free = CATS.filter(c => !state.topics.some(t => t.topic === c));
+  if (free.length) h += `<button class="tool" style="justify-content:start" onclick="state.topics.push({topic:'${free[0]}',period:'dia',limit:50}); render(); renderSettings()" aria-label="Agregar presupuesto"><span class="label muted">+ ${free[0].toUpperCase()}</span></button>`;
+  put('set', h);
+}
+
+document.getElementById('legend').innerHTML = ['bolsa', 'ingreso', 'fijos', 'ahorro', 'extra', 'compartido', 'transferencia', 'regalo', 'servicio', 'ancla']
+  .map(k => `<span>${icon(k, 'now', 28)}<span class="muted">${k}</span></span>`).join('');
+render(); renderSettings();
+</script>
+</body>
+</html>

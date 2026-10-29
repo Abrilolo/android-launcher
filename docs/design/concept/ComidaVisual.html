@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comida visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; min-height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; }
+  .cap-top { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #555; text-align: center; margin-top: -36px; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .mono { font-family: 'Space Mono', monospace; }
+  .muted { color: var(--muted); } .red { color: var(--red); } .gray { color: var(--gray); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .tools { display: flex; gap: 6px; align-items: center; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; color: inherit; }
+  button.icon { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; font-family: inherit; position: relative; }
+  .time { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+  .time.next { color: var(--red); } .time.done { color: #fff; }
+  .sep { height: 1px; background: var(--line); }
+
+  /* Hoy */
+  .ring { position: relative; width: 200px; height: 200px; margin: 0 auto; }
+  .ring svg { position: absolute; inset: 0; }
+  .ring .mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .big { font-family: 'Space Mono', monospace; font-size: 40px; letter-spacing: 1px; line-height: 1; }
+  .macros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .macro { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .bar { width: 100%; height: 3px; background: #1F1F1F; border-radius: 2px; position: relative; overflow: hidden; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #F5F5F5; border-radius: 2px; width: 0; transition: width .7s ease; }
+  .bar i.over { background: var(--red); }
+  .plan { display: flex; flex-direction: column; }
+  .slot { display: grid; grid-template-columns: 52px 44px 1fr auto; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #141414; cursor: pointer; background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; text-align: left; font: inherit; }
+  .photo { width: 40px; height: 40px; border-radius: 20px; flex: none; box-shadow: inset 0 0 0 1px #2A2A2A; }
+  .photo.empty { box-shadow: inset 0 0 0 1.5px #2A2A2A; background: none; display: grid; place-items: center; color: var(--gray); font-size: 18px; }
+  .photo.off { filter: grayscale(1) brightness(.55); }
+  .kc { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--muted); text-align: right; }
+  .kc.done { color: #fff; }
+  .water { display: flex; gap: 4px; flex-wrap: wrap; }
+  .fab { position: absolute; right: 24px; bottom: 28px; width: 52px; height: 52px; border-radius: 26px; background: #F5F5F5; border: 0; display: grid; place-items: center; cursor: pointer; }
+
+  /* Sheets */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 86%; overflow-y: auto; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 18px 24px 28px; box-sizing: border-box; transform: translateY(105%); transition: transform .25s ease; display: flex; flex-direction: column; gap: 16px; z-index: 5; }
+  .sheet.open { transform: none; }
+  .seg { display: flex; border: 1px solid #333; border-radius: 12px; overflow: hidden; align-self: flex-start; }
+  .seg button { background: none; border: 0; padding: 6px 12px; cursor: pointer; display: grid; place-items: center; }
+  .seg button.on { background: #1C1C1C; }
+  .rgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 10px; }
+  .rgrid .photo { width: 84px; height: 84px; border-radius: 20px; }
+  input.field { background: #000; border: 1px solid #333; border-radius: 12px; color: #fff; font: 15px 'Space Grotesk', sans-serif; padding: 10px 12px; outline: none; width: 100%; box-sizing: border-box; }
+  input.field::placeholder { color: #666; }
+  .res { display: flex; flex-direction: column; }
+  .res button { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 9px 0; background: none; border: 0; border-bottom: 1px solid #161616; color: #fff; font: 14px 'Space Grotesk', sans-serif; text-align: left; cursor: pointer; }
+  .chip { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); border: 1px solid #333; border-radius: 8px; padding: 2px 6px; white-space: nowrap; }
+  .item { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #161616; }
+  .step { display: flex; align-items: center; gap: 6px; }
+  .step button { width: 28px; height: 28px; border-radius: 14px; border: 1px solid #333; background: none; color: #fff; cursor: pointer; font-size: 15px; }
+  .step input { width: 46px; background: none; border: 0; border-bottom: 1px solid #333; color: #fff; font: 13px 'Space Mono', monospace; text-align: center; outline: none; }
+  .totals { display: flex; justify-content: space-between; align-items: center; padding-top: 4px; }
+  .stat { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 13px; }
+
+  /* Receta */
+  .hero { height: 220px; border-radius: 24px; position: relative; }
+  .vits { display: flex; flex-wrap: wrap; gap: 6px; }
+  .steps { margin: 0; padding-left: 20px; color: #ddd; font-size: 14px; line-height: 1.55; }
+  .steps li::marker { color: var(--red); font-family: 'Space Mono', monospace; font-size: 12px; }
+  .ing { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px solid #161616; }
+
+  /* Semana */
+  .weight { display: flex; align-items: baseline; gap: 10px; }
+  .imc { position: relative; height: 36px; }
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; height: 110px; }
+  .col { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 3px; align-items: center; }
+  .col .b { width: 10px; border-radius: 5px; background: #F5F5F5; height: 0; transition: height .7s ease; }
+  .col .b.off { background: none; box-shadow: inset 0 0 0 1.5px #2A2A2A; }
+  .col .o { width: 10px; border-radius: 5px; background: var(--red); height: 0; transition: height .7s ease .5s; }
+  .dots7 { display: grid; grid-template-columns: 22px repeat(7, 1fr); gap: 8px; align-items: center; justify-items: center; }
+  .d { width: 6px; height: 6px; border-radius: 3px; background: #2A2A2A; }
+  .d.on { background: #F5F5F5; } .d.today { background: var(--red); }
+
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 0 4px; }
+  .legend span { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; }
+</style>
+</head>
+<body>
+<h2>COMIDA · BOCETO (TOCA COMIDAS, VASOS, EL + Y LAS RECETAS)</h2>
+
+<!-- ============ HOY ============ -->
+<div class="phone" id="pHoy">
+  <div class="cap-top">HOY</div>
+  <div class="row">
+    <div class="tools"><button class="tool" aria-label="Hoy" id="tabHoy"></button><button class="tool" aria-label="Semana" id="tabSem"></button></div>
+    <div class="tools"><button class="tool" aria-label="Recetas" onclick="openLibrary()" id="libBtn"></button><button class="tool" aria-label="Ajustes de Comida" id="gear1"></button></div>
+  </div>
+
+  <div class="ring" id="ring"></div>
+  <div class="macros" id="macros"></div>
+  <div class="sep"></div>
+  <div class="plan" id="plan"></div>
+  <div class="water" id="water"></div>
+
+  <button class="fab" onclick="openLog(null)" aria-label="Registrar comida"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+
+  <!-- Registrar: receta o ingredientes -->
+  <div class="sheet" id="logSheet">
+    <div class="row">
+      <div class="seg" id="logSeg"></div>
+      <div class="tools"><span class="time" id="logSlotTime"></span><button class="tool" onclick="closeSheets()" aria-label="Cerrar"><span class="label muted">✕</span></button></div>
+    </div>
+    <div id="logBody"></div>
+  </div>
+
+  <!-- Biblioteca de recetas -->
+  <div class="sheet" id="libSheet">
+    <div class="row"><span></span><div class="tools"><button class="tool" aria-label="Nueva receta" id="newRecipe"></button><button class="tool" onclick="closeSheets()" aria-label="Cerrar"><span class="label muted">✕</span></button></div></div>
+    <div class="rgrid" id="libGrid"></div>
+  </div>
+</div>
+
+<!-- ============ RECETA ============ -->
+<div class="phone" id="pRec">
+  <div class="cap-top">RECETA</div>
+  <div class="row"><span></span><div class="tools" id="recTools"></div></div>
+  <div id="recBody" style="display:flex;flex-direction:column;gap:18px"></div>
+</div>
+
+<!-- ============ SEMANA ============ -->
+<div class="phone" id="pSem">
+  <div class="cap-top">SEMANA</div>
+  <div class="row">
+    <div class="tools"><button class="tool" aria-label="Hoy" id="tabHoy2"></button><button class="tool" aria-label="Semana" id="tabSem2"></button></div>
+    <div class="tools"><button class="tool" aria-label="Recetas" id="libBtn2"></button><button class="tool" aria-label="Ajustes de Comida" id="gear2"></button></div>
+  </div>
+  <div id="semBody" style="display:flex;flex-direction:column;gap:22px"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>Íconos de trazo continuo</b> (los de Rutinas, más los de comida):
+    <div class="legend" id="legend"></div>
+    · Falta = gris · hecha = blanco · lo que sigue = su hora en rojo. Al marcar, la línea se dibuja una vez y el detalle rojo sale al final.<br><br>
+    <b>Hoy</b><br>
+    · <b>Anillo:</b> lo que te queda de la meta de kcal (número grande) y la meta (gris). Se llena en blanco; si te pasas, lo que sobra se dibuja en rojo y el número sale rojo con +.<br>
+    · <b>Barras:</b> proteína (huevo), fibra (hoja) y vitaminas (cítrico) contra su meta.<br>
+    · <b>Qué comes y a qué hora:</b> cada comida es una fila: hora, ícono, foto de la receta planeada y sus kcal. La siguiente lleva la hora en rojo.<br>
+    · <b>Tocar una comida</b> abre su receta planeada: <b>✓</b> la registra (suma kcal y la marca). Ahí mismo puedes cambiar la receta o armarla con ingredientes.<br>
+    · Lo que comas fuera del plan sale como fila extra con el ícono de plato.<br>
+    · Agua: los mismos vasos de hoy, ahora de línea; se llenan uno tras otro.<br>
+    · Los hábitos pasan a ajustes de Comida (quitan ruido aquí). Si los quieres en la vista, se ponen como fila de íconos debajo del agua.<br><br>
+    <b>Registrar (+)</b><br>
+    · <b>Receta:</b> fotos con sus kcal; tocar una la registra.<br>
+    · <b>Ingredientes:</b> buscas en la base USDA precargada (67 alimentos) o agregas uno tuyo. Cada uno trae su porción ("1 pieza", 118 g) con − / +, y los gramos se editan. Abajo se suman kcal, proteína y fibra en vivo.<br><br>
+    <b>Receta</b><br>
+    · Foto, tiempo de preparación, kcal, proteína, fibra, vitaminas, ingredientes con gramos y pasos. El lápiz edita todo; la cámara cambia la foto.<br><br>
+    <b>Semana</b><br>
+    · <b>Peso:</b> el último registro, la meta en gris y lo que falta en rojo. La línea de las últimas semanas se dibuja una vez; la meta es la línea punteada. + anota tu peso (el mismo dato que Ejercicio).<br>
+    · <b>IMC:</b> una regla con los rangos; la marca es blanca en rango sano y roja fuera; la meta (según tu peso meta) en gris.<br>
+    · <b>kcal por día:</b> barras contra la meta; lo que se pasa se pone rojo. Debajo, puntos de proteína y fibra cumplidas; hoy en rojo.<br><br>
+    <b>Necesita del backend</b>: guardar la receta planeada de cada comida (se queda igual los días siguientes hasta que la cambies).
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  plato:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M16 12a4 4 0 1 1-8 0a4 4 0 1 1 8 0' },
+  desayuno:   { main: 'M5 9h11v5a5 5 0 0 1-11 0V9M16 11h1.5a2 2 0 0 1 0 4H16', red: 'M8.5 3.5v2.5M12.5 3.5v2.5' },
+  snack:      { main: 'M7 21V3h10v18H7M7 9h10M7 15h10', red: 'M12 9v6' },
+  colacion:   { main: 'M12 7.5C10 6 5 6 5 12s4 9.5 7 8c3 1.5 7-2 7-8s-5-6-7-4.5', red: 'M12 7.5c0-2 1-3.5 3-4.5' },
+  cena:       { main: 'M3 12h18c0 4.5-4 8-9 8s-9-3.5-9-8', red: 'M9 9c-1-1.2 1-2.3 0-3.5M15 9c-1-1.2 1-2.3 0-3.5' },
+  agua:       { main: 'M5 4h14l-2 16H7L5 4', red: 'M6 10h12' },
+  huevo:      { main: 'M12 3c3.5 0 6 5 6 10.5a6 6 0 0 1-12 0C6 8 8.5 3 12 3', red: 'M9.5 14.5a2.5 2.5 0 0 0 5 0' },
+  hoja:       { main: 'M5 19C5 10 10 5 19 5c0 9-5 14-14 14z', red: 'M5 19l8-8' },
+  vitamina:   { main: 'M20 12a8 8 0 1 1-16 0a8 8 0 0 1 16 0', red: 'M12 6v12M6.8 9l10.4 6M17.2 9 6.8 15' },
+  reloj:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 7v5l3 2' },
+  hoy:        { main: 'M16 12a4 4 0 1 1-8 0a4 4 0 0 1 8 0', red: 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4' },
+  semana:     { main: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', red: 'M8 14h.01M12 14h.01M16 14h.01' },
+  recetas:    { main: 'M4 5h7a1 1 0 0 1 1 1v14a1 1 0 0 0-1-1H4zM20 5h-7a1 1 0 0 0-1 1v14a1 1 0 0 1 1-1h7z', red: 'M15 9h2' },
+  tazon:      { main: 'M3 11h18c0 5-4 9-9 9s-9-4-9-9z', red: 'M8 11c0-3 2-5 4-5M14 8l3-3' },
+  bascula:    { main: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1', red: 'M9 10a3 3 0 0 1 6 0M12 10l1.5-2' },
+  camara:     { main: 'M4 8h3l2-3h6l2 3h3v11H4z', red: 'M15 13a3 3 0 1 1-6 0a3 3 0 0 1 6 0' },
+  nueva:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 8v8M8 12h8' },
+  listo:      { main: 'M20 6 9 17l-5-5' },
+};
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C', muted: '#B0B0B0' };
+
+function icon(name, state, size, animate = false) {
+  const ic = ICONS[name];
+  const main = state === 'off' ? C.gray : state === 'muted' ? C.muted : C.white;
+  const red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const st = document.createElement('style');
+st.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dashoffset:0}}';
+document.head.appendChild(st);
+const $ = id => document.getElementById(id);
+const put = (id, html) => { const el = $(id); if (el) el.innerHTML = html; };
+const GEAR = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+const PENCIL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const CHECK = (c = '#D71921', s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+
+// ---------- Datos de ejemplo (son las 14:20) ----------
+const RECIPES = [
+  { id: 'huevos', name: 'Huevos con nopales', bg: 'radial-gradient(circle at 35% 35%,#f2c14e,#6b8f3a 60%,#2b3a1a)', prep: 15, servings: 1, steps: ['Asa los nopales en tiras.', 'Bate los huevos con sal.', 'Mezcla todo en el sartén 3 min.', 'Sirve con tortilla.'],
+    items: [['Huevo', 100], ['Nopal', 120], ['Tortilla de maíz', 30], ['Aceite de oliva', 5]], kcal: 330, p: 18, f: 6, vit: { 'C mg': 12, 'A µg': 190, 'B12 µg': 1.1 } },
+  { id: 'pollo', name: 'Pollo con arroz y frijoles', bg: 'radial-gradient(circle at 60% 40%,#e8d6a8,#a0602e 55%,#3a2210)', prep: 30, servings: 2, steps: ['Cuece el arroz.', 'Sella la pechuga 5 min por lado.', 'Calienta los frijoles.', 'Sirve en partes iguales.'],
+    items: [['Pechuga de pollo', 240], ['Arroz cocido', 300], ['Frijoles', 260], ['Aguacate', 100]], kcal: 620, p: 48, f: 11, vit: { 'C mg': 9, 'B6 mg': 1.1, 'K µg': 21 } },
+  { id: 'yogur', name: 'Yogur con avena y plátano', bg: 'radial-gradient(circle at 40% 30%,#fbf6ea,#e2c48a 55%,#4a3a1a)', prep: 5, servings: 1, steps: ['Sirve el yogur.', 'Agrega avena y plátano en rodajas.'],
+    items: [['Yogur griego', 170], ['Avena', 40], ['Plátano', 118]], kcal: 360, p: 24, f: 7, vit: { 'C mg': 10, 'B6 mg': 0.5, 'B12 µg': 1.3 } },
+  { id: 'salmon', name: 'Salmón con verduras', bg: 'radial-gradient(circle at 45% 45%,#ff9a6b,#c0533a 50%,#26331f)', prep: 25, servings: 1, steps: ['Hornea el salmón 15 min a 200°.', 'Saltea brócoli y calabaza.', 'Sirve con limón.'],
+    items: [['Salmón', 150], ['Brócoli', 120], ['Calabaza', 100]], kcal: 540, p: 38, f: 6, vit: { 'C mg': 98, 'D µg': 16, 'B12 µg': 4.2 } },
+  { id: 'licuado', name: 'Licuado de plátano', bg: 'radial-gradient(circle at 50% 35%,#fff3c4,#d9b35a 60%,#3a2f12)', prep: 5, servings: 1, steps: ['Licúa todo 30 s.'],
+    items: [['Leche', 250], ['Plátano', 118], ['Avena', 20]], kcal: 330, p: 13, f: 4, vit: { 'C mg': 10, 'D µg': 2.9 } },
+];
+const R = id => RECIPES.find(r => r.id === id);
+const SLOTS = [
+  { icon: 'desayuno', time: '09:00', main: true, plan: 'huevos', done: true },
+  { icon: 'snack', time: '13:00', main: false, plan: 'yogur', done: true },
+  { icon: 'colacion', time: '18:30', main: false, plan: 'licuado', done: false },
+  { icon: 'cena', time: '21:30', main: true, plan: 'pollo', done: false },
+];
+const extras = [{ time: '11:10', kcal: 90, p: 1, f: 2.4 }]; // una manzana fuera del plan
+const GOAL = { kcal: 2100, p: 130, f: 30, vit: 100 };
+let water = 3; const WATER_GOAL = 8;
+
+const INGREDIENTS = [
+  { name: 'Plátano', kcal: 89, p: 1.1, f: 2.6, g: 118, portion: '1 pieza' },
+  { name: 'Manzana', kcal: 52, p: 0.3, f: 2.4, g: 182, portion: '1 pieza' },
+  { name: 'Huevo', kcal: 143, p: 12.6, f: 0, g: 50, portion: '1 pieza' },
+  { name: 'Avena', kcal: 389, p: 16.9, f: 10.6, g: 40, portion: '1/2 taza' },
+  { name: 'Pechuga de pollo', kcal: 165, p: 31, f: 0, g: 120, portion: '1 filete' },
+  { name: 'Arroz cocido', kcal: 130, p: 2.7, f: 0.4, g: 150, portion: '1 taza' },
+  { name: 'Frijoles', kcal: 127, p: 8.7, f: 6.4, g: 130, portion: '1/2 taza' },
+  { name: 'Tortilla de maíz', kcal: 218, p: 5.7, f: 6.3, g: 30, portion: '1 pieza' },
+  { name: 'Aguacate', kcal: 160, p: 2, f: 6.7, g: 50, portion: '1/3 pieza' },
+  { name: 'Yogur griego', kcal: 59, p: 10, f: 0, g: 170, portion: '1 vaso' },
+  { name: 'Nopal', kcal: 16, p: 1.3, f: 2.2, g: 120, portion: '1 taza' },
+];
+
+function eaten() {
+  let k = 0, p = 0, f = 0;
+  SLOTS.filter(s => s.done).forEach(s => { const r = R(s.plan); k += r.kcal; p += r.p; f += r.f; });
+  extras.forEach(e => { k += e.kcal; p += e.p; f += e.f; });
+  return { k, p, f };
+}
+
+// ---------- Hoy ----------
+function renderTabs() {
+  put('tabHoy', icon('hoy', 'done', 22)); put('tabSem', icon('semana', 'off', 22));
+  put('tabHoy2', icon('hoy', 'off', 22)); put('tabSem2', icon('semana', 'done', 22));
+  put('libBtn', icon('recetas', 'muted', 22)); put('libBtn2', icon('recetas', 'muted', 22));
+  put('gear1', GEAR); put('gear2', GEAR); put('newRecipe', icon('nueva', 'muted', 22));
+}
+
+function renderRing(animate) {
+  const e = eaten(), left = GOAL.kcal - e.k, over = Math.max(0, -left);
+  const r = 88, c = 2 * Math.PI * r, fill = Math.min(1, e.k / GOAL.kcal), extra = Math.min(1, over / GOAL.kcal);
+  const ring = `<svg width="200" height="200" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="${r}" fill="none" stroke="#1C1C1C" stroke-width="3"/>
+    <circle id="ringW" cx="100" cy="100" r="${r}" fill="none" stroke="${C.white}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${animate ? c : c * (1 - fill)}" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset .9s ease"/>
+    ${over ? `<circle id="ringR" cx="100" cy="100" r="${r}" fill="none" stroke="${C.red}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c}" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset .6s ease .9s"/>` : ''}
+  </svg>
+  <div class="mid" aria-label="Te quedan ${Math.round(left)} kcal de ${GOAL.kcal}">
+    <span class="big ${over ? 'red' : ''}">${over ? '+' + Math.round(over) : Math.round(left)}</span>
+    <span class="time">${GOAL.kcal}</span>
+  </div>`;
+  put('ring', ring);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const w = $('ringW'); if (w) w.style.strokeDashoffset = c * (1 - fill);
+    const rr = $('ringR'); if (rr) rr.style.strokeDashoffset = c * (1 - extra);
+  }));
+  const vit = 64; // % del día cubierto en vitaminas (promedio de las que trae la base)
+  const m = [['huevo', e.p, GOAL.p, 'g'], ['hoja', e.f, GOAL.f, 'g'], ['vitamina', vit, GOAL.vit, '%']];
+  put('macros', m.map(([ic, v, g, u], i) => `<div class="macro" aria-label="${ic} ${Math.round(v)} de ${g}">
+    ${icon(ic, v >= g ? 'now' : 'done', 22)}
+    <div class="bar"><i id="bar${i}"></i></div>
+    <span class="time ${v >= g ? 'done' : ''}">${Math.round(v)}${u === '%' ? '%' : ''}</span></div>`).join(''));
+  requestAnimationFrame(() => requestAnimationFrame(() => m.forEach(([, v, g], i) => { const b = $('bar' + i); if (b) b.style.width = Math.min(100, v / g * 100) + '%'; })));
+}
+
+function renderPlan(animateSlot = -1) {
+  const next = SLOTS.findIndex(s => !s.done);
+  const rows = SLOTS.map((s, i) => {
+    const r = R(s.plan), cls = s.done ? 'done' : i === next ? 'next' : '';
+    const size = s.main ? 34 : 28;
+    return { t: s.time, html: `<button class="slot" onclick="openSlot(${i})" aria-label="${r.name} ${s.time}">
+      <span class="time ${cls}">${s.time}</span>
+      <span style="display:grid;place-items:center">${icon(s.icon, s.done ? 'now' : 'off', size, i === animateSlot)}</span>
+      <span class="photo ${s.done ? '' : 'off'}" style="background:${r.bg}"></span>
+      <span class="kc ${s.done ? 'done' : ''}">${r.kcal}</span></button>` };
+  });
+  extras.forEach(e => rows.push({ t: e.time, html: `<button class="slot" aria-label="Fuera del plan ${e.time}">
+      <span class="time done">${e.time}</span><span style="display:grid;place-items:center">${icon('plato', 'done', 26)}</span>
+      <span class="photo empty">${icon('tazon', 'muted', 18)}</span><span class="kc done">${e.kcal}</span></button>` }));
+  rows.sort((a, b) => a.t.localeCompare(b.t));
+  put('plan', rows.map(r => r.html).join(''));
+}
+
+function renderWater(from = -1) {
+  put('water', Array.from({ length: WATER_GOAL }, (_, i) =>
+    `<button class="icon" onclick="tapWater(${i})" aria-label="Vaso ${i + 1}">${icon('agua', i < water ? 'now' : 'off', 34, from >= 0 && i >= from && i < water)}</button>`).join(''));
+  // Que cada vaso nuevo se dibuje después del anterior.
+  document.querySelectorAll('#water .draw').forEach((p, k) => p.style.animationDelay = (parseInt(p.style.animationDelay) || 0) + Math.floor(k / 2) * 120 + 'ms');
+}
+function tapWater(i) { const from = water; water = (i + 1 === water) ? i : i + 1; renderWater(water > from ? from : -1); }
+
+// ---------- Hojas ----------
+let logMode = 'receta', logSlot = null, picked = [];
+function closeSheets() { document.querySelectorAll('#pHoy .sheet').forEach(s => s.classList.remove('open')); }
+
+function openSlot(i) {
+  // La comida planeada: foto grande, números y ✓ para registrarla.
+  logSlot = i; logMode = 'plan'; renderLog(); $('logSheet').classList.add('open');
+}
+function openLog(slot) { logSlot = slot; logMode = 'receta'; renderLog(); $('logSheet').classList.add('open'); }
+
+function nutrRow(k, p, f, extra = '') {
+  return `<div class="totals"><span class="stat">${icon('plato', 'done', 18)}${Math.round(k)}</span><span class="stat">${icon('huevo', 'done', 18)}${Math.round(p)}</span><span class="stat">${icon('hoja', 'done', 18)}${Math.round(f)}</span>${extra}</div>`;
+}
+
+function renderLog() {
+  const modes = logSlot !== null ? ['plan', 'receta', 'ingredientes'] : ['receta', 'ingredientes'];
+  const ic = { plan: SLOTS[logSlot]?.icon, receta: 'recetas', ingredientes: 'tazon' };
+  put('logSeg', modes.map(m => `<button class="${m === logMode ? 'on' : ''}" onclick="logMode='${m}';renderLog()" aria-label="${m}">${icon(ic[m], m === logMode ? 'done' : 'off', 20)}</button>`).join(''));
+  put('logSlotTime', logSlot !== null ? SLOTS[logSlot].time : '');
+  let html = '';
+  if (logMode === 'plan') {
+    const s = SLOTS[logSlot], r = R(s.plan);
+    html = `<div class="hero" style="background:${r.bg};height:170px"></div>
+      <div class="row"><span style="font-size:17px">${r.name}</span><span class="stat muted">${icon('reloj', 'muted', 16)}${r.prep}</span></div>
+      ${nutrRow(r.kcal, r.p, r.f)}
+      <div class="row" style="margin-top:6px"><button class="tool" onclick="pickRecipeFor()" aria-label="Cambiar receta">${icon('recetas', 'muted', 22)}</button>
+      <button class="tool" onclick="toggleSlot(${logSlot})" aria-label="${s.done ? 'Desmarcar' : 'Registrar'}" style="width:52px;height:52px;border-radius:26px;background:${s.done ? '#1C1C1C' : '#F5F5F5'}">${s.done ? CHECK('#F5F5F5') : CHECK('#000')}</button></div>`;
+  } else if (logMode === 'receta') {
+    html = `<div class="rgrid">${RECIPES.map(r => `<button class="icon" onclick="logRecipe('${r.id}')" aria-label="${r.name}"><span class="photo" style="background:${r.bg};width:84px;height:84px;border-radius:20px"></span><span class="time">${r.kcal}</span></button>`).join('')}</div>`;
+  } else {
+    const tot = picked.reduce((a, it) => ({ k: a.k + it.ing.kcal * it.g / 100, p: a.p + it.ing.p * it.g / 100, f: a.f + it.ing.f * it.g / 100 }), { k: 0, p: 0, f: 0 });
+    html = `<input class="field" id="q" placeholder="Buscar ingrediente" oninput="search(this.value)" autocomplete="off">
+      <div class="res" id="res"></div>
+      <div id="picked">${picked.map((it, i) => `<div class="item">
+        <span style="font-size:14px">${it.ing.name}</span><span class="time">${Math.round(it.ing.kcal * it.g / 100)}</span>
+        <div class="step"><button onclick="portion(${i},-1)" aria-label="Menos">−</button><span class="chip">${it.ing.portion}</span><button onclick="portion(${i},1)" aria-label="Más">+</button></div>
+        <div class="step"><input value="${Math.round(it.g)}" onchange="picked[${i}].g=+this.value||0;renderLog()" aria-label="Gramos"><span class="time">g</span></div></div>`).join('')}</div>
+      ${picked.length ? nutrRow(tot.k, tot.p, tot.f, `<button class="tool" onclick="saveIngredients()" aria-label="Guardar comida" style="width:48px;height:48px;border-radius:24px;background:#F5F5F5">${CHECK('#000')}</button>`) : ''}`;
+  }
+  put('logBody', html);
+  if (logMode === 'ingredientes') search('');
+}
+
+function search(q) {
+  const list = INGREDIENTS.filter(i => i.name.toLowerCase().includes(q.toLowerCase())).slice(0, q ? 6 : 4);
+  put('res', list.map(i => `<button onclick="addIng('${i.name}')"><span>${i.name}</span><span class="chip">${i.portion}</span><span class="time">${Math.round(i.kcal * i.g / 100)}</span></button>`).join('')
+    + `<button onclick="" aria-label="Ingrediente nuevo"><span class="muted">${icon('nueva', 'muted', 18)}</span><span></span><span></span></button>`);
+}
+function addIng(name) { const ing = INGREDIENTS.find(i => i.name === name); picked.push({ ing, g: ing.g }); renderLog(); }
+function portion(i, d) { const it = picked[i]; it.g = Math.max(0, it.g + d * it.ing.g); if (!it.g) picked.splice(i, 1); renderLog(); }
+function saveIngredients() {
+  const tot = picked.reduce((a, it) => ({ kcal: a.kcal + it.ing.kcal * it.g / 100, p: a.p + it.ing.p * it.g / 100, f: a.f + it.ing.f * it.g / 100 }), { kcal: 0, p: 0, f: 0 });
+  if (logSlot !== null) { SLOTS[logSlot].done = true; } else extras.push({ time: '14:20', kcal: Math.round(tot.kcal), p: tot.p, f: tot.f });
+  picked = []; closeSheets(); renderRing(true); renderPlan(logSlot ?? -1);
+}
+function logRecipe(id) {
+  if (logSlot !== null) { SLOTS[logSlot].plan = id; SLOTS[logSlot].done = true; }
+  else { const r = R(id); extras.push({ time: '14:20', kcal: r.kcal, p: r.p, f: r.f }); }
+  closeSheets(); renderRing(true); renderPlan(logSlot ?? -1); showRecipe(id);
+}
+function pickRecipeFor() { logMode = 'receta'; renderLog(); }
+function toggleSlot(i) { SLOTS[i].done = !SLOTS[i].done; closeSheets(); renderRing(true); renderPlan(SLOTS[i].done ? i : -1); }
+
+function openLibrary() {
+  put('libGrid', RECIPES.map(r => `<button class="icon" onclick="showRecipe('${r.id}');closeSheets()" aria-label="${r.name}"><span class="photo" style="background:${r.bg};width:84px;height:84px;border-radius:20px"></span><span class="stat time">${icon('reloj', 'off', 12)}${r.prep}</span></button>`).join(''));
+  $('libSheet').classList.add('open');
+}
+
+// ---------- Receta ----------
+let recId = 'salmon', recEdit = false;
+function showRecipe(id) { recId = id; recEdit = false; renderRecipe(); }
+function renderRecipe() {
+  const r = R(recId);
+  put('recTools', recEdit
+    ? `<button class="tool" aria-label="Cambiar foto">${icon('camara', 'muted', 22)}</button><button class="tool" onclick="recEdit=false;renderRecipe()" aria-label="Listo">${CHECK()}</button>`
+    : `<button class="tool" onclick="recEdit=true;renderRecipe()" aria-label="Editar receta">${PENCIL}</button>`);
+  const vits = Object.entries(r.vit).map(([k, v]) => `<span class="chip">${k.split(' ')[0]} ${v}${k.split(' ')[1]}</span>`).join('');
+  const per = s => s / r.servings;
+  put('recBody', `
+    <div class="hero" style="background:${r.bg}"></div>
+    ${recEdit ? `<input class="field" value="${r.name}" aria-label="Nombre">` : `<div style="font-size:20px">${r.name}</div>`}
+    <div class="row">
+      <span class="stat">${icon('reloj', 'done', 18)}${recEdit ? `<input class="field" style="width:56px;padding:4px 6px" value="${r.prep}">` : r.prep}</span>
+      <span class="stat">${icon('plato', 'done', 18)}${r.kcal}</span>
+      <span class="stat">${icon('huevo', 'done', 18)}${r.p}</span>
+      <span class="stat">${icon('hoja', 'done', 18)}${r.f}</span>
+    </div>
+    <div class="row"><span>${icon('vitamina', 'done', 18)}</span><div class="vits" style="flex:1;margin-left:10px">${vits}</div></div>
+    <div class="sep"></div>
+    <div>${r.items.map(([n, g]) => `<div class="ing"><span>${n}</span><span class="time">${recEdit ? `<input class="field" style="width:60px;padding:2px 6px" value="${g}">` : g} g</span></div>`).join('')}
+      ${recEdit ? `<div class="ing" style="justify-content:center">${icon('nueva', 'muted', 20)}</div>` : ''}</div>
+    <ol class="steps">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    ${recEdit ? '' : `<div class="row"><span class="time">${r.servings > 1 ? '×' + r.servings : ''}</span><button class="tool" onclick="logRecipe('${r.id}')" aria-label="Comí esto" style="width:52px;height:52px;border-radius:26px;background:#F5F5F5">${CHECK('#000')}</button></div>`}
+  `);
+}
+
+// ---------- Semana ----------
+function renderWeek() {
+  const weights = [81.2, 80.6, 80.9, 80.1, 79.6, 79.2, 78.9, 78.4], goalW = 74, height = 1.78;
+  const bmi = w => w / (height * height), now = weights[weights.length - 1], b = bmi(now), bg = bmi(goalW);
+  const W = 342, H = 120, min = 73, max = 82;
+  const X = i => i / (weights.length - 1) * (W - 12) + 6, Y = v => H - (v - min) / (max - min) * (H - 12) - 6;
+  const line = weights.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join('');
+  const kcal = [1980, 2240, 2050, 2380, 1890, 0, 0], today = 4, kmax = 2600;
+  const prot = [1, 0, 1, 1, 0, 0, 0], fib = [0, 0, 1, 1, 0, 0, 0];
+  const scale = v => (Math.min(35, Math.max(16, v)) - 16) / 19 * W;
+  const okBmi = b >= 18.5 && b < 25;
+  put('semBody', `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="row">
+        <div class="weight">${icon('bascula', 'done', 26)}<span class="big" style="font-size:36px">${now.toFixed(1)}</span><span class="time">${goalW.toFixed(1)}</span></div>
+        <div class="tools"><span class="time next">−${(now - goalW).toFixed(1)}</span><button class="tool" aria-label="Anotar peso">${icon('nueva', 'muted', 22)}</button></div>
+      </div>
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-label="Peso de las últimas 8 semanas">
+        <line x1="0" x2="${W}" y1="${Y(goalW)}" y2="${Y(goalW)}" stroke="${C.gray}" stroke-width="1.5" stroke-dasharray="3 5" stroke-linecap="round"/>
+        <path d="${line}" fill="none" stroke="${C.white}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" pathLength="1" class="draw"/>
+        <circle cx="${X(weights.length - 1)}" cy="${Y(now)}" r="3.5" fill="${C.red}"/>
+      </svg>
+    </div>
+    <div class="sep"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="row"><span class="big" style="font-size:28px;${okBmi ? '' : 'color:' + C.red}">${b.toFixed(1)}</span><span class="time">${bg.toFixed(1)}</span></div>
+      <svg width="${W}" height="30" viewBox="0 0 ${W} 30" aria-label="IMC ${b.toFixed(1)}; meta ${bg.toFixed(1)}">
+        <line x1="2" x2="${scale(18.5) - 3}" y1="15" y2="15" stroke="#2A2A2A" stroke-width="3" stroke-linecap="round"/>
+        <line x1="${scale(18.5) + 3}" x2="${scale(25) - 3}" y1="15" y2="15" stroke="${C.gray}" stroke-width="3" stroke-linecap="round"/>
+        <line x1="${scale(25) + 3}" x2="${scale(30) - 3}" y1="15" y2="15" stroke="#2A2A2A" stroke-width="3" stroke-linecap="round"/>
+        <line x1="${scale(30) + 3}" x2="${W - 2}" y1="15" y2="15" stroke="#2A2A2A" stroke-width="3" stroke-linecap="round"/>
+        <line x1="${scale(bg)}" x2="${scale(bg)}" y1="8" y2="22" stroke="${C.muted}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="${scale(b)}" x2="${scale(b)}" y1="3" y2="27" stroke="${okBmi ? C.white : C.red}" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="sep"></div>
+    <div style="position:relative">
+      <div class="days">${kcal.map((k, i) => {
+        const base = Math.min(k, GOAL.kcal), over = Math.max(0, k - GOAL.kcal);
+        return `<div class="col" aria-label="Día ${i + 1}: ${k} kcal">${over ? `<span class="o" data-h="${over / kmax * 100}"></span>` : ''}<span class="b ${k ? '' : 'off'}" data-h="${(k ? base : GOAL.kcal) / kmax * 100}" style="${i === today ? 'box-shadow:0 0 0 1.5px ' + C.red : ''}"></span></div>`;
+      }).join('')}</div>
+      <div style="position:absolute;left:0;right:0;bottom:${GOAL.kcal / kmax * 110}px;border-top:1.5px dashed #3A3A3A"></div>
+    </div>
+    <div class="dots7"><span>${icon('huevo', 'muted', 16)}</span>${prot.map((v, i) => `<span class="d ${v ? 'on' : i === today ? 'today' : ''}"></span>`).join('')}</div>
+    <div class="dots7"><span>${icon('hoja', 'muted', 16)}</span>${fib.map((v, i) => `<span class="d ${v ? 'on' : i === today ? 'today' : ''}"></span>`).join('')}</div>
+  `);
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('#semBody [data-h]').forEach(el => el.style.height = el.dataset.h + '%')));
+}
+
+// Leyenda
+$('legend').innerHTML = [['desayuno', 'desayuno'], ['snack', 'snack'], ['colacion', 'colación'], ['cena', 'cena'], ['agua', 'agua'], ['huevo', 'proteína'], ['hoja', 'fibra'], ['vitamina', 'vitaminas'], ['bascula', 'peso'], ['recetas', 'recetas']]
+  .map(([k, l]) => `<span>${icon(k, 'now', 28)}<span class="muted">${l}</span></span>`).join('');
+
+renderTabs(); renderRing(true); renderPlan(); renderWater(); renderRecipe(); renderWeek();
+</script>
+</body>
+</html>

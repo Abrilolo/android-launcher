@@ -154,6 +154,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val currentSpace: StateFlow<Space> = currentPhase.map { it.toSpace() }.stateIn(viewModelScope, SharingStarted.Eagerly, currentPhase.value.toSpace())
     val notes: StateFlow<List<NoteRecord>> = personal.notes.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val reminders: StateFlow<List<ReminderRecord>> = personal.reminders.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    /** Ids of the reminders (of every phase) marked done today; [toggleReminderDone] works for any phase. */
+    val remindersDoneToday: StateFlow<Set<String>> = combine(currentTime.map { it.toLocalDate() }.distinctUntilChanged(), personal.completedReminders) { date, keys ->
+        val prefix = PhaseReminders.doneKey(date, "")
+        keys.filter { it.startsWith(prefix) }.map { it.removePrefix(prefix) }.toSet()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
     /**
      * The current phase's actions that have an hour plus its linked reminders, sorted by time, each with icon
      * key, hour and done for today. What the Rutinas widget lists.
@@ -342,12 +347,24 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun newRecipe(name: String): Recipe = food.newRecipe(name)
     /** Saves a recipe (photo uri, steps, prep time, servings) and its ingredients, id to grams. */
     fun saveRecipe(recipe: Recipe, items: Map<String, Float>) { viewModelScope.launch { food.saveRecipe(recipe, items) } }
-    fun deleteRecipe(id: String) { viewModelScope.launch { food.deleteRecipe(id) } }
+    fun deleteRecipe(id: String) {
+        viewModelScope.launch {
+            food.deleteRecipe(id)
+            // A deleted recipe is no longer planned for any meal.
+            moduleSettings.value.meals.filter { it.recipeId == id }.forEach { settings.setMealPlan(it.id, null) }
+        }
+    }
     fun recipeDetail(id: String, onResult: (RecipeDetail?) -> Unit) { viewModelScope.launch { onResult(food.detail(id)) } }
     /** Registers a meal from a recipe; [onSaved] gets the meal id. */
-    fun logRecipeMeal(recipeId: String, servings: Float = 1f, onSaved: (String?) -> Unit = {}) { viewModelScope.launch { onSaved(food.logRecipe(recipeId, servings)) } }
+    fun logRecipeMeal(recipeId: String, servings: Float = 1f, slotId: String? = null, onSaved: (String?) -> Unit = {}) {
+        viewModelScope.launch { onSaved(food.logRecipe(recipeId, servings, slotId = slotId)) }
+    }
     /** Registers a meal from ingredients, id to grams; [onSaved] gets the meal id. */
-    fun logIngredientMeal(description: String, items: Map<String, Float>, onSaved: (String) -> Unit = {}) { viewModelScope.launch { onSaved(food.logIngredients(description, items)) } }
+    fun logIngredientMeal(description: String, items: Map<String, Float>, slotId: String? = null, onSaved: (String) -> Unit = {}) {
+        viewModelScope.launch { onSaved(food.logIngredients(description, items, slotId)) }
+    }
+    /** Plans a recipe for a meal slot ([MealSlot.recipeId]); it stays every day until changed. Null clears it. */
+    fun setMealPlan(slotId: String, recipeId: String?) { viewModelScope.launch { settings.setMealPlan(slotId, recipeId) } }
     fun setFoodGoals(kcal: Int, proteinG: Int, carbsG: Int, fatG: Int, fiberG: Int) =
         updateModuleSettings { it.copy(kcalGoal = kcal, proteinGoalG = proteinG, carbsGoalG = carbsG, fatGoalG = fatG, fiberGoalG = fiberG) }
     /** Weight goal and height for the BMI; the weight itself is a body metric ("WEIGHT"). */

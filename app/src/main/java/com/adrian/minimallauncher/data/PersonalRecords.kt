@@ -77,6 +77,8 @@ data class MealRecord(
     @ColumnInfo(defaultValue = "0") val carbsG: Float = 0f,
     @ColumnInfo(defaultValue = "0") val fatG: Float = 0f,
     @ColumnInfo(defaultValue = "0") val fiberG: Float = 0f,
+    /** The meal slot (see [MealSlot]) this meal was eaten for, when known. */
+    val slotId: String? = null,
 )
 
 @Entity(tableName = "body_metrics")

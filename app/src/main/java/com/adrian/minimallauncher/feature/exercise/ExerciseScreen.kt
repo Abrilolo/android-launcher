@@ -1,6 +1,8 @@
 package com.adrian.minimallauncher.feature.exercise
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,12 +18,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,31 +33,33 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.ModuleSettings
-import com.adrian.minimallauncher.feature.CardLine
 import com.adrian.minimallauncher.feature.LauncherRed
 import com.adrian.minimallauncher.feature.ModuleCard
-import com.adrian.minimallauncher.feature.ModuleHeader
-import com.adrian.minimallauncher.feature.ModuleTab
+import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.StatusDot
-import com.adrian.minimallauncher.ui.components.DotMatrixText
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.TextStyle
-import java.util.Locale
+import com.adrian.minimallauncher.ui.components.StrokeIcon
+import com.adrian.minimallauncher.ui.components.StrokeState
 import kotlinx.coroutines.delay
 
-private val spanish = Locale.forLanguageTag("es")
-private enum class ExerciseTab { TODAY, WEEK, SETTINGS }
+private enum class ExerciseTab { TODAY, WEEK, BODY }
+
+internal val NumberGray = Color(0xFFB0B0B0)
+internal val EmptyGray = Color(0xFF2A2A2A)
 
 /** Big dot-matrix tag for a session; the glyph set has no "~" or "·", so non-strength days get a word. */
 fun Session.displayCode(): String = when (kind) {
@@ -66,23 +69,67 @@ fun Session.displayCode(): String = when (kind) {
     SessionKind.REST -> "OFF"
 }
 
+/** Spanish names of the stack's muscle groups, in the order the settings list them. */
+internal val MuscleGroups = linkedMapOf(
+    "pecho" to "Pecho", "espalda" to "Espalda", "piernas" to "Piernas", "hombros" to "Hombros",
+    "brazos" to "Brazos", "core" to "Abdomen", "cardio" to "Cardio",
+)
+
+/** Stroke icon of a muscle group; cardio is the bike. */
+internal fun groupIcon(group: String): String = if (group == "cardio") "bici" else group
+
+/** The muscle group a movement of the plan works. */
+internal fun PlanExercise.group(): String = when {
+    core -> "core"
+    id in setOf("push_up", "floor_press") -> "pecho"
+    id == "db_row" -> "espalda"
+    id in setOf("shoulder_press", "lateral_raise") -> "hombros"
+    id in setOf("biceps_curl", "hammer_curl", "triceps_ext") -> "brazos"
+    else -> "piernas"
+}
+
+/** The icons that stand for a session: its muscle groups on strength days, else the kind of day. */
+internal fun Session.icons(): List<String> = when (kind) {
+    SessionKind.STRENGTH -> {
+        val t = title.lowercase()
+        listOf("pecho", "espalda", "piernas", "hombros", "brazos").filter { it in t }.take(2).ifEmpty { listOf("gimnasio") }
+    }
+    SessionKind.CARDIO -> listOf("bici")
+    SessionKind.INTERVALS -> listOf("hiit")
+    SessionKind.REST -> listOf("dormir")
+}
+
+/** Upper minutes of the session ("45-50 MIN" → 50); null on rest days. */
+internal fun Session.minutes(): Int? = if (kind == SessionKind.REST) null else Regex("\\d+").findAll(duration).lastOrNull()?.value?.toInt()
+
+/** "2 × 8-12 POR LADO" → "2 × 8-12": the view shows numbers only. */
+internal fun PlanExercise.numbers(): String = scheme.replace(Regex("[\\sA-ZÁÉÍÓÚ.]+$"), "") + if (timed) "\"" else ""
+
 @Composable
 fun ExerciseScreen(
     day: ExerciseDay,
     settings: ModuleSettings,
     bodyMetrics: List<BodyMetricRecord>,
+    stack: List<StackExercise>,
+    kcalOver: Float,
     onLogSet: (PlanExercise, Float, Int) -> Unit,
     onUndoSet: (PlanExercise, Int) -> Unit,
     onSetCompleted: (Boolean) -> Unit,
     onAddBodyMetric: (String, Float) -> Unit,
     onSaveSettings: (ModuleSettings) -> Unit,
+    onSaveStackExercise: (StackExercise) -> Unit,
+    onDeleteStackExercise: (String) -> Unit,
+    onClearPlaceholders: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var tab by rememberSaveable { mutableStateOf(ExerciseTab.TODAY) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
     var restLeft by rememberSaveable { mutableIntStateOf(0) }
     var restLength by rememberSaveable(settings.exerciseRestSeconds) { mutableIntStateOf(settings.exerciseRestSeconds) }
     val haptics = LocalHapticFeedback.current
+
+    BackHandler { if (showSettings) showSettings = false else onBack() }
 
     LaunchedEffect(restLeft) {
         if (restLeft > 0) {
@@ -92,17 +139,29 @@ fun ExerciseScreen(
         }
     }
 
+    if (showSettings) {
+        ExerciseSettings(settings, stack, onSaveSettings, onSaveStackExercise, onDeleteStackExercise, onClearPlaceholders, { showSettings = false }, modifier)
+        return
+    }
+
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-        ModuleHeader("EJERCICIO", onBack, Modifier.padding(top = 8.dp)) {
-            ModuleTab("HOY", tab == ExerciseTab.TODAY) { tab = ExerciseTab.TODAY }
-            ModuleTab("SEMANA", tab == ExerciseTab.WEEK) { tab = ExerciseTab.WEEK }
-            ModuleTab("AJUSTES", tab == ExerciseTab.SETTINGS) { tab = ExerciseTab.SETTINGS }
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp).height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                TabIcon("gimnasio", "Hoy", tab == ExerciseTab.TODAY) { tab = ExerciseTab.TODAY }
+                TabIcon("semana", "Semana", tab == ExerciseTab.WEEK) { tab = ExerciseTab.WEEK }
+                TabIcon("bascula", "Cuerpo", tab == ExerciseTab.BODY) { tab = ExerciseTab.BODY }
+            }
+            SettingsGear({ showSettings = true })
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            val weightKg = bodyMetrics.filter { it.type == "WEIGHT" }.maxByOrNull { it.createdAt }?.value ?: ExerciseBurn.DEFAULT_WEIGHT_KG
             when (tab) {
-                ExerciseTab.TODAY -> TodayTab(day, settings, onLogSet = { ex, kg, reps -> onLogSet(ex, kg, reps); restLeft = restLength }, onUndoSet, onSetCompleted)
-                ExerciseTab.WEEK -> WeekTab(day, bodyMetrics, onAddBodyMetric)
-                ExerciseTab.SETTINGS -> SettingsTab(settings, onSaveSettings)
+                ExerciseTab.TODAY -> TodayTab(
+                    day, settings, stack, kcalOver, weightKg,
+                    onLogSet = { ex, kg, reps -> onLogSet(ex, kg, reps); restLeft = restLength }, onUndoSet, onSetCompleted,
+                )
+                ExerciseTab.WEEK -> WeekTab(day)
+                ExerciseTab.BODY -> BodyTab(day.date, settings, bodyMetrics, onAddBodyMetric)
             }
         }
         if (tab == ExerciseTab.TODAY && day.session.kind == SessionKind.STRENGTH) {
@@ -112,92 +171,122 @@ fun ExerciseScreen(
 }
 
 @Composable
+private fun TabIcon(icon: String, description: String, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        Modifier.clip(CircleShape).clickable(role = Role.Tab, onClick = onClick).semantics { contentDescription = description }.padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        StrokeIcon(icon, if (selected) StrokeState.NOW else StrokeState.OFF, 24.dp, playKey = selected)
+        Box(Modifier.size(4.dp).background(if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, CircleShape))
+    }
+}
+
+/** A stroke icon that is also a button; its line redraws once each time [playKey] changes. */
+@Composable
+internal fun IconButton(icon: String, state: StrokeState, size: Dp, description: String, playKey: Any? = null, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(CircleShape).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = description }.padding(4.dp),
+        contentAlignment = Alignment.Center,
+    ) { StrokeIcon(icon, state, size, playKey = playKey) }
+}
+
+@Composable
+internal fun Num(text: String, color: Color = NumberGray, modifier: Modifier = Modifier, big: Boolean = false) {
+    Text(text, modifier, style = if (big) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.labelSmall, color = color)
+}
+
+@Composable
 private fun TodayTab(
     day: ExerciseDay,
     settings: ModuleSettings,
+    stack: List<StackExercise>,
+    kcalOver: Float,
+    weightKg: Float,
     onLogSet: (PlanExercise, Float, Int) -> Unit,
     onUndoSet: (PlanExercise, Int) -> Unit,
     onSetCompleted: (Boolean) -> Unit,
 ) {
     val session = day.session
-    val weekday = day.date.dayOfWeek.getDisplayName(TextStyle.FULL, spanish).uppercase(spanish)
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SmallLabel("HOY · $weekday")
-            Text(session.title, style = MaterialTheme.typography.headlineSmall)
-            val time = if (session.kind == SessionKind.REST) session.duration else "${settings.exerciseStart} · ${session.duration}"
-            SmallLabel(time, color = MaterialTheme.colorScheme.onSurface)
+    val started = day.doneSets > 0 || day.completed
+    // Screen readers still get the session's name.
+    Row(Modifier.fillMaxWidth().semantics { contentDescription = session.title }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        session.icons().forEach { StrokeIcon(it, if (day.completed) StrokeState.DONE else StrokeState.NOW, 40.dp) }
+        Spacer(Modifier.weight(1f))
+        session.minutes()?.let { minutes ->
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Num(settings.exerciseStart.toString(), if (started) MaterialTheme.colorScheme.onSurface else LauncherRed)
+                Num("$minutes'")
+            }
         }
-        DotMatrixText(session.displayCode(), cell = if (session.kind == SessionKind.STRENGTH) 9.dp else 4.dp)
     }
 
     when (session.kind) {
         SessionKind.STRENGTH -> {
-            SetsProgress(day.doneSets, session.totalSets)
-            WarmupCard(day.date)
+            SetsBar(day.doneSets, session.totalSets)
             val current = session.exercises.indexOfFirst { day.sets[it.id].orEmpty().size < it.sets }
-            var openId by rememberSaveable(day.date) { mutableStateOf(session.exercises.getOrNull(current.coerceAtLeast(0))?.id) }
-            session.exercises.forEachIndexed { index, exercise ->
-                ExerciseCard(
-                    number = index + 1,
-                    exercise = exercise,
-                    done = day.sets[exercise.id].orEmpty(),
-                    last = day.lastLogs[exercise.id],
-                    isCurrent = index == current,
-                    isOpen = openId == exercise.id,
-                    onToggleOpen = { openId = if (openId == exercise.id) null else exercise.id },
-                    onLogSet = { kg, reps -> onLogSet(exercise, kg, reps) },
-                    onUndoSet = { setIndex -> onUndoSet(exercise, setIndex) },
-                )
-            }
-            CompleteButton(day.completed, onSetCompleted)
-        }
-        SessionKind.CARDIO, SessionKind.INTERVALS -> {
+            var openId by rememberSaveable(day.date) { mutableStateOf<String?>(null) }
             ModuleCard {
-                Text(session.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                if (session.kind == SessionKind.INTERVALS) IntervalBars()
-            }
-            CompleteButton(day.completed, onSetCompleted)
-        }
-        SessionKind.REST -> ModuleCard { Text(session.note, style = MaterialTheme.typography.bodyMedium) }
-    }
-}
-
-@Composable
-private fun SetsProgress(done: Int, total: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-            SmallLabel("SERIES")
-            SmallLabel("$done / $total")
-        }
-        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(3.dp)) {
-            repeat(total) { i ->
-                val color = when {
-                    i < done -> MaterialTheme.colorScheme.onSurface
-                    i == done -> LauncherRed
-                    else -> Color(0xFF2A2A2A)
+                WarmupRow(day)
+                session.exercises.forEachIndexed { index, exercise ->
+                    ExerciseRow(
+                        exercise = exercise,
+                        done = day.sets[exercise.id].orEmpty(),
+                        last = day.lastLogs[exercise.id],
+                        isCurrent = index == current,
+                        isOpen = openId == exercise.id,
+                        onToggleOpen = { openId = if (openId == exercise.id) null else exercise.id },
+                        onLogSet = { kg, reps -> onLogSet(exercise, kg, reps) },
+                        onUndoSet = { setIndex -> onUndoSet(exercise, setIndex) },
+                    )
                 }
-                Box(Modifier.weight(1f).height(6.dp).background(color, RoundedCornerShape(3.dp)))
+            }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                IconButton("listo", if (day.completed) StrokeState.DONE else StrokeState.OFF, 36.dp, "Sesión hecha", playKey = day.completed) {
+                    onSetCompleted(!day.completed)
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun WarmupCard(date: LocalDate) {
-    var done by rememberSaveable(date) { mutableStateOf(false) }
-    ModuleCard(Modifier.clickable(role = Role.Checkbox) { done = !done }) {
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-            SmallLabel("CALENTAMIENTO · 5-7 MIN")
-            SmallLabel(if (done) "HECHO" else "PENDIENTE", color = if (done) MaterialTheme.colorScheme.onSurface else LauncherRed)
+        SessionKind.CARDIO, SessionKind.INTERVALS -> ModuleCard {
+            if (session.kind == SessionKind.INTERVALS) IntervalBars() else Box(Modifier.fillMaxWidth().height(4.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(2.dp)))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Num("${session.minutes()}'", modifier = Modifier.weight(1f))
+                IconButton("listo", if (day.completed) StrokeState.DONE else StrokeState.OFF, 32.dp, "Sesión hecha", playKey = day.completed) {
+                    onSetCompleted(!day.completed)
+                }
+            }
         }
-        Text(TokyoGuide.warmup.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SessionKind.REST -> Unit
+    }
+
+    ExcessCard(day, stack, kcalOver, weightKg)
+}
+
+@Composable
+private fun SetsBar(done: Int, total: Int) {
+    Row(Modifier.fillMaxWidth().semantics { contentDescription = "Series" }, Arrangement.spacedBy(3.dp)) {
+        repeat(total) { i ->
+            val color = when {
+                i < done -> MaterialTheme.colorScheme.onSurface
+                i == done -> LauncherRed
+                else -> EmptyGray
+            }
+            Box(Modifier.weight(1f).height(5.dp).background(color, RoundedCornerShape(3.dp)))
+        }
     }
 }
 
 @Composable
-private fun ExerciseCard(
-    number: Int,
+private fun WarmupRow(day: ExerciseDay) {
+    var done by rememberSaveable(day.date) { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        IconButton("calentar", if (done) StrokeState.DONE else StrokeState.NOW, 28.dp, "Calentamiento", playKey = done) { done = !done }
+        Num("5-7'")
+    }
+}
+
+@Composable
+private fun ExerciseRow(
     exercise: PlanExercise,
     done: List<SetLog>,
     last: SetLog?,
@@ -210,30 +299,28 @@ private fun ExerciseCard(
     // Starts from the last load used, or bodyweight and the low end of the range the first time.
     var kg by rememberSaveable(exercise.id, last?.id) { mutableFloatStateOf(last?.weightKg ?: 0f) }
     var reps by rememberSaveable(exercise.id, last?.id) { mutableIntStateOf(last?.reps ?: exercise.minTarget) }
+    var showInfo by rememberSaveable(exercise.id) { mutableStateOf(false) }
     val finished = done.size >= exercise.sets
-    ModuleCard(border = if (isCurrent) Color(0xFF3A3A3A) else CardLine) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                Modifier.weight(1f).clickable(role = Role.Button, onClick = onToggleOpen).padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SmallLabel("%02d".format(number))
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        exercise.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (finished) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    )
-                    SmallLabel(if (exercise.core) "${exercise.scheme} · ABDOMEN" else exercise.scheme)
-                }
-            }
+    val load = when {
+        exercise.timed -> "$reps\""
+        kg > 0f -> "%.0f×%d".format(kg, reps)
+        else -> reps.toString()
+    }
+    Column {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF161616)))
+        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconButton(
+                groupIcon(exercise.group()),
+                when { finished -> StrokeState.DONE; isCurrent -> StrokeState.NOW; else -> StrokeState.OFF },
+                28.dp, exercise.name, playKey = finished, onClick = onToggleOpen,
+            )
+            Num(load, if (finished) NumberGray else MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
             repeat(exercise.sets) { setIndex ->
                 val filled = setIndex < done.size
                 StatusDot(
                     filled = filled,
                     next = isCurrent && setIndex == done.size,
-                    size = 24.dp,
+                    size = 22.dp,
                     modifier = Modifier
                         .clickable(role = Role.Checkbox) {
                             when {
@@ -241,253 +328,147 @@ private fun ExerciseCard(
                                 setIndex == done.size -> onLogSet(kg, reps)
                             }
                         }
-                        .padding(4.dp),
+                        .padding(3.dp),
                 )
             }
         }
         AnimatedVisibility(isOpen) {
-            Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF1F1F1F)))
-                Text(exercise.how, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SmallLabel("CUIDA", color = LauncherRed)
-                    Text(exercise.care, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(start = 40.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (!exercise.timed) {
-                        Stepper("KG", if (kg == 0f) "—" else "%.0f".format(kg), Modifier.weight(1f), { kg = (kg - 1f).coerceAtLeast(0f) }, { kg += 1f })
+                        Stepper(if (kg == 0f) "—" else "%.0f".format(kg), "kg", Modifier.weight(1f), { kg = (kg - 1f).coerceAtLeast(0f) }, { kg += 1f })
                     }
                     Stepper(
-                        if (exercise.timed) "SEG" else "REPS", reps.toString(), Modifier.weight(1f),
+                        reps.toString(), if (exercise.timed) "segundos" else "repeticiones", Modifier.weight(1f),
                         { reps = (reps - if (exercise.timed) 5 else 1).coerceAtLeast(1) },
                         { reps += if (exercise.timed) 5 else 1 },
                     )
+                    IconButton("info", if (showInfo) StrokeState.NOW else StrokeState.OFF, 22.dp, "Cómo se hace") { showInfo = !showInfo }
                 }
-                val lastText = last?.let { if (exercise.timed) "${it.reps} S" else if (it.weightKg > 0f) "%.0f KG × %d".format(it.weightKg, it.reps) else "${it.reps} REPS" }
-                SmallLabel(if (lastText != null) "ÚLTIMA VEZ · $lastText" else "PRIMERA VEZ · TOCA UN PUNTO PARA REGISTRAR LA SERIE")
+                // Names and instructions only on request (no text in the view).
+                AnimatedVisibility(showInfo) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(exercise.name, style = MaterialTheme.typography.bodyMedium)
+                        Text(exercise.how, style = MaterialTheme.typography.bodySmall, color = NumberGray)
+                        Text(exercise.care, style = MaterialTheme.typography.bodySmall, color = LauncherRed)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun Stepper(label: String, value: String, modifier: Modifier, onMinus: () -> Unit, onPlus: () -> Unit) {
+private fun Stepper(value: String, description: String, modifier: Modifier, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(
-        modifier.border(1.dp, Color(0xFF333333), RoundedCornerShape(16.dp)).padding(horizontal = 4.dp),
+        modifier.border(1.dp, Color(0xFF333333), RoundedCornerShape(16.dp)).semantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StepperButton("−", onMinus)
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            SmallLabel(label, maxLines = 1)
-            Text(value, style = MaterialTheme.typography.bodyLarge)
-        }
+        Text(value, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         StepperButton("+", onPlus)
     }
 }
 
-// Narrower than a TextButton so the label between the two fits on one line.
 @Composable
-private fun StepperButton(symbol: String, onClick: () -> Unit) {
-    Box(Modifier.size(44.dp).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
+internal fun StepperButton(symbol: String, onClick: () -> Unit) {
+    Box(Modifier.size(40.dp).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
         Text(symbol, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
+/**
+ * When today's food went over the kcal goal: an exercise of today's muscle group from the stack that burns the
+ * excess. ⟳ moves to the next option of the same group; a tap marks it done for today.
+ */
 @Composable
-private fun CompleteButton(completed: Boolean, onSetCompleted: (Boolean) -> Unit) {
-    TextButton(
-        onClick = { onSetCompleted(!completed) },
-        modifier = Modifier.fillMaxWidth().border(1.dp, if (completed) MaterialTheme.colorScheme.onSurface else Color(0xFF333333), RoundedCornerShape(26.dp)),
-    ) {
-        Text(if (completed) "SESIÓN HECHA" else "MARCAR SESIÓN COMO HECHA", style = MaterialTheme.typography.labelSmall)
+private fun ExcessCard(day: ExerciseDay, stack: List<StackExercise>, kcalOver: Float, weightKg: Float) {
+    if (kcalOver <= 0f) return
+    val group = ExerciseBurn.groupOf(day.session)
+    val options = stack.filter { it.muscleGroup.equals(group, ignoreCase = true) }
+    if (options.isEmpty()) return
+    // Those that burn the excess in their usual bout first (least work first), then the rest, strongest first.
+    val ranked = options.filter { ExerciseBurn.kcal(it, weightKg) >= kcalOver }.sortedBy { ExerciseBurn.kcal(it, weightKg) } +
+        options.filter { ExerciseBurn.kcal(it, weightKg) < kcalOver }.sortedByDescending { it.met }
+    var index by rememberSaveable(day.date) { mutableIntStateOf(0) }
+    var done by rememberSaveable(day.date) { mutableStateOf(false) }
+    val pick = ranked[index % ranked.size]
+    val perMinute = ExerciseBurn.perMinute(pick.met, weightKg)
+    val minutes = if (ExerciseBurn.kcal(pick, weightKg) >= kcalOver) pick.minutes else kotlin.math.ceil(kcalOver / perMinute).toInt().coerceIn(pick.minutes, 90)
+
+    ModuleCard(border = Color(0xFF3A1416)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StrokeIcon("fuego", StrokeState.NOW, 26.dp)
+            Num("+${kcalOver.toInt()}", LauncherRed, Modifier.weight(1f), big = true)
+            if (ranked.size > 1) {
+                Text(
+                    "⟳",
+                    Modifier.clip(CircleShape).clickable(role = Role.Button) { index++; done = false }.semantics { contentDescription = "Otra opción" }.padding(8.dp),
+                    color = NumberGray,
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconButton(groupIcon(group), if (done) StrokeState.DONE else StrokeState.NOW, 36.dp, pick.name, playKey = done) { done = !done }
+            Num("$minutes'", MaterialTheme.colorScheme.onSurface, Modifier.weight(1f))
+            Num("≈${(perMinute * minutes).toInt()}", if (done) MaterialTheme.colorScheme.onSurface else NumberGray)
+        }
     }
 }
 
 @Composable
-private fun IntervalBars() {
+internal fun IntervalBars() {
     Row(Modifier.fillMaxWidth().height(34.dp), Arrangement.spacedBy(2.dp), Alignment.Bottom) {
-        Box(Modifier.weight(10f).height(12.dp).background(Color(0xFF5A5A5A), RoundedCornerShape(3.dp)))
+        Box(Modifier.weight(10f).height(10.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(3.dp)))
         repeat(6) {
             Box(Modifier.weight(1f).height(34.dp).background(LauncherRed, RoundedCornerShape(3.dp)))
-            Box(Modifier.weight(3f).height(12.dp).background(Color(0xFF5A5A5A), RoundedCornerShape(3.dp)))
+            Box(Modifier.weight(3f).height(10.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(3.dp)))
         }
-        Box(Modifier.weight(10f).height(12.dp).background(Color(0xFF5A5A5A), RoundedCornerShape(3.dp)))
+        Box(Modifier.weight(10f).height(10.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(3.dp)))
     }
 }
 
+/** The rest between sets: a ring that empties, red in the last 10 seconds; tap to start or stop. */
 @Composable
 private fun RestTimer(left: Int, length: Int, onPick: (Int) -> Unit, onToggle: () -> Unit) {
     val shown = if (left > 0) left else length
-    Row(
-        Modifier.fillMaxWidth().padding(bottom = 16.dp).background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(26.dp)).padding(horizontal = 18.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SmallLabel(if (left > 0) "DESCANSANDO" else "DESCANSO", color = Color.Black)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(60, 90, 120).forEach { seconds ->
-                    val selected = seconds == length
-                    Text(
-                        "${seconds}S",
-                        Modifier
-                            .background(if (selected) Color.Black else Color.Transparent, RoundedCornerShape(14.dp))
-                            .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
-                            .clickable(role = Role.RadioButton) { onPick(seconds) }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (selected) Color.White else Color.Black,
-                    )
-                }
+    val ringColor = when {
+        left in 1..10 -> LauncherRed
+        left > 0 -> MaterialTheme.colorScheme.onSurface
+        else -> Color(0xFF5C5C5C)
+    }
+    val fraction = if (left > 0) left / length.toFloat() else 1f
+    Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Box(
+            Modifier.size(64.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onToggle).semantics { contentDescription = "Descanso" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(56.dp)) {
+                val stroke = 2.dp.toPx()
+                drawCircle(Color(0xFF1C1C1C), style = Stroke(stroke))
+                drawArc(ringColor, -90f, 360f * fraction, false, Offset(stroke / 2, stroke / 2), size.copy(size.width - stroke, size.height - stroke), style = Stroke(stroke, cap = StrokeCap.Round))
             }
+            Num("%d:%02d".format(shown / 60, shown % 60), if (left > 0) MaterialTheme.colorScheme.onSurface else NumberGray)
         }
-        DotMatrixText(
-            "%d:%02d".format(shown / 60, shown % 60),
-            Modifier.clickable(role = Role.Button, onClick = onToggle).padding(8.dp),
-            cell = 4.dp,
-            color = Color.Black,
-        )
+        listOf(60, 90, 120).forEach { seconds -> Chip(seconds.toString(), seconds == length) { onPick(seconds) } }
     }
 }
 
 @Composable
-private fun WeekTab(day: ExerciseDay, bodyMetrics: List<BodyMetricRecord>, onAddBodyMetric: (String, Float) -> Unit) {
-    val monday = day.date.minusDays(day.date.dayOfWeek.value - 1L)
-    var picked by rememberSaveable(day.date) { mutableIntStateOf(day.date.dayOfWeek.value - 1) }
-
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SmallLabel("ESTA SEMANA · GUÍA TOKIO")
-            Text("3 fuerza · 2 condición · 2 descanso", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-
-    Column {
-        TokyoGuide.week.forEachIndexed { index, session ->
-            val date = monday.plusDays(index.toLong())
-            val isToday = date == day.date
-            val done = date in day.weekDone
-            val rest = session.kind == SessionKind.REST
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .background(if (index == picked) Color(0xFF111111) else Color.Transparent)
-                    .clickable(role = Role.Tab) { picked = index }
-                    .padding(vertical = 12.dp, horizontal = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SmallLabel(date.dayOfWeek.getDisplayName(TextStyle.NARROW, spanish).uppercase(spanish), Modifier.width(16.dp), color = if (isToday) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(session.title, style = MaterialTheme.typography.bodyLarge, color = if (rest || done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
-                    SmallLabel(if (session.kind == SessionKind.STRENGTH) "${session.code} · ${session.duration}" else session.duration)
-                }
-                StatusDot(filled = done, next = isToday && !done, size = 10.dp)
-            }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF1A1A1A)))
-        }
-    }
-
-    val pickedSession = TokyoGuide.week[picked]
-    ModuleCard {
-        SmallLabel(pickedSession.title.uppercase(spanish))
-        if (pickedSession.exercises.isNotEmpty()) {
-            pickedSession.exercises.forEach { ex ->
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Text(ex.name, style = MaterialTheme.typography.bodySmall)
-                    SmallLabel(ex.scheme)
-                }
-            }
-        } else {
-            Text(pickedSession.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (pickedSession.kind == SessionKind.INTERVALS) IntervalBars()
-        }
-    }
-
-    BodyTracking(day.date, bodyMetrics, onAddBodyMetric)
-
-    Column(
-        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(22.dp)).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SmallLabel("REGLA DE PROGRESIÓN", color = Color.Black)
-        Text(TokyoGuide.PROGRESSION, style = MaterialTheme.typography.bodyMedium, color = Color.Black)
-        Text(TokyoGuide.INTENSITY, style = MaterialTheme.typography.bodySmall, color = Color(0xFF444444))
-    }
+internal fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text,
+        Modifier
+            .border(1.dp, if (selected) MaterialTheme.colorScheme.onSurface else Color(0xFF333333), RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = if (selected) MaterialTheme.colorScheme.onSurface else NumberGray,
+    )
 }
 
 @Composable
-private fun BodyTracking(today: LocalDate, metrics: List<BodyMetricRecord>, onAdd: (String, Float) -> Unit) {
-    val weekStart = today.minusDays(today.dayOfWeek.value - 1L)
-    val weights = metrics.filter { it.type == "WEIGHT" && !it.createdAt.toLocalDate().isBefore(weekStart) }
-    val waist = metrics.firstOrNull { it.type == "WAIST" }
-    var weightInput by rememberSaveable { mutableStateOf("") }
-    var waistInput by rememberSaveable { mutableStateOf("") }
-
-    SmallLabel("SEGUIMIENTO")
-    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
-        ModuleCard(Modifier.weight(1f)) {
-            SmallLabel("PESO · PROMEDIO")
-            DotMatrixText(if (weights.isEmpty()) "--.-" else "%.1f".format(weights.map { it.value }.average()), cell = 3.5.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                repeat(3) { i -> StatusDot(filled = i < weights.size, next = i == weights.size, size = 10.dp) }
-                SmallLabel("  3 MAÑANAS")
-            }
-        }
-        ModuleCard(Modifier.weight(1f)) {
-            SmallLabel("CINTURA")
-            DotMatrixText(waist?.let { "%.0f".format(it.value) } ?: "--", cell = 3.5.dp)
-            SmallLabel("1 VEZ POR SEMANA")
-        }
-    }
-    MetricInput("Peso de hoy (kg) · al despertar", weightInput, { weightInput = it }) {
-        weightInput.replace(',', '.').toFloatOrNull()?.takeIf { it in 30f..250f }?.let { onAdd("WEIGHT", it); weightInput = "" }
-    }
-    MetricInput("Cintura (cm) · a la altura del ombligo", waistInput, { waistInput = it }) {
-        waistInput.replace(',', '.').toFloatOrNull()?.takeIf { it in 40f..200f }?.let { onAdd("WAIST", it); waistInput = "" }
-    }
+internal fun Dot(color: Color, size: Dp = 4.dp, modifier: Modifier = Modifier) {
+    Box(modifier.width(size).height(size).background(color, CircleShape))
 }
-
-@Composable
-private fun MetricInput(label: String, value: String, onValue: (String) -> Unit, onSave: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(value, onValue, Modifier.weight(1f), label = { Text(label) }, singleLine = true)
-        TextButton(onClick = onSave) { Text("GUARDAR") }
-    }
-}
-
-@Composable
-private fun SettingsTab(settings: ModuleSettings, onSave: (ModuleSettings) -> Unit) {
-    var startText by rememberSaveable(settings.exerciseStart) { mutableStateOf(settings.exerciseStart.toString()) }
-    SmallLabel("PLAN ACTIVO")
-    Text("Físico de atleta · Guía Tokio, octubre 2026", style = MaterialTheme.typography.bodyLarge)
-    Text("Mancuernas hasta 10 kg, caminadora, bicicleta, elíptica y tapete.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-    SmallLabel("HORA DE INICIO")
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(startText, { startText = it.take(5) }, Modifier.weight(1f), label = { Text("HH:mm") }, singleLine = true)
-        TextButton(onClick = {
-            runCatching { LocalTime.parse(startText) }.getOrNull()?.let { onSave(settings.copy(exerciseStart = it)) }
-        }) { Text("GUARDAR") }
-    }
-
-    SmallLabel("DESCANSO PREDETERMINADO")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(60, 90, 120).forEach { seconds ->
-            val selected = seconds == settings.exerciseRestSeconds
-            Text(
-                "${seconds} S",
-                Modifier
-                    .background(if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, RoundedCornerShape(18.dp))
-                    .border(1.dp, if (selected) MaterialTheme.colorScheme.onSurface else Color(0xFF333333), RoundedCornerShape(18.dp))
-                    .clickable(role = Role.RadioButton) { onSave(settings.copy(exerciseRestSeconds = seconds)) }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) Color.Black else MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
-    Spacer(Modifier.size(4.dp))
-    SmallLabel("Tus series quedan guardadas en el teléfono con peso y repeticiones.")
-}
-
-private fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()

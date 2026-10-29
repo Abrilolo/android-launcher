@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ejercicio visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; max-width: 100%; min-height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .num { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+  .big { font-family: 'Space Mono', monospace; font-size: 34px; letter-spacing: 1px; }
+  .muted { color: var(--muted); } .red { color: var(--red); } .white { color: #F5F5F5; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .card.hot { border-color: #3A1416; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; color: inherit; }
+  button.icon { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; font-family: inherit; position: relative; }
+  .tabs { display: flex; gap: 22px; align-items: center; }
+  .sel::after { content: ''; position: absolute; bottom: -8px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: #fff; }
+  .head { display: flex; align-items: center; gap: 14px; }
+  .bar { display: flex; gap: 3px; } .bar i { flex: 1; height: 5px; border-radius: 3px; background: #2A2A2A; }
+  .bar i.w { background: #F5F5F5; } .bar i.r { background: var(--red); }
+  .ex { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #161616; }
+  .ex:first-child { border-top: 0; }
+  .dots { display: flex; gap: 8px; margin-left: auto; }
+  .dot { width: 20px; height: 20px; border-radius: 10px; border: 1.5px solid #3A3A3A; box-sizing: border-box; cursor: pointer; background: none; padding: 0; }
+  .dot.w { background: #F5F5F5; border-color: #F5F5F5; } .dot.r { border-color: var(--red); }
+  .detail { display: none; padding: 4px 0 12px 40px; gap: 10px; flex-direction: column; }
+  .detail.open { display: flex; }
+  .step { display: flex; align-items: center; border: 1px solid #333; border-radius: 16px; flex: 1; }
+  .step button { background: none; border: 0; color: #fff; width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
+  .step span { flex: 1; text-align: center; font-family: 'Space Mono', monospace; font-size: 15px; }
+  .info { font-size: 12px; line-height: 1.5; color: var(--muted); display: none; }
+  .info.open { display: block; } .info b { color: #fff; font-weight: 500; }
+  .rest { display: flex; align-items: center; gap: 16px; margin-top: auto; }
+  .chip { border: 1px solid #333; border-radius: 14px; padding: 5px 10px; background: none; color: var(--muted); font: 11px 'Space Mono', monospace; cursor: pointer; }
+  .chip.on { border-color: #F5F5F5; color: #F5F5F5; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .tiny { width: 4px; height: 4px; border-radius: 2px; background: transparent; }
+  .tiny.r { background: var(--red); } .tiny.w { background: #F5F5F5; }
+  .scale { position: relative; height: 22px; margin-top: 12px; }
+  .scale .seg { position: absolute; top: 9px; height: 4px; border-radius: 2px; }
+  .scale .mark { position: absolute; top: 2px; width: 2px; height: 18px; border-radius: 1px; margin-left: -1px; }
+  .meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .meas button { flex-direction: row; gap: 10px; justify-content: flex-start; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 18px 24px 32px; transform: translateY(105%); transition: transform .25s ease; z-index: 3; }
+  .sheet.open { transform: none; }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .pad button { background: #141414; border: 0; border-radius: 14px; color: #fff; height: 46px; font: 18px 'Space Mono', monospace; cursor: pointer; }
+  .settings { position: absolute; inset: 0; background: #000; padding: 56px 24px 28px; overflow-y: auto; display: none; flex-direction: column; gap: 16px; z-index: 2; }
+  .settings.open { display: flex; }
+  .group { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .srow { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid #161616; }
+  input.edit { background: none; border: 0; border-bottom: 1px solid #333; color: #fff; font: 15px 'Space Grotesk', sans-serif; flex: 1; min-width: 0; padding: 2px 0; outline: none; }
+  input.n { background: none; border: 1px solid #333; border-radius: 8px; color: #fff; font: 12px 'Space Mono', monospace; width: 48px; padding: 4px 6px; text-align: center; }
+  .x { width: 22px; height: 22px; border-radius: 11px; background: #1C1C1C; border: 1px solid #333; color: var(--muted); font-size: 12px; cursor: pointer; flex: none; }
+  .banner { border: 1px dashed #3A3A3A; border-radius: 16px; padding: 12px 14px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .btn { border: 1px solid #333; border-radius: 16px; background: none; color: #F5F5F5; font: 11px 'Space Mono', monospace; letter-spacing: 1px; padding: 8px 12px; cursor: pointer; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; max-width: 100%; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; }
+  .sim { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 8px; margin-top: 12px; }
+  .legend span { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<h2>EJERCICIO · BOCETO (TOCA ÍCONOS, PUNTOS Y EL ENGRANE)</h2>
+
+<div class="phone" id="phone">
+  <div class="row">
+    <div class="tabs" id="tabs"></div>
+    <button class="tool" onclick="openSettings(true)" aria-label="Ajustes de Ejercicio"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.830 2.830l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </div>
+  <div id="view" style="display:flex;flex-direction:column;gap:20px;flex:1"></div>
+
+  <div class="sheet" id="sheet"></div>
+  <div class="settings" id="settings"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>Tres vistas sin texto</b> (íconos arriba): <b>hoy</b> (pesa), <b>semana</b> (calendario) y <b>cuerpo</b> (báscula). El engrane abre los ajustes, el único lugar con nombres.<br><br>
+    <b>Hoy</b><br>
+    · Arriba, los grupos musculares del día con la hora de inicio (roja si aún no empieza) y los minutos.<br>
+    · Cada ejercicio es su ícono de grupo, el peso × repeticiones y un punto por serie. El siguiente punto tiene borde rojo; tocarlo registra la serie y arranca el descanso. Tocar uno blanco lo deshace.<br>
+    · Tocar el ícono del ejercicio abre los pasos de kg y reps. La <b>i</b> muestra el nombre y cómo hacerlo, solo si la pides.<br>
+    · El descanso es un anillo que se vacía; los últimos segundos son rojos y vibra al terminar.<br>
+    · Al hacer la última serie, la palomita se dibuja sola.<br><br>
+    <b>Te pasaste de kcal</b><br>
+    · Si la comida del día pasa la meta, aparece la tarjeta con la llama roja y el excedente. Propone un ejercicio <b>del mismo grupo de hoy</b>, tomado de tu stack, con los minutos y las kcal que quema. Tocarlo lo agrega; las flechas cambian a otra opción del mismo grupo.<br><br>
+    <b>Cuerpo</b><br>
+    · Peso con la línea del inicio a tu meta (bandera) y tres puntos para las mañanas de la semana.<br>
+    · IMC en una regla: blanco el rango sano, la marca roja eres tú y la bandera es el IMC de tu peso meta.<br>
+    · Medidas con el ícono de su zona: cintura (meta: la mitad de tu altura), pecho, brazo y muslo, con una flecha si subió o bajó. Tocar una abre el teclado de números.<br><br>
+    <b>Ajustes (engrane)</b><br>
+    · <b>Stack</b> por grupo: nombre, intensidad (suave, media, fuerte) y minutos. ✕ quita y + agrega. Mientras haya ejemplos, un aviso permite borrarlos todos.<br>
+    · Metas: altura y peso meta (los mismos de Comida). Elegir qué medidas seguir. Hora de inicio y descanso.
+    <div class="sim">
+      <button class="btn" onclick="simOver(320)">+320 KCAL</button>
+      <button class="btn" onclick="simOver(0)">SIN EXCESO</button>
+      <button class="btn" onclick="simDay(0)">DÍA A</button>
+      <button class="btn" onclick="simDay(2)">DÍA B</button>
+      <button class="btn" onclick="simDay(5)">BICI</button>
+    </div>
+  </div>
+  <div class="card note">
+    <b>Íconos nuevos</b> (trazo de 1.75, gris falta · blanco hecho · blanco con detalle rojo activo):
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  gimnasio:  { main: 'M3 10v4M6 7v10M18 7v10M21 10v4', red: 'M6 12h12' },
+  dormir:    { main: 'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z', red: 'M17 3v3M15.5 4.5h3' },
+  reloj:     { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 7v5l3 2' },
+  listo:     { main: 'M20 6 9 17l-5-5' },
+  // New for Ejercicio
+  pecho:     { main: 'M4 6c3-2 13-2 16 0l-1.5 14h-13L4 6', red: 'M7 10.5c2 2 4 2 5 0c1 2 3 2 5 0' },
+  espalda:   { main: 'M4 6c4 1.5 12 1.5 16 0l-4 14H8L4 6', red: 'M12 9v9' },
+  piernas:   { main: 'M8 3h8M8 3v8l-2 10M16 3v8l2 10', red: 'M8 11h.01M16 11h.01' },
+  hombros:   { main: 'M12 4a2.5 2.5 0 1 1 0 5a2.5 2.5 0 1 1 0-5M4 19c0-5 3-8 8-8s8 3 8 8', red: 'M5 14l2 1M19 14l-2 1' },
+  brazos:    { main: 'M4 20V9l4-5h3l-1 3H8v4c2-2 6-2 8 0l4 4v5H4', red: 'M10 14c1-1 3-1 4 0' },
+  core:      { main: 'M7 3h10v18H7z', red: 'M12 3v18M7 9h10M7 15h10' },
+  bici:      { main: 'M9 17.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0M22 17.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0', red: 'M5.5 17.5L9 9h6l3.5 8.5M8 6h3' },
+  hiit:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M13 6l-4 7h4l-2 5' },
+  fuego:     { main: 'M12 21c-4 0-7-3-7-7 0-4 3-6 4-10 2 2 3 3 3 5 1-1 2-2 2-4 3 2 5 5 5 9 0 4-3 7-7 7z', red: 'M12 21c-2 0-3-1.5-3-3.5 0-2 2-3 3-5 1 2 3 3 3 5 0 2-1 3.5-3 3.5z' },
+  calentar:  { main: 'M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0', red: 'M12 9v8' },
+  bascula:   { main: 'M4 4h16v16H4z', red: 'M8 10a4 4 0 0 1 8 0M12 10l1.5-2' },
+  cinta:     { main: 'M17 12a6 6 0 1 1-12 0a6 6 0 1 1 12 0M11 18h10', red: 'M11 10a2 2 0 1 1 0 4a2 2 0 1 1 0-4M15 18v-2M18 18v-2' },
+  semana:    { main: 'M4 5h16v15H4zM4 10h16M8 3v4M16 3v4', red: 'M14 14h3v3h-3z' },
+  meta:      { main: 'M5 21V4h12l-2 4 2 4H5' },
+  info:      { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M12 11v6M12 7.5h.01' },
+};
+const C = { white: '#F5F5F5', red: '#D71921', gray: '#5C5C5C' };
+function icon(name, state, size, animate = false) {
+  const ic = ICONS[name];
+  const main = state === 'off' ? C.gray : C.white;
+  const red = state === 'now' ? C.red : main;
+  const draw = (d, col, delay) => d ? `<path d="${d}" pathLength="1" stroke="${col}" ${animate ? `class="draw" style="animation-delay:${delay}ms"` : ''}/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${draw(ic.main, main, 0)}${draw(ic.red, red, 420)}</svg>`;
+}
+const style = document.createElement('style');
+style.textContent = '.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease forwards}@keyframes draw{to{stroke-dashoffset:0}}@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dashoffset:0}}';
+document.head.appendChild(style);
+const $ = id => document.getElementById(id);
+
+const GROUPS = { pecho: 'Pecho', espalda: 'Espalda', piernas: 'Piernas', hombros: 'Hombros', brazos: 'Brazos', core: 'Abdomen', cardio: 'Cardio' };
+const groupIcon = g => g === 'cardio' ? 'bici' : g;
+
+// The Tokyo plan, as the app has it. Names show only behind the "i" and in settings.
+const WEEK = [
+  { kind: 'fuerza', groups: ['pecho', 'espalda'], min: 50, ex: [
+    { g: 'pecho', name: 'Flexiones', sets: 3, kg: 0, reps: 12, how: 'Cabeza, cadera y tobillos alineados. Baja el pecho y empuja el suelo.' },
+    { g: 'espalda', name: 'Remo con mancuerna', sets: 3, kg: 10, reps: 14, how: 'Lleva la mancuerna hacia la cadera y baja con control.' },
+    { g: 'piernas', name: 'Zancada estática', sets: 2, kg: 0, reps: 10, how: 'Baja verticalmente y sube.' },
+    { g: 'brazos', name: 'Curl de bíceps', sets: 2, kg: 8, reps: 12, how: 'Codos cerca del cuerpo; baja despacio.' },
+    { g: 'core', name: 'Dead bug', sets: 2, kg: 0, reps: 10, how: 'Extiende brazo y pierna contraria; exhala al extender.' } ] },
+  { kind: 'cardio', groups: ['cardio'], min: 30 },
+  { kind: 'fuerza', groups: ['piernas', 'hombros'], min: 50, ex: [
+    { g: 'piernas', name: 'Peso muerto rumano', sets: 3, kg: 10, reps: 12, how: 'Cadera atrás, mancuernas cerca de las piernas.' },
+    { g: 'piernas', name: 'Zancada hacia atrás', sets: 2, kg: 0, reps: 10, how: 'Paso atrás, baja y vuelve.' },
+    { g: 'hombros', name: 'Press de hombros', sets: 2, kg: 8, reps: 10, how: 'Abdomen firme; empuja sobre la cabeza.' },
+    { g: 'hombros', name: 'Elevaciones laterales', sets: 2, kg: 4, reps: 15, how: 'Eleva a los lados hasta el hombro.' },
+    { g: 'brazos', name: 'Curl martillo', sets: 2, kg: 8, reps: 12, how: 'Palmas mirándose; sin balanceo.' },
+    { g: 'core', name: 'Plancha lateral', sets: 2, kg: 0, reps: 30, timed: true, how: 'Cadera en línea con hombro y pies.' } ] },
+  { kind: 'descanso', groups: [], min: 0 },
+  { kind: 'fuerza', groups: ['pecho', 'brazos'], min: 50, ex: [] },
+  { kind: 'hiit', groups: ['cardio'], min: 22 },
+  { kind: 'descanso', groups: [], min: 0 },
+];
+const dayIcon = d => ({ fuerza: 'gimnasio', cardio: 'bici', hiit: 'hiit', descanso: 'dormir' })[d.kind];
+
+// Stack (placeholder rows, as the backend seeds them). MET: suave 3.5 · media 5 · fuerte 7.
+let stack = [
+  { id: 1, g: 'pecho', name: 'Flexiones extra', met: 3.8, min: 10, ph: true },
+  { id: 2, g: 'pecho', name: 'Circuito de pecho', met: 5, min: 15, ph: true },
+  { id: 3, g: 'espalda', name: 'Remo con mancuerna extra', met: 3.5, min: 10, ph: true },
+  { id: 4, g: 'espalda', name: 'Circuito de espalda', met: 5, min: 15, ph: true },
+  { id: 5, g: 'piernas', name: 'Sentadillas extra', met: 5, min: 10, ph: true },
+  { id: 6, g: 'piernas', name: 'Zancadas caminando', met: 6, min: 15, ph: true },
+  { id: 7, g: 'hombros', name: 'Press de hombros extra', met: 3.5, min: 10, ph: true },
+  { id: 8, g: 'brazos', name: 'Curl y extensión extra', met: 3, min: 10, ph: true },
+  { id: 9, g: 'core', name: 'Plancha y crunch', met: 3.8, min: 10, ph: true },
+  { id: 10, g: 'cardio', name: 'Caminata rápida', met: 4.3, min: 20, ph: true },
+  { id: 11, g: 'cardio', name: 'Bici moderada', met: 6.8, min: 20, ph: true },
+  { id: 12, g: 'cardio', name: 'Trote', met: 8, min: 20, ph: true },
+];
+const KG = 78.4, HEIGHT = 175, GOAL = 72, START = 82;
+const kcal = (s, m = s.min) => s.met * 3.5 * KG / 200 * m;
+
+let today = 0, tab = 'hoy', over = 320, done = {}, warm = false, openEx = -1, infoEx = -1, extra = null, extraDone = false, optIdx = 0;
+let restLen = 90, restLeft = 0, restTimer = null;
+let body = { WEIGHT: [78.9, 78.4], WAIST: [89, 88], CHEST: [101, 101], ARM: [33, 33.5], THIGH: [57, 56] };
+
+function renderTabs() {
+  $('tabs').innerHTML = [['hoy', 'gimnasio', 'Hoy'], ['semana', 'semana', 'Semana'], ['cuerpo', 'bascula', 'Cuerpo']].map(([k, ic, n]) =>
+    `<button class="icon${tab === k ? ' sel' : ''}" onclick="setTab('${k}')" aria-label="${n}">${icon(ic, tab === k ? 'now' : 'off', 24)}</button>`).join('');
+}
+function setTab(k) { tab = k; renderTabs(); render(); }
+function render() { ({ hoy: renderHoy, semana: renderSemana, cuerpo: renderCuerpo })[tab](); }
+
+// ---------- HOY ----------
+function sessionSets(d) { return (d.ex || []).reduce((n, e) => n + e.sets, 0); }
+function doneSets(d) { return (d.ex || []).reduce((n, e, i) => n + (done[i] || 0), 0); }
+
+function stackPick() {
+  const d = WEEK[today], group = d.kind === 'fuerza' ? (d.groups[0] === 'piernas' ? 'piernas' : 'pecho') : 'cardio';
+  const opts = stack.filter(s => s.g === group);
+  if (!over || !opts.length) return null;
+  const ranked = [...opts].sort((a, b) => kcal(a) - kcal(b));
+  const fits = ranked.filter(s => kcal(s) >= over);
+  const list = fits.length ? fits.concat(ranked.filter(s => kcal(s) < over)) : ranked.reverse();
+  const s = list[optIdx % list.length];
+  const perMin = s.met * 3.5 * KG / 200, min = kcal(s) >= over ? s.min : Math.min(90, Math.ceil(over / perMin));
+  return { s, min, k: Math.round(perMin * min), count: list.length };
+}
+
+function renderHoy() {
+  const d = WEEK[today];
+  const total = sessionSets(d), dn = doneSets(d), finished = d.kind === 'fuerza' ? dn >= total && total > 0 : !!done.all;
+  let h = `<div class="head">${d.groups.length ? d.groups.map(g => icon(groupIcon(g), finished ? 'done' : 'now', 40)).join('') : icon('dormir', 'done', 40)}
+    <div style="margin-left:auto;text-align:right">${d.min ? `<div class="num ${dn ? 'white' : 'red'}">07:00</div><div class="num">${d.min}'</div>` : ''}</div></div>`;
+  if (d.kind === 'fuerza') {
+    h += `<div class="bar" aria-label="Series">${Array.from({ length: total }, (_, i) => `<i class="${i < dn ? 'w' : i === dn ? 'r' : ''}"></i>`).join('')}</div>`;
+    h += `<div class="card" style="padding:8px 18px">`;
+    h += `<div class="ex"><button class="icon" onclick="warm=!warm;renderHoy();" aria-label="Calentamiento">${icon('calentar', warm ? 'done' : 'now', 28, warm)}</button><span class="num">5-7'</span></div>`;
+    const cur = d.ex.findIndex((e, i) => (done[i] || 0) < e.sets);
+    d.ex.forEach((e, i) => {
+      const n = done[i] || 0, fin = n >= e.sets;
+      const load = e.timed ? `${e.reps}"` : e.kg ? `${e.kg}×${e.reps}` : `${e.reps}`;
+      h += `<div class="ex"><button class="icon" onclick="openEx=openEx===${i}?-1:${i};renderHoy()" aria-label="${e.name}">${icon(groupIcon(e.g), fin ? 'done' : i === cur ? 'now' : 'off', 28)}</button>
+        <span class="num ${fin ? '' : 'white'}">${load}</span>
+        <div class="dots">${Array.from({ length: e.sets }, (_, s) => `<button class="dot ${s < n ? 'w' : i === cur && s === n ? 'r' : ''}" onclick="tapSet(${i},${s})" aria-label="Serie"></button>`).join('')}</div></div>
+        <div class="detail ${openEx === i ? 'open' : ''}">
+          <div style="display:flex;gap:8px">${e.timed ? '' : `<div class="step"><button onclick="adj(${i},'kg',-1)">−</button><span>${e.kg || '—'}</span><button onclick="adj(${i},'kg',1)">+</button></div>`}
+          <div class="step"><button onclick="adj(${i},'reps',-1)">−</button><span>${e.reps}</span><button onclick="adj(${i},'reps',1)">+</button></div>
+          <button class="tool" onclick="infoEx=infoEx===${i}?-1:${i};renderHoy()" aria-label="Cómo se hace">${icon('info', infoEx === i ? 'now' : 'off', 22)}</button></div>
+          <div class="info ${infoEx === i ? 'open' : ''}"><b>${e.name}</b> · ${e.how}</div></div>`;
+    });
+    h += `</div>`;
+  } else if (d.kind !== 'descanso') {
+    h += `<div class="card"><svg width="100%" height="34" viewBox="0 0 300 34" preserveAspectRatio="none">${d.kind === 'hiit'
+      ? hiitBars() : `<line x1="2" y1="22" x2="298" y2="22" stroke="${C.gray}" stroke-width="4" stroke-linecap="round"/>`}</svg>
+      <div class="row" style="margin-top:12px"><span class="num">${d.min}'</span><button class="icon" onclick="done.all=!done.all;renderHoy()" aria-label="Sesión hecha">${icon('listo', done.all ? 'done' : 'off', 32, !!done.all)}</button></div></div>`;
+  }
+  if (d.kind === 'fuerza') h += `<div style="display:flex;justify-content:center">${icon('listo', finished ? 'done' : 'off', 36, finished && dn === total)}</div>`;
+
+  // Excess kcal: a variant from the stack for today's group.
+  const pick = stackPick();
+  if (pick) {
+    h += `<div class="card hot"><div class="row"><span style="display:flex;align-items:center;gap:10px">${icon('fuego', 'now', 26)}<span class="big red" style="font-size:22px">+${over}</span></span>
+      ${pick.count > 1 ? `<button class="tool" onclick="optIdx++;extraDone=false;renderHoy()" aria-label="Otra opción"><span class="num">⟳</span></button>` : ''}</div>
+      <div class="row" style="margin-top:14px"><button class="icon" style="flex-direction:row;gap:12px" onclick="extraDone=!extraDone;renderHoy()" aria-label="${pick.s.name}">${icon(groupIcon(pick.s.g), extraDone ? 'done' : 'now', 36, extraDone)}
+        <span class="num white">${pick.min}'</span></button><span class="num ${extraDone ? 'white' : 'muted'}">≈${pick.k}</span></div></div>`;
+  }
+  if (d.kind === 'fuerza') h += restHtml();
+  $('view').innerHTML = h;
+}
+function hiitBars() {
+  let x = 2, s = `<rect x="${x}" y="22" width="40" height="8" rx="3" fill="${C.gray}"/>`; x += 44;
+  for (let i = 0; i < 6; i++) { s += `<rect x="${x}" y="2" width="8" height="28" rx="3" fill="${C.red}"/>`; x += 11; s += `<rect x="${x}" y="22" width="24" height="8" rx="3" fill="${C.gray}"/>`; x += 28; }
+  return s + `<rect x="${x}" y="22" width="${298 - x}" height="8" rx="3" fill="${C.gray}"/>`;
+}
+function adj(i, k, dlt) { const e = WEEK[today].ex[i]; e[k] = Math.max(k === 'kg' ? 0 : 1, e[k] + dlt * (e.timed ? 5 : 1)); renderHoy(); }
+function tapSet(i, s) {
+  const n = done[i] || 0;
+  if (s < n) done[i] = s; else if (s === n) { done[i] = n + 1; startRest(); }
+  renderHoy();
+}
+
+function restHtml() {
+  const shown = restLeft > 0 ? restLeft : restLen, frac = restLeft > 0 ? restLeft / restLen : 1;
+  const col = restLeft > 0 && restLeft <= 10 ? C.red : restLeft > 0 ? C.white : C.gray;
+  return `<div class="rest"><button class="tool" onclick="restLeft?stopRest():startRest()" aria-label="Descanso" style="position:relative">
+    <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="#1C1C1C" stroke-width="2"/>
+    <circle cx="32" cy="32" r="27" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" pathLength="1" stroke-dasharray="${frac} 1" transform="rotate(-90 32 32)"/>
+    <text x="32" y="36" text-anchor="middle" fill="${restLeft ? '#F5F5F5' : '#B0B0B0'}" font-family="Space Mono" font-size="13">${Math.floor(shown / 60)}:${String(shown % 60).padStart(2, '0')}</text></svg></button>
+    <div style="display:flex;gap:6px">${[60, 90, 120].map(s => `<button class="chip ${s === restLen ? 'on' : ''}" onclick="restLen=${s};stopRest()">${s}</button>`).join('')}</div></div>`;
+}
+// Sped up ×6 for the sketch.
+function startRest() { clearInterval(restTimer); restLeft = restLen; restTimer = setInterval(() => { restLeft = Math.max(0, restLeft - 6); if (!restLeft) clearInterval(restTimer); if (tab === 'hoy') renderHoy(); }, 1000); }
+function stopRest() { clearInterval(restTimer); restLeft = 0; renderHoy(); }
+
+// ---------- SEMANA ----------
+let picked = 0;
+function renderSemana() {
+  const weekDone = [true, false, false, false, false, false, false];
+  let h = `<div class="week">${WEEK.map((d, i) => {
+    const st = weekDone[i] ? 'done' : i === today ? 'now' : 'off';
+    return `<button class="icon${i === picked ? ' sel' : ''}" onclick="picked=${i};renderSemana()" aria-label="Día ${i + 1}">${icon(dayIcon(d), st, 32)}<span class="tiny ${i === today ? 'r' : weekDone[i] ? 'w' : ''}"></span></button>`;
+  }).join('')}</div>`;
+  h += `<div class="row" style="margin-top:8px"><span style="display:flex;align-items:center;gap:8px">${icon('fuego', 'now', 20)}<span class="num white">4</span></span><span class="num">${WEEK.filter(d => d.kind !== 'descanso').length} · ${WEEK.reduce((n, d) => n + d.min, 0)}'</span></div>`;
+  const d = WEEK[picked];
+  h += `<div class="card"><div class="head">${d.groups.length ? d.groups.map(g => icon(groupIcon(g), 'done', 32)).join('') : icon('dormir', 'done', 32)}<span class="num" style="margin-left:auto">${d.min ? d.min + "'" : ''}</span></div>`;
+  (d.ex || []).forEach(e => { h += `<div class="ex">${icon(groupIcon(e.g), 'off', 24)}<span class="num">${e.sets} × ${e.timed ? e.reps + '"' : e.reps}</span><span class="num" style="margin-left:auto">${e.kg ? e.kg + ' kg' : ''}</span></div>`; });
+  h += `</div>`;
+  $('view').innerHTML = h;
+}
+
+// ---------- CUERPO ----------
+let measuring = null;
+const arrow = (a) => { const [p, c] = a.slice(-2); if (c == null || p === c) return '<span class="num">·</span>'; return `<span class="num ${c > p ? 'red' : 'white'}">${c > p ? '↑' : '↓'}</span>`; };
+function renderCuerpo() {
+  const w = body.WEIGHT.at(-1), bmi = w / (HEIGHT / 100) ** 2, goalBmi = GOAL / (HEIGHT / 100) ** 2;
+  const prog = Math.max(0, Math.min(1, (START - w) / (START - GOAL)));
+  const bx = v => (Math.max(15, Math.min(35, v)) - 15) / 20 * 100;
+  let h = `<div class="card"><div class="row"><button class="icon" style="flex-direction:row;gap:12px" onclick="measure('WEIGHT')" aria-label="Peso">${icon('bascula', 'now', 32)}<span class="big">${w.toFixed(1)}</span></button>${arrow(body.WEIGHT)}</div>
+    <div class="scale"><div class="seg" style="left:0;right:0;background:#2A2A2A"></div><div class="seg" style="left:0;width:${prog * 100}%;background:#F5F5F5"></div>
+    <div class="mark" style="left:${prog * 100}%;background:${C.red}"></div></div>
+    <div class="row"><span class="num">${START}</span><span style="display:flex;gap:6px;align-items:center">${[0, 1, 2].map(i => `<span class="tiny ${i < 2 ? 'w' : 'r'}" style="width:8px;height:8px;border-radius:4px;${i < 2 ? '' : 'background:none;border:1.5px solid ' + C.red + ';box-sizing:border-box'}"></span>`).join('')}</span>
+    <span style="display:flex;gap:6px;align-items:center">${icon('meta', 'done', 16)}<span class="num white">${GOAL}</span></span></div></div>`;
+  h += `<div class="card"><div class="row"><span class="big" style="font-size:26px">${bmi.toFixed(1)}</span><span style="display:flex;gap:6px;align-items:center">${icon('meta', 'done', 16)}<span class="num white">${goalBmi.toFixed(1)}</span></span></div>
+    <div class="scale"><div class="seg" style="left:0;right:0;background:#2A2A2A"></div><div class="seg" style="left:${bx(18.5)}%;width:${bx(25) - bx(18.5)}%;background:#F5F5F5"></div>
+    <div class="mark" style="left:${bx(goalBmi)}%;background:#F5F5F5;height:10px;top:-4px"></div><div class="mark" style="left:${bx(bmi)}%;background:${C.red}"></div></div>
+    <div class="row"><span class="num">18.5</span><span class="num">25</span><span class="num">30</span></div></div>`;
+  const M = [['WAIST', 'cinta', 'Cintura', HEIGHT / 2], ['CHEST', 'pecho', 'Pecho'], ['ARM', 'brazos', 'Brazo'], ['THIGH', 'piernas', 'Muslo']];
+  h += `<div class="meas">${M.map(([k, ic, n, goal]) => `<button class="icon card" style="padding:14px" onclick="measure('${k}')" aria-label="${n}">${icon(ic, 'done', 26)}<span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><span class="num white" style="font-size:16px">${body[k].at(-1)}</span>${goal ? `<span style="display:flex;gap:4px;align-items:center">${icon('meta', 'off', 12)}<span class="num" style="font-size:10px">${goal}</span></span>` : ''}</span><span style="margin-left:auto">${arrow(body[k])}</span></button>`).join('')}</div>`;
+  $('view').innerHTML = h;
+}
+function measure(k) {
+  measuring = { k, v: '' };
+  const ic = { WEIGHT: 'bascula', WAIST: 'cinta', CHEST: 'pecho', ARM: 'brazos', THIGH: 'piernas' }[k];
+  const paint = () => $('sheet').innerHTML = `<div class="row">${icon(ic, 'now', 26)}<span class="big">${measuring.v || '—'}</span><button class="tool" onclick="saveMeasure()" aria-label="Guardar">${icon('listo', measuring.v ? 'done' : 'off', 26)}</button></div>
+    <div class="pad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(c => `<button onclick="key('${c}')">${c}</button>`).join('')}</div>`;
+  window.key = c => { measuring.v = c === '⌫' ? measuring.v.slice(0, -1) : (measuring.v + c).slice(0, 5); paint(); };
+  paint(); $('sheet').classList.add('open');
+}
+function saveMeasure() { const v = parseFloat(measuring.v); if (v) body[measuring.k].push(v); $('sheet').classList.remove('open'); renderCuerpo(); }
+
+// ---------- AJUSTES ----------
+const LEVELS = [['suave', 3.5], ['media', 5], ['fuerte', 7]];
+const level = met => met < 4.25 ? 0 : met < 6 ? 1 : 2;
+function openSettings(on) { $('settings').classList.toggle('open', on); if (on) renderSettings(); }
+function renderSettings() {
+  let h = `<div class="row"><span class="label red">AJUSTES · EJERCICIO</span><button class="tool" onclick="openSettings(false)" aria-label="Cerrar">${icon('listo', 'now', 22)}</button></div>`;
+  if (stack.some(s => s.ph)) h += `<div class="banner">El stack trae ejemplos. Llénalo con los tuyos.<button class="btn" onclick="stack=stack.filter(s=>!s.ph);renderSettings()">BORRAR EJEMPLOS</button></div>`;
+  h += `<span class="label muted">STACK · PARA QUEMAR EL EXCESO</span>`;
+  Object.entries(GROUPS).forEach(([g, n]) => {
+    h += `<div class="group">${icon(groupIcon(g), 'done', 22)}<span class="label white">${n.toUpperCase()}</span></div>`;
+    stack.filter(s => s.g === g).forEach(s => {
+      h += `<div class="srow"><input class="edit" value="${s.name}" oninput="edit(${s.id},'name',this.value)" aria-label="Nombre" style="${s.ph ? 'color:#8A8A8A' : ''}">
+        <button class="chip" onclick="cycle(${s.id})">${LEVELS[level(s.met)][0]}</button>
+        <input class="n" value="${s.min}" inputmode="numeric" onchange="edit(${s.id},'min',+this.value)" aria-label="Minutos"><span class="num">'</span>
+        <button class="x" onclick="stack=stack.filter(x=>x.id!==${s.id});renderSettings()" aria-label="Quitar">✕</button></div>`;
+    });
+    h += `<button class="btn" style="align-self:flex-start;border-style:dashed;color:#B0B0B0" onclick="addEx('${g}')">+ ${n.toUpperCase()}</button>`;
+  });
+  h += `<span class="label muted" style="margin-top:12px">METAS · LAS MISMAS DE COMIDA</span>
+    <div class="srow"><span style="flex:1">Altura</span><input class="n" value="${HEIGHT}"><span class="num">cm</span></div>
+    <div class="srow"><span style="flex:1">Peso meta</span><input class="n" value="${GOAL}"><span class="num">kg</span></div>
+    <span class="label muted" style="margin-top:12px">MEDIDAS QUE SIGUES</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">${['Cintura', 'Pecho', 'Brazo', 'Muslo', 'Cadera'].map((m, i) => `<button class="chip ${i < 4 ? 'on' : ''}" onclick="this.classList.toggle('on')">${m}</button>`).join('')}</div>
+    <span class="label muted" style="margin-top:12px">PLAN</span>
+    <div class="srow"><span style="flex:1">Hora de inicio</span><input class="n" value="07:00" style="width:56px"></div>
+    <div class="srow"><span style="flex:1">Descanso</span>${[60, 90, 120].map(s => `<button class="chip ${s === restLen ? 'on' : ''}" onclick="restLen=${s};renderSettings()">${s} s</button>`).join('')}</div>`;
+  $('settings').innerHTML = h;
+}
+function edit(id, k, v) { const s = stack.find(x => x.id === id); s[k] = v; s.ph = false; }
+function cycle(id) { const s = stack.find(x => x.id === id); s.met = LEVELS[(level(s.met) + 1) % 3][1]; s.ph = false; renderSettings(); }
+let nextId = 100;
+function addEx(g) { stack.push({ id: nextId++, g, name: '', met: 5, min: 10 }); renderSettings(); }
+
+function simOver(k) { over = k; optIdx = 0; extraDone = false; setTab('hoy'); }
+function simDay(i) { today = i; picked = i; done = {}; openEx = -1; setTab('hoy'); }
+
+$('legend').innerHTML = ['pecho', 'espalda', 'piernas', 'hombros', 'brazos', 'core', 'bici', 'hiit', 'calentar', 'fuego', 'bascula', 'cinta', 'semana', 'meta', 'info']
+  .map(n => `<span>${icon(n, 'now', 30)}${n}</span>`).join('');
+renderTabs(); render();
+</script>
+</body>
+</html>

@@ -86,7 +86,7 @@ internal fun phaseIcon(phase: RoutinePhase) = when (phase.id) {
 @Composable
 fun RoutineHost(viewModel: LauncherViewModel, onClose: () -> Unit) {
     var settingsOpen by remember { mutableStateOf(false) }
-    if (settingsOpen) RoutinePlaceholderScreen(viewModel) { settingsOpen = false }
+    if (settingsOpen) RoutineSettingsScreen(viewModel) { settingsOpen = false }
     else RoutinesScreen(viewModel, onSettings = { settingsOpen = true }, onClose = onClose)
 }
 

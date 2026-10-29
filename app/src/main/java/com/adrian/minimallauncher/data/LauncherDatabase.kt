@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.Flow
         NoteRecord::class, ReminderRecord::class, FinanceRecord::class, MealRecord::class, BodyMetricRecord::class, DayCheck::class, SetLog::class,
         Recipe::class, Ingredient::class, RecipeItem::class, MealItem::class, BudgetLimit::class, PendingPayment::class, StackExercise::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -46,7 +46,7 @@ abstract class LauncherDatabase : RoomDatabase() {
 
         fun get(context: Context): LauncherDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context.applicationContext, LauncherDatabase::class.java, "launcher.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 .also { instance = it }
         }
@@ -70,6 +70,13 @@ abstract class LauncherDatabase : RoomDatabase() {
          * load the launcher maps it to the phase that came from that space (see PhaseReminders.phaseIdFor).
          * The table is rebuilt because SQLite only renames columns from Android 11.
          */
+        /** Version 5: a meal can say which meal slot it was for; earlier meals have none. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `meals` ADD COLUMN `slotId` TEXT")
+            }
+        }
+
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `reminders_new` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `hour` INTEGER NOT NULL, `minute` INTEGER NOT NULL, `phaseId` TEXT NOT NULL, PRIMARY KEY(`id`))")

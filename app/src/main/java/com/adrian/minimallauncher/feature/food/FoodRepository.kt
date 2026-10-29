@@ -151,20 +151,20 @@ class FoodRepository(private val context: Context, private val db: LauncherDatab
     }
 
     /** Registers a meal of [servings] of a recipe; its totals are stored with the meal. Returns the meal id. */
-    suspend fun logRecipe(recipeId: String, servings: Float = 1f, description: String? = null): String? {
+    suspend fun logRecipe(recipeId: String, servings: Float = 1f, description: String? = null, slotId: String? = null): String? {
         val detail = detail(recipeId) ?: return null
         val n = detail.perServing * servings
         val id = newId()
-        personal.insertMeals(listOf(MealRecord(id, description ?: detail.recipe.name, now(), recipeId, servings, n.kcal, n.proteinG, n.carbsG, n.fatG, n.fiberG)))
+        personal.insertMeals(listOf(MealRecord(id, description ?: detail.recipe.name, now(), recipeId, servings, n.kcal, n.proteinG, n.carbsG, n.fatG, n.fiberG, slotId)))
         return id
     }
 
     /** Registers a meal of loose ingredients ([items] = ingredient id to grams). Returns the meal id. */
-    suspend fun logIngredients(description: String, items: Map<String, Float>): String = db.withTransaction {
+    suspend fun logIngredients(description: String, items: Map<String, Float>, slotId: String? = null): String = db.withTransaction {
         val byId = dao.ingredientsById(items.keys.toList()).associateBy { it.id }
         val n = items.entries.fold(Nutrition()) { acc, (id, grams) -> byId[id]?.let { acc + it.forGrams(grams) } ?: acc }
         val id = newId()
-        personal.insertMeals(listOf(MealRecord(id, description, now(), null, 1f, n.kcal, n.proteinG, n.carbsG, n.fatG, n.fiberG)))
+        personal.insertMeals(listOf(MealRecord(id, description, now(), null, 1f, n.kcal, n.proteinG, n.carbsG, n.fatG, n.fiberG, slotId)))
         dao.insertMealItems(items.filterKeys { it in byId }.map { (ingredientId, grams) -> MealItem(id, ingredientId, grams) })
         id
     }
