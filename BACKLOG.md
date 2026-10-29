@@ -92,6 +92,28 @@ Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
 - [ ] Ajustes: el stack por grupo (nombre, intensidad suave/media/fuerte, minutos, ✕ y +) y "Borrar ejemplos" mientras haya ejemplos; altura y peso meta (los mismos de Comida); hora de inicio y descanso. **Por validar.**
 - [ ] Falta: guardar el ejercicio extra como hecho (hoy se olvida al cerrar la app) y restar sus kcal; elegir qué medidas seguir; teclado de números propio en lugar del del sistema; racha real entre semanas; widget de Ejercicio con íconos de trazo; el calentamiento tampoco se guarda.
 
+#### Ejercicio · sesión guiada (bocetos 2026-10-29)
+
+Bocetos del usuario en `docs/design/sketches/ejercicio/` (1 a 6, en orden). Pedido: "solo tenemos como el flujo, pero nos falta mucha funcionalidad de como se ven las cosas". Dentro de la sesión sí va texto (nombre del ejercicio o calentamiento, tips): es la app en uso, no un widget. Estado: **Boceto por aprobar**: `docs/design/concept/EjercicioSesionVisual.html` (2026-10-29, interactivo con gestos; el dashboard va marcado "por diseñar").
+
+- [ ] **Entrada.** Si es hora de entrenar abre directo en el inicio de la rutina; si no, en la vista general. Arriba, los grupos musculares de hoy en una barra flotante y un botón home a la vista general.
+- [ ] **Personita.** Personaje dibujado que se mueve todo el tiempo (excepción pedida a la regla de "nada en bucle"). Reacciona al tocarla. Historial de pedidos (2026-10-29):
+  - "Más animaciones... movimientos más naturales como que camina hacia atrás y adelante", con el estilo de las referencias (torso de color como frijol, manos y pies ovalados).
+  - "Se ve muy rígido... su diseño era como más dibujado": trazo que tiembla como lápiz, extremidades curvas y sueltas, color del torso desfasado del contorno, cabeza flotante, resortes en cada articulación (las manos llegan tarde, todo rebota antes de quedarse), casi siempre de frente y de lado solo para caminar, boxear y piso.
+  - "Que se mueva a lo largo de la pantalla... con una función random": comportamientos al azar con pesos según el momento, sin secuencia fija y sin repetir el último; cada uno dura más y hay más variedad. Entrada: saltitos antes de pelear, sombra de boxeo larga con combinaciones al azar, calentamiento de futbolista (tobillos, cuádriceps, isquios, balanceo, zancadas, trote) y, si tardas, se impacienta (reloj, señala, hombros, brazos cruzados). Vista general: camina, saluda, se sienta, rueda y se queda acostada de lado. Fiesta: baile tipo Fortnite, funk brasileño, salsa. Espera: camina, saca una silla, se sienta, se duerme con "z" o se acuesta en el piso y se duerme. Descanso: descansa → se estira → calienta. Durante: motiva (rebota, aplaude, puño, señala, saltitos).
+  - "Que desplace más y en diferentes direcciones... con el punto de fuga": perspectiva (al alejarse más chica, más arriba, hacia el centro y más tenue); entre acciones casi siempre camina a otro punto, de lado, al fondo, hacia ti o en diagonal; voltea de frente antes de cambiar de dirección.
+  - "Junta dogplank y jacks": un solo calentamiento "Saltos y plancha".
+- [ ] **Iniciar.** Botón ▷: se mantiene apretado (se llena como agua) y luego se arrastra y suelta en un punto. Las dos cosas juntas, para no iniciar por error.
+- [ ] **Calentamiento.** Abajo, una tarjeta con dibujo vectorial y el nombre del calentamiento, con 3 opciones para la rutina. Swipe horizontal cambia de opción; al final, si sigues jalando, aparece "otros" con la cuadrícula completa de calentamientos.
+- [ ] **Detalle.** Swipe hacia arriba en la tarjeta: la personita "espía" desde arriba y abajo van insights del calentamiento, tu progreso y tips.
+- [ ] **Elegir.** Swipe a la derecha sobre la animación (o junto a ella) inicia ese calentamiento o ejercicio.
+- [ ] **Durante el ejercicio.** Arriba, la personita chica junto al tiempo. Te motiva todo el tiempo (pedido: "durante el ejercicio animaciones como motivando") y reacciona al completar una serie (salta), al mover el peso (saca músculo) y al terminar las series (festeja).
+- [ ] **Músculo.** Dibujo minimalista del grupo que se trabaja; su zona se pone más roja conforme avanzan las series. Mantener apretado muestra la info del ejercicio: calorías, tips y postura.
+- [ ] **Series.** Una fila por serie con su número, reps y kg propios y un círculo para marcarla terminada; "+" agrega otra serie y swipe a la izquierda la borra (fondo rojo con papelera). El número de serie es una etiqueta de fila, no un contador N/M.
+- [ ] **Swipes laterales.** Izquierda → derecha: el siguiente ejercicio (elegirlo o verlo) con el tiempo de la rutina. Derecha → izquierda: dashboard de ese ejercicio (aún sin diseñar: registros anteriores de reps, peso y tiempo, mejor marca y consulta de registros previos).
+- [ ] **Terminar ejercicio.** Arco de "continuar" abajo: swipe hacia arriba y mantener para confirmar.
+- [ ] **Descanso.** Contador (5:00) con la personita descansando; abajo, la siguiente rutina en rojo y un botón para saltar. Mientras menos tiempo queda, más se prepara la personita. Si llega a 0 y no avanzas, el contador cambia de color y cuenta hacia arriba lo que tardes, con la animación de "te estoy esperando". Así hasta terminar la rutina.
+
 ### Registro obligatorio
 
 Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/RegistroVisual.html`. Programado en `ui/ForcedEntryScreen.kt`, con 5 íconos de trazo nuevos (bolsa, transferencia, regalo, servicio, borrar). Se prueba con el mosaico "Pago de prueba".

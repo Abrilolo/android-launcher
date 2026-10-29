@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ejercicio sesión guiada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; --white: #F5F5F5; }
+  body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
+  h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
+  .phone { position: relative; overflow: hidden; width: 390px; max-width: 100%; height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; }
+  #view { display: flex; flex-direction: column; gap: 18px; flex: 1; min-height: 0; }
+  .label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; }
+  .num { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+  .big { font-family: 'Space Mono', monospace; font-size: 34px; letter-spacing: 1px; }
+  .huge { font-family: 'Space Mono', monospace; font-size: 64px; letter-spacing: 2px; text-align: center; transition: color .4s; }
+  .muted { color: var(--muted); } .red { color: var(--red); } .gray { color: var(--gray); }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .tool { background: none; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; color: inherit; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
+  .btn { border: 1px solid #333; border-radius: 16px; background: none; color: var(--white); font: 11px 'Space Mono', monospace; letter-spacing: 1px; padding: 8px 12px; cursor: pointer; }
+  .btn.on { border-color: var(--red); color: var(--red); }
+
+  /* The little person: one continuous stroke figure, posed with CSS (d/cx/cy). */
+  .rig { overflow: visible; cursor: pointer; }
+  .rig .lb { fill: none; stroke: #F5F5F5; stroke-width: 2.7; stroke-linecap: round; stroke-linejoin: round; }
+  .rig .ft, .rig .hn, .rig .head { fill: #000; stroke: #F5F5F5; stroke-width: 2.3; }
+  .rig .tfill { fill: var(--red); stroke: none; }
+  .rig .tline { fill: none; stroke: #F5F5F5; stroke-width: 2.3; stroke-linejoin: round; }
+  .rig .sh { fill: #FFFFFF; fill-opacity: .09; }
+  .rig .chair path { fill: none; stroke: #B0B0B0; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; transition: stroke-dashoffset .8s ease; }
+  .rig .chair.on path { stroke-dashoffset: 0; }
+  .rig .zzz { opacity: 0; transition: opacity .5s; }
+  .rig .zzz.on { opacity: 1; }
+  .rig .zzz path { fill: none; stroke: #F5F5F5; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform-box: fill-box; transform-origin: center; animation: zz 2.4s linear infinite; }
+  @keyframes zz { 0% { opacity: 0; transform: translate(0, 0) scale(.6) } 20% { opacity: 1 } 100% { opacity: 0; transform: translate(12px, -26px) scale(1.2) } }
+  .peekSvg { color: var(--white); overflow: visible; }
+  .peekSvg circle, .peekSvg ellipse { fill: #000; stroke: currentColor; stroke-width: 2; }
+  .peekSvg .eye { fill: currentColor; stroke: none; }
+
+  .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; touch-action: none; }
+  .chev { position: absolute; top: 50%; font: 18px 'Space Mono', monospace; color: #2E2E2E; transform: translateY(-50%); pointer-events: none; }
+  .groups { display: flex; gap: 14px; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 18px; background: #0B0B0B; box-shadow: 0 6px 18px #000; }
+  .groups span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+
+  /* Start: hold until the water fills, then drag to the dot. */
+  .startTrack { position: relative; height: 80px; margin: 0 auto; width: 240px; touch-action: none; }
+  .startTrack .line { position: absolute; left: 40px; right: 16px; top: 39px; border-top: 1.5px dashed #2A2A2A; opacity: 0; transition: opacity .3s; }
+  .startTrack.armed .line { opacity: 1; }
+  .target { position: absolute; right: 0; top: 24px; width: 32px; height: 32px; border-radius: 16px; border: 1.5px solid #2A2A2A; box-sizing: border-box; transition: border-color .3s; }
+  .startTrack.armed .target { border-color: var(--red); }
+  .play { position: absolute; left: 0; top: 4px; width: 72px; height: 72px; border-radius: 36px; border: 1.5px solid #3A3A3A; background: #000; overflow: hidden; cursor: grab; padding: 0; touch-action: none; }
+  .water { position: absolute; left: -50%; width: 200%; height: 200%; top: 115%; border-radius: 42%; background: var(--red); animation: spin 2.4s linear infinite; transition: top .12s linear; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .play svg { position: relative; z-index: 1; }
+
+  /* Warm-ups: a stack of cards. */
+  .carousel { overflow: hidden; touch-action: none; border-radius: 24px; }
+  .track { display: flex; transition: transform .35s ease; }
+  .wcard { flex: 0 0 100%; box-sizing: border-box; display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 14px 18px; }
+  .wcard .art { width: 56px; height: 64px; display: grid; place-items: center; border-radius: 14px; background: #111; }
+  .wname { font-size: 16px; }
+  .pips { display: flex; gap: 8px; justify-content: center; }
+  .pip { width: 5px; height: 5px; border-radius: 3px; background: #2A2A2A; }
+  .pip.on { background: var(--white); }
+
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 22px 24px 32px; transform: translateY(105%); transition: transform .3s ease; z-index: 5; touch-action: none; max-height: 78%; box-sizing: border-box; overflow: visible; }
+  .sheet.open { transform: none; }
+  .peek { position: absolute; top: -46px; left: 50%; margin-left: -28px; transition: transform .5s ease; }
+  .sheet:not(.open) .peek { transform: translateY(40px); }
+  .sheet h3 { margin: 0 0 6px; font-weight: 500; font-size: 20px; }
+  .sec { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--red); margin: 16px 0 6px; }
+  .sheet p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  .grid button { background: #111; border: 1px solid var(--line); border-radius: 16px; color: var(--muted); padding: 10px 4px; font: 11px 'Space Grotesk', sans-serif; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+
+  /* During the exercise. */
+  .area { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; touch-action: none; padding: 4px 0; }
+  .exdots { display: flex; gap: 8px; }
+  .exdots i { width: 6px; height: 6px; border-radius: 3px; background: #2A2A2A; }
+  .exdots i.w { background: var(--white); } .exdots i.r { background: var(--red); }
+  .muscle path, .muscle circle { fill: none; stroke: var(--gray); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .muscle .zone { stroke: #2E2E2E; fill: transparent; transition: fill .6s, stroke .6s; }
+  .muscle .zone.on { stroke: var(--red); }
+  .sets { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 96px; }
+  .setwrap { flex: none; }
+  .swipeRow { position: relative; border-radius: 18px; overflow: hidden; }
+  .trash { position: absolute; inset: 0; background: var(--red); display: flex; justify-content: flex-end; align-items: center; padding-right: 22px; cursor: pointer; }
+  .set { position: relative; display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 10px 14px; touch-action: pan-y; transition: transform .2s ease; }
+  .sn { font: 13px 'Space Mono', monospace; width: 18px; color: var(--gray); }
+  .sn.cur { color: var(--red); }
+  .val { background: none; border: 0; color: var(--white); font: 18px 'Space Mono', monospace; cursor: pointer; padding: 4px 6px; border-radius: 10px; display: flex; align-items: baseline; gap: 4px; }
+  .val small { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+  .val.open { background: #161616; }
+  .chk { margin-left: auto; width: 26px; height: 26px; border-radius: 13px; border: 1.5px solid #3A3A3A; background: none; cursor: pointer; padding: 0; display: grid; place-items: center; }
+  .chk.cur { border-color: var(--red); }
+  .chk.done { background: var(--white); border-color: var(--white); }
+  .stepper { display: none; gap: 10px; padding: 8px 4px 2px; }
+  .stepper.open { display: flex; }
+  .step { display: flex; align-items: center; border: 1px solid #333; border-radius: 14px; flex: 1; }
+  .step button { background: none; border: 0; color: #fff; width: 38px; height: 38px; font-size: 18px; cursor: pointer; }
+  .step span { flex: 1; text-align: center; font: 14px 'Space Mono', monospace; }
+  .add { align-self: center; width: 40px; height: 40px; border-radius: 20px; border: 1px dashed #3A3A3A; background: none; color: var(--muted); font-size: 20px; cursor: pointer; flex: none; }
+
+  /* Continue arc: swipe up, then keep holding. */
+  .arc { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 14px; touch-action: none; cursor: grab; z-index: 4; background: linear-gradient(transparent, #000 45%); }
+  .arc svg { position: absolute; bottom: 0; left: 0; }
+  .arc .lbl { position: relative; font: 10px 'Space Mono', monospace; letter-spacing: 2px; color: var(--gray); transition: color .3s; }
+  .arc.ready .lbl { color: var(--white); }
+  .arc .knob { position: relative; width: 8px; height: 8px; border-radius: 4px; background: var(--gray); margin-bottom: 6px; transition: background .3s; }
+  .arc.ready .knob { background: var(--red); }
+
+  .panel { position: absolute; inset: 0; background: #000; z-index: 6; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; transition: transform .3s ease; touch-action: none; }
+  .panel.left { transform: translateX(-105%); } .panel.right { transform: translateX(105%); }
+  .panel.open { transform: none; }
+  .exrow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #161616; cursor: pointer; }
+  .exrow:first-child { border-top: 0; }
+  .tag { border: 1px dashed #3A3A3A; border-radius: 10px; padding: 3px 8px; font: 10px 'Space Mono', monospace; letter-spacing: 1px; color: var(--muted); }
+  .bars { display: flex; align-items: flex-end; gap: 8px; height: 90px; }
+  .bars i { flex: 1; background: #2A2A2A; border-radius: 4px; }
+  .bars i.best { background: var(--red); }
+
+  .nextCard { border: 1px solid var(--red); border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; }
+  .toast { position: absolute; left: 24px; right: 24px; bottom: 110px; background: #161616; border-radius: 14px; padding: 10px 14px; font-size: 13px; color: var(--muted); opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9; text-align: center; }
+  .toast.on { opacity: 1; }
+
+  .side { display: flex; flex-direction: column; gap: 14px; width: 390px; max-width: 100%; }
+  .note { color: #9a9a9a; font-size: 13px; line-height: 1.55; }
+  .note b { color: #fff; font-weight: 500; }
+  .sim { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h2>EJERCICIO · SESIÓN GUIADA · BOCETO (USA GESTOS: MANTÉN, ARRASTRA, DESLIZA)</h2>
+
+<div class="phone" id="phone">
+  <div id="view"></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="side">
+  <div class="card note">
+    <b>1 · Entrada.</b> Si es hora de entrenar, Ejercicio abre directo aquí; si no, en la vista general (el boceto actual). Arriba flotan los grupos de hoy, con home a la vista general y el engrane. La personita se prepara a su manera (ver abajo) y recorre la pantalla. Tócala y reacciona.<br>
+    <b>Iniciar:</b> mantén ▷ hasta que se llene de agua y arrástralo al punto rojo. Si lo sueltas antes, se vacía.<br><br>
+    <b>2 · Calentamiento.</b> Abajo, el stack de calentamientos de esta rutina: desliza ← → entre las 3 opciones; después viene <b>otros</b>, que abre la lista completa. La personita imita la opción que estás viendo.<br>
+    · <b>Desliza hacia arriba</b> la tarjeta: insights, tu progreso y tips, con la personita espiando arriba.<br>
+    · <b>Desliza a la derecha</b> sobre la personita (o en el detalle) para empezar ese calentamiento.<br><br>
+    <b>3 · Durante.</b> Arriba, la personita chica y el tiempo de la rutina. Te motiva todo el tiempo (rebota, aplaude, levanta el puño, te señala, saltitos, trote); al marcar una serie salta, al subir el peso saca músculo y al terminar las series festeja.<br>
+    · El músculo se pone más rojo con cada serie. <b>Mantén</b> el dibujo: calorías, tips y postura.<br>
+    · Cada serie es una fila con su número, reps y kg propios. ○ la marca; tocar reps o kg abre los pasos; + agrega otra; <b>desliza a la izquierda</b> para borrar.<br>
+    · <b>Desliza → sobre el músculo</b>: siguiente ejercicio y tiempo. <b>Desliza ←</b>: dashboard de ese ejercicio (aún por diseñar).<br><br>
+    <b>4 · Terminar.</b> Abajo, el arco: <b>desliza hacia arriba y mantén</b> para confirmar.<br><br>
+    <b>5 · Descanso.</b> Cuenta regresiva; mientras menos falta, más se prepara la personita (descansa → se estira → calienta). Abajo, el siguiente ejercicio en rojo (tócalo o salta). Si llega a 0, el contador se pone rojo y cuenta lo que tardas, y la personita te espera.<br><br>
+    <b>Personita · estilo.</b> Dibujada como las referencias: torso rojo redondo con el color un poco desfasado del contorno, cabeza que flota, brazos y piernas curvos y sueltos, manos y pies ovalados y una línea que tiembla como lápiz. Casi siempre de frente; gira de lado para caminar, boxear y el trabajo de piso. Cada articulación sigue a su pose con un resorte: las manos llegan tarde, la cabeza flota y todo rebota antes de quedarse.<br><br>
+    <b>Personita · se mueve por la pantalla.</b> Camina a lo ancho, al fondo, hacia ti y en diagonal. Con perspectiva: al alejarse se hace más chica (hasta ~40%), sube hacia el horizonte, se junta hacia el centro (punto de fuga) y se ve más tenue. Entre una acción y otra casi siempre camina a otro punto (1 a 3 paradas, a veces mira alrededor); para cambiar de dirección voltea de frente y luego gira.<br><br>
+    <b>Personita · decide sola.</b> Nada es una secuencia fija: al terminar algo elige al azar lo siguiente, sin repetir lo último, con más peso a lo que tiene sentido en ese momento:<br>
+    · <b>Entrada:</b> saltitos antes de pelear, sombra de boxeo larga con combinaciones al azar (jab, cruzado, gancho, uppercut, esquivas), calentamiento de futbolista (tobillos, cuádriceps, isquios, balanceo de piernas, zancadas por la pantalla, trote). Después de 15 s se impacienta: ve el reloj, lo señala, alza los hombros, cruza los brazos y golpea el pie.<br>
+    · <b>Vista general:</b> camina, saluda, mira alrededor, se sienta con las piernas cruzadas, rueda y se queda acostada de lado un rato antes de levantarse.<br>
+    · <b>Descanso:</b> sentada abrazando las rodillas, acostada, estirando sentada → estiramientos de pie → saltitos y sombra.<br>
+    · <b>Espera (descanso pasado de 0):</b> camina de un lado a otro, se impacienta, saca una silla (se dibuja sola), se sienta y a veces se duerme con “z”, o se acuesta en el piso con las piernas cruzadas y se duerme. Mientras más tardas, más probable que se duerma.<br>
+    · <b>Final:</b> baile tipo Fortnite, pasitos de funk brasileño, salsa con vuelta, baile libre, saltos y aplausos.<br>
+    · Calentamiento “Saltos y plancha”: saltos de tijera, plancha y perro boca abajo en una sola rutina.<br><br>
+    <b>Nota:</b> la personita se mueve todo el tiempo (excepción pedida a la regla de “nada en bucle”). Dentro de la sesión sí hay texto: es la app en uso.
+    <div class="sim">
+      <button class="btn" onclick="go('start')">ES HORA</button>
+      <button class="btn" onclick="go('general')">NO ES HORA</button>
+      <button class="btn" onclick="go('warm')">CALENTAMIENTO</button>
+      <button class="btn" onclick="S.exIdx=0;go('ex')">EJERCICIO</button>
+      <button class="btn" onclick="S.next=1;go('rest')">DESCANSO</button>
+      <button class="btn" onclick="S.next=1;S.restLeft=2;go('rest')">DESCANSO AL 0</button>
+      <button class="btn" onclick="go('end')">FINAL</button>
+      <button class="btn on" id="speedBtn" onclick="toggleSpeed()">TIEMPO ×10</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Little person: a loose, hand-drawn character (like the reference sketches). ----------
+// Poses give target angles (degrees from straight down, positive toward where the person faces; turn 0 = facing
+// you, 1 = side view). Every joint follows its target on a spring, so limbs lag and settle, the head floats and
+// the lines boil like a drawing. A small "mind" picks what to do next at random, weighted by the moment.
+const BONE = { T: 25, ua: 16, fa: 15, th: 21, sh: 20 };
+const BASE_POSE = { t: 0, hx: 0, sq: 1, x: 0, z: 0, lift: 0, face: 1, turn: 0, spin: 0, fL: 1, fR: 1, aL: [-10, -2], aR: [10, 2], lL: [-4, -2], lR: [4, 2] };
+const HIPS_HANDS = { aL: [-45, 28], aR: [45, -28] };
+const GUARD = { turn: 1, t: 10, aL: [30, 165], aR: [20, 170], lL: [-18, -6], lR: [22, 8] };
+const SIT_HUG = { turn: 1, t: 22, aL: [22, 55], aR: [15, 45], lL: [112, 44], lR: [118, 48] };
+const SIT_CHAIR = { turn: 1, t: -6, aL: [25, 80], aR: [20, 85], lL: [90, 0], lR: [86, 4] };
+const LIE_SIDE = { turn: 1, t: -65, aL: [-30, -150], aR: [100, 95], lL: [88, 92], lR: [84, 96] };
+const SLEEP_BACK = { turn: 1, t: -90, aL: [180, -51], aR: [175, -55], lL: [90, 90], lR: [84, 100] };
+const SIT_CROSS = { t: 0, aL: [-30, 20], aR: [30, -20], lL: [-75, 62], lR: [75, -62] };
+const POSES = {
+  stand: {},
+  standB: { sq: 1.03, hx: 1.5, t: -2, aL: [-13, -6], aR: [12, 8] },
+  standC: { t: 3, hx: -1, aL: [-8, 4], aR: [14, 2], lL: [-5, -1], lR: [3, 3] },
+  // Boxing (side): guard, jab, cross, hook, uppercut, duck
+  guard: GUARD,
+  guardUp: { ...GUARD, lift: 3 },
+  jab: { ...GUARD, t: 14, aL: [85, 88] },
+  cross: { ...GUARD, t: 20, aR: [82, 86], lL: [-24, -10] },
+  hook: { ...GUARD, t: 2, hx: -2, aL: [100, 150] },
+  upper: { ...GUARD, t: 4, lift: 2, aR: [55, 175] },
+  duck: { ...GUARD, t: 30, sq: .9, lL: [-30, 12], lR: [36, -16] },
+  // Hopping before a fight
+  gokuA: { turn: 1, t: 8, sq: .97, aL: [35, 120], aR: [25, 130], lL: [-20, -10], lR: [24, 6] },
+  gokuB: { turn: 1, t: 6, lift: 8, aL: [30, 130], aR: [22, 140], lL: [-14, -22], lR: [18, -8] },
+  // Footballer warm-up (side)
+  ankleTouch: { turn: 1, t: 112, aL: [-4, 0], aR: [4, 0], lL: [-8, -4], lR: [2, 0] },
+  ankleTouchB: { turn: 1, t: 100, hx: 2, aL: [10, 4], aR: [16, 8], lL: [-8, -4], lR: [2, 0] },
+  quadL: { turn: 1, t: 4, aL: [-45, 30], aR: [60, 80], lL: [-5, -170], lR: [2, 0] },
+  quadR: { turn: 1, t: 4, face: -1, aL: [-45, 30], aR: [60, 80], lL: [-5, -170], lR: [2, 0] },
+  hamstring: { turn: 1, t: 45, aL: [50, 50], aR: [45, 45], lL: [-8, -20], lR: [40, 40] },
+  swingF: { turn: 1, t: -4, aL: [-30, -20], aR: [30, 40], lL: [0, 0], lR: [65, 50] },
+  swingB: { turn: 1, t: 10, aL: [30, 40], aR: [-30, -20], lL: [0, 0], lR: [-40, -55] },
+  jogA: { fL: .62, lift: 3, t: -2, aL: [-12, 40], aR: [12, -40], lL: [-4, -2], lR: [4, 2] },
+  jogB: { fR: .62, lift: 3, t: 2, aL: [-12, -40], aR: [12, 40], lL: [-4, -2], lR: [4, 2] },
+  lungeA: { ...HIPS_HANDS, turn: 1, t: 4, lR: [75, 0], lL: [-20, -80] },
+  lungeB: { ...HIPS_HANDS, turn: 1, t: 4, lL: [75, 0], lR: [-20, -80] },
+  // Jumping jacks, arm circles, stretching (front)
+  jack: { aL: [-140, -155], aR: [140, 155], lL: [-20, -22], lR: [20, 22] },
+  jackAir: { aL: [-100, -115], aR: [100, 115], lL: [-11, -12], lR: [11, 12], lift: 6 },
+  side: { aL: [-90, -96], aR: [90, 96] },
+  up: { aL: [-170, -178], aR: [170, 178], lift: 1.5, sq: 1.05 },
+  fwd: { aL: [-40, -60], aR: [40, 60] },
+  bendL: { t: -18, hx: -3, aL: [-150, -160], aR: [-175, -165] },
+  bendR: { t: 18, hx: 3, aL: [175, 165], aR: [150, 160] },
+  // Waving, looking, impatience (front)
+  waveA: { aR: [150, 175], hx: 2, t: -3 },
+  waveB: { aR: [130, 140], hx: 2, t: -3 },
+  look: { turn: .5, t: 4, hx: 3, aR: [20, 160], aL: [30, 95] },
+  lookB: { turn: .3, t: 0, hx: -2, aR: [20, 160], aL: [30, 95], x: 2 },
+  watch: { t: -3, hx: -3, aL: [-20, 80], aR: [20, -60] },
+  watchTap: { t: -3, hx: -3, aL: [-20, 80], aR: [25, -75] },
+  pointOut: { t: 4, hx: 2, aL: [-20, 80], aR: [70, 65] },
+  shrug: { sq: 1.04, hx: 2, aL: [-30, -100], aR: [30, 100] },
+  armsCross: { t: -2, aL: [-25, 85], aR: [25, -85], lR: [6, 4] },
+  armsCrossTap: { t: -2, aL: [-25, 85], aR: [25, -85], lR: [12, -14] },
+  waitA: { ...HIPS_HANDS, turn: .4, t: -4, hx: 2, aR: [25, 95] },
+  waitB: { ...HIPS_HANDS, turn: .4, t: -4, hx: 3, aR: [25, 95], lR: [12, -14] },
+  // Motivating while you train (front)
+  bounce: { lift: 3, aL: [-18, 30], aR: [18, -30], sq: .98 },
+  clapOpen: { aL: [-130, -100], aR: [130, 100], lift: 1 },
+  clapShut: { aL: [-160, 170], aR: [160, -170] },
+  pump: { t: -4, hx: -2, aR: [150, 178], aL: [-14, 20], lift: 4 },
+  pumpDown: { aR: [100, 170], aL: [-14, 20] },
+  point: { ...HIPS_HANDS, t: -4, hx: -2, aR: [125, 125], lift: 1 },
+  flex: { sq: 1.06, aL: [-95, -175], aR: [95, 175], lL: [-12, -4], lR: [12, 4] },
+  crouch: { sq: .9, aL: [-30, -20], aR: [30, 20], lL: [-35, 25], lR: [35, -25] },
+  jumpUp: { aL: [-160, -175], aR: [160, 175], lL: [-8, -16], lR: [8, 16], lift: 18, sq: 1.06 },
+  nod: { hx: 3, t: 6 },
+  // Dances (front): a default-style dance, Brazilian funk footwork, salsa, free dance, hips
+  d1: { t: -6, sq: .97, aL: [-30, 60], aR: [40, 10], lL: [-6, -2], lR: [6, 2] },
+  d2: { t: 6, lift: 2, aL: [-40, -10], aR: [30, -60], lL: [-6, -2], lR: [6, 2] },
+  d3: { t: -4, lift: 1, aL: [-120, -90], aR: [50, 30], lL: [-6, -2], lR: [60, 40] },
+  d4: { t: 4, lift: 1, aL: [-50, -30], aR: [120, 90], lL: [-60, -40], lR: [6, 2] },
+  pA: { sq: .95, aL: [-70, -30], aR: [70, 30], lL: [-14, 14], lR: [14, -14] },
+  pB: { lift: 2.5, t: -5, aL: [-60, -100], aR: [80, 40], lL: [-24, -6], lR: [24, 6] },
+  pC: { lift: 1, t: 5, aL: [-80, -40], aR: [60, 100], lL: [-10, 18], lR: [-6, -30] },
+  salsaA: { turn: .3, t: -6, x: -3, aL: [-30, 60], aR: [40, 110], lL: [-6, -2], lR: [22, 10] },
+  salsaB: { turn: .3, t: 6, x: 3, aL: [-40, -110], aR: [30, -60], lL: [-22, -10], lR: [6, 2] },
+  salsaSpin: { turn: 1, t: 0, aL: [-150, -170], aR: [30, -60], lL: [-4, -2], lR: [4, 2], lift: 1 },
+  danceA: { t: -10, hx: -3, aL: [-150, -120], aR: [40, 100], lL: [-10, -4], lR: [55, -20], lift: 2 },
+  danceB: { t: 10, hx: 3, aL: [-40, -100], aR: [150, 120], lL: [-55, 20], lR: [10, 4], lift: 2 },
+  hipA: { ...HIPS_HANDS, t: -12, x: -3, hx: -2, lL: [-6, -2], lR: [8, 4] },
+  hipB: { ...HIPS_HANDS, t: 12, x: 3, hx: 2, lL: [-8, -4], lR: [6, 2] },
+  // Walking (side) and stepping toward / away (front, the raised knee foreshortened)
+  w1: { turn: 1, t: 6, lR: [24, 12], lL: [-24, -34], aR: [-18, -8], aL: [20, 35] },
+  w2: { turn: 1, t: 6, lR: [2, 0], lL: [18, -45], aR: [0, 6], aL: [0, 10], lift: 2 },
+  w3: { turn: 1, t: 6, lL: [24, 12], lR: [-24, -34], aL: [-18, -8], aR: [20, 35] },
+  w4: { turn: 1, t: 6, lL: [2, 0], lR: [18, -45], aL: [0, 10], aR: [0, 6], lift: 2 },
+  s1: { fL: .72, t: -3, hx: -1, aL: [-16, -4], aR: [16, 20], lift: 1.5 },
+  s2: { fR: .72, t: 3, hx: 1, aL: [-16, -20], aR: [16, 4], lift: 1.5 },
+  // Resting, chair, sleeping, rolling
+  sitHug: SIT_HUG,
+  sitHugB: { ...SIT_HUG, t: 18, sq: 1.04, hx: 1.5 },
+  sitReach: { turn: 1, t: 55, aL: [70, 75], aR: [65, 70], lL: [90, 90], lR: [88, 92] },
+  sitReachB: { turn: 1, t: 30, aL: [60, 60], aR: [55, 60], lL: [90, 90], lR: [88, 92] },
+  sitCross: SIT_CROSS,
+  sitCrossB: { ...SIT_CROSS, sq: 1.04, hx: 2, t: -3 },
+  reach: { turn: 1, t: 45, aL: [70, 60], aR: [60, 50], lL: [-10, -25], lR: [20, 0] },
+  sitChair: SIT_CHAIR,
+  sitChairB: { ...SIT_CHAIR, sq: 1.03, hx: 1 },
+  sleepChair: { turn: 1, t: 14, hx: 5, sq: .97, aL: [6, 0], aR: [2, 0], lL: [90, -4], lR: [84, 10] },
+  sleepChairB: { turn: 1, t: 12, hx: 4, sq: 1, aL: [6, 0], aR: [2, 0], lL: [90, -4], lR: [84, 10] },
+  lieSide: LIE_SIDE,
+  lieSideB: { ...LIE_SIDE, t: -62, sq: 1.03, lR: [80, 100] },
+  sleepBack: SLEEP_BACK,
+  sleepBackB: { ...SLEEP_BACK, sq: 1.04 },
+  tuck: { turn: 1, t: 35, aL: [60, 20], aR: [55, 25], lL: [140, 30], lR: [145, 35] },
+  // Floor work (side), like the reference sketches
+  plank: { turn: 1, t: 63, aL: [2, 0], aR: [-2, 0], lL: [-63, -63], lR: [-61, -61] },
+  dog: { turn: 1, t: 128, aL: [52, 52], aR: [50, 50], lL: [-30, -30], lR: [-28, -28] },
+  lunge: { ...HIPS_HANDS, turn: 1, t: 4, lR: [75, 0], lL: [-20, -80] },
+  lungeUp: { ...HIPS_HANDS, turn: 1, t: 2, lR: [30, 10], lL: [-14, -30] },
+  legsUp: { turn: 1, t: -90, aL: [90, 90], aR: [92, 92], lL: [180, 180], lR: [176, 176] },
+  legsLow: { turn: 1, t: -90, aL: [90, 90], aR: [92, 92], lL: [118, 116], lR: [114, 112] },
+};
+const poseOf = p => ({ ...BASE_POSE, ...(typeof p === 'string' ? POSES[p] : p) });
+
+// Fixed loops: the warm-ups themselves and one-shot reactions.
+const ANIMS = {
+  idle: { f: [['stand', 1300], ['standB', 1400], ['standC', 1300]] },
+  box: { f: [['guard', 200], ['jab', 150], ['guard', 130], ['cross', 170], ['guardUp', 180], ['hook', 180], ['guard', 150], ['duck', 220], ['upper', 180], ['guard', 200]] },
+  jacksPlank: { f: [['stand', 170], ['jackAir', 160], ['jack', 210], ['jackAir', 160], ['stand', 170], ['jackAir', 160], ['jack', 210], ['jackAir', 160], ['crouch', 400], ['plank', 1300], ['dog', 1300], ['plank', 900], ['crouch', 450]] },
+  circles: { f: [['stand', 380], ['fwd', 380], ['up', 420], ['side', 420]] },
+  dance: { f: [['danceA', 420], ['standB', 280], ['danceB', 420], ['standB', 280]] },
+  hips: { f: [['hipA', 700], ['hipB', 700]] },
+  wave: { f: [['waveA', 240], ['waveB', 240], ['waveA', 240], ['waveB', 240], ['standB', 900]] },
+  look: { f: [['stand', 900], ['look', 1400], ['lookB', 1100]] },
+  lunges: { f: [['lungeUp', 700], ['lunge', 900]] },
+  legRaise: { f: [['legsLow', 1100], ['legsUp', 1100]] },
+  cheer: { once: true, f: [['crouch', 160], ['jumpUp', 300], ['crouch', 200], ['stand', 10]] },
+  nod: { once: true, f: [['stand', 160], ['nod', 220], ['stand', 10]] },
+  flexOnce: { once: true, f: [['stand', 200], ['flex', 600], ['flex', 200], ['stand', 10]] },
+  clapOnce: { once: true, f: [['clapOpen', 150], ['clapShut', 140], ['clapOpen', 150], ['clapShut', 200], ['stand', 10]] },
+};
+
+// ---------- Behaviors: each returns segments. {loop, reps|dur} repeats frames; {seq} plays once; {walk:[x,z]} moves; {roll:x} rolls. ----------
+const rnd = (a, b) => a + Math.random() * (b - a), ri = (a, b) => Math.floor(rnd(a, b + 1)), pick = a => a[Math.floor(Math.random() * a.length)];
+const PUNCHES = {
+  jab: [['jab', 140], ['guard', 120]], cross: [['cross', 160], ['guard', 130]], double: [['jab', 120], ['guard', 90], ['jab', 120], ['guard', 120]],
+  hook: [['hook', 170], ['guard', 130]], upper: [['duck', 120], ['upper', 170], ['guard', 140]], duck: [['duck', 200], ['guard', 160]], bounce: [['guardUp', 170], ['guard', 150]],
+};
+function boxCombo() {
+  const out = [['guard', 180]];
+  for (let i = ri(10, 20); i > 0; i--) out.push(...PUNCHES[pick(['jab', 'jab', 'cross', 'double', 'hook', 'upper', 'duck', 'bounce', 'bounce'])]);
+  return out;
+}
+const STAND_LOOP = [['stand', 900], ['standB', 900]];
+const MOVERS = new Set(['walk', 'walkSlow', 'stroll', 'wander', 'lunges', 'roll']);
+const B = {
+  wander: (f, n = ri(1, 3)) => {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      out.push({ walk: f.rpoint(), speed: rnd(28, 40) });
+      if (Math.random() < .5) out.push({ loop: pick([STAND_LOOP, ANIMS.look.f, [['lookB', 700], ['look', 700]]]), dur: rnd(600, 1800) });
+    }
+    return out;
+  },
+  idle: f => [{ loop: ANIMS.idle.f, dur: rnd(2500, 5000) }],
+  look: f => [{ loop: ANIMS.look.f, dur: rnd(2500, 4000) }],
+  wave: f => [{ seq: ANIMS.wave.f }, { loop: STAND_LOOP, dur: rnd(800, 1600) }],
+  walk: f => [{ walk: f.rpoint() }, { loop: STAND_LOOP, dur: rnd(500, 1800) }],
+  walkSlow: f => [{ walk: f.rpoint(), speed: 22 }, { loop: STAND_LOOP, dur: rnd(1200, 2500) }],
+  stroll: f => [{ walk: [f.pos.x + rnd(-25, 25), f.pos.z > 0 ? rnd(-1, -.5) : rnd(.5, 1)] }, { loop: STAND_LOOP, dur: rnd(500, 1500) }],
+  roll: f => {
+    const dir = f.pos.x > 0 ? -1 : 1;
+    return [{ seq: [['stand', 200], ['crouch', 300], ['tuck', 200]] }, { roll: f.pos.x + dir * rnd(55, 110) },
+      { seq: [['tuck', 200], ['lieSide', 400]] }, { loop: [['lieSide', 1800], ['lieSideB', 1800]], dur: rnd(3000, 6500) },
+      { seq: [['lieSide', 300], ['sitHug', 500], ['crouch', 400], ['stand', 300]] }];
+  },
+  sitCross: f => [{ seq: [['crouch', 400], ['sitCross', 500]] }, { loop: [['sitCross', 1600], ['sitCrossB', 1600]], dur: rnd(4000, 7000) }, { seq: [['crouch', 450], ['stand', 300]] }],
+  box: f => [{ seq: boxCombo() }, ...(Math.random() < .5 ? [{ seq: boxCombo() }] : [])],
+  goku: f => [{ loop: [['gokuA', 170], ['gokuB', 170]], reps: ri(8, 18) }],
+  ankles: f => [{ loop: [['stand', 350], ['ankleTouch', 700], ['ankleTouchB', 500]], reps: ri(2, 4) }],
+  quad: f => [{ seq: [['stand', 300], ['quadL', 2400], ['stand', 400], ['quadR', 2400], ['stand', 300]] }],
+  hamstring: f => [{ seq: [['stand', 300], ['hamstring', 2600], ['stand', 300]] }],
+  legSwing: f => [{ loop: [['swingF', 320], ['swingB', 320]], reps: ri(4, 8) }],
+  jog: f => [{ loop: [['jogA', 170], ['jogB', 170]], reps: ri(10, 22) }],
+  lunges: f => [{ walk: [f.rx(), f.pos.z], cyc: 'lunge', speed: 14 }, { seq: [['lungeUp', 300], ['stand', 300]] }],
+  stretch: f => [{ seq: [['up', 900], ['bendL', 1100], ['up', 700], ['bendR', 1100], ['stand', 400]] }],
+  circles: f => [{ loop: ANIMS.circles.f, reps: ri(2, 4) }],
+  impatient: f => [
+    { loop: [['watch', 500], ['watchTap', 220], ['watch', 220], ['watchTap', 220]], reps: ri(2, 3) },
+    { seq: [['pointOut', 900], ['shrug', 700], ['stand', 300]] },
+    { loop: [['armsCross', 320], ['armsCrossTap', 320]], reps: ri(4, 8) }],
+  chair: f => [
+    { seq: [['stand', 200], ['reach', 600], ['stand', 400]], prop: 'chair' },
+    { seq: [['sitChair', 600]], prop: 'chair' },
+    { loop: [['sitChair', 1600], ['sitChairB', 1600]], dur: rnd(2500, 5000), prop: 'chair' },
+    ...(Math.random() < .7 ? [{ loop: [['sleepChair', 2000], ['sleepChairB', 2000]], dur: rnd(5000, 10000), prop: 'chair', zzz: true }, { seq: [['nod', 300], ['sitChair', 500]], prop: 'chair' }] : []),
+    { seq: [['stand', 500]] }],
+  floorNap: f => [
+    { seq: [['crouch', 400], ['sitHug', 600], ['sleepBack', 700]] },
+    { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(6000, 11000), zzz: true },
+    { seq: [['sitHug', 700], ['crouch', 450], ['stand', 300]] }],
+  restSit: f => [{ seq: [['crouch', 400], ['sitHug', 500]] }, { loop: [['sitHug', 1700], ['sitHugB', 1700]], dur: rnd(4000, 8000) }, { seq: [['crouch', 450], ['stand', 300]] }],
+  restLie: f => [{ seq: [['crouch', 400], ['sitHug', 500], ['sleepBack', 600]] }, { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(4000, 7000) }, { seq: [['sitHug', 600], ['crouch', 400], ['stand', 300]] }],
+  seatedReach: f => [{ seq: [['crouch', 400], ['sitReachB', 500]] }, { loop: [['sitReachB', 900], ['sitReach', 1500]], reps: ri(2, 4) }, { seq: [['crouch', 450], ['stand', 300]] }],
+  bounce: f => [{ loop: [['stand', 260], ['bounce', 260]], reps: ri(4, 10) }],
+  clap: f => [{ loop: [['clapOpen', 180], ['clapShut', 160]], reps: ri(3, 6) }],
+  pump: f => [{ loop: [['pumpDown', 220], ['pump', 280]], reps: ri(2, 4) }],
+  point: f => [{ seq: [['stand', 200], ['point', 1200], ['stand', 300]] }],
+  flex: f => [{ seq: ANIMS.flexOnce.f }],
+  jumps: f => [{ loop: ANIMS.cheer.f.slice(0, 3), reps: ri(2, 4) }],
+  defaultDance: f => [{ loop: [['d1', 210], ['d2', 210], ['d1', 210], ['d2', 210], ['d3', 230], ['d1', 210], ['d4', 230], ['d2', 210]], reps: ri(2, 4) }],
+  passinho: f => [{ loop: [['pA', 120], ['pB', 120], ['pA', 120], ['pC', 120]], reps: ri(5, 10) }],
+  salsa: f => [{ loop: [['salsaA', 330], ['stand', 220], ['salsaB', 330], ['stand', 220]], reps: ri(2, 4) }, { seq: [['salsaSpin', 250], [{ ...POSES.salsaSpin, face: -1 }, 250], ['stand', 300]] }, { loop: [['salsaA', 330], ['salsaB', 330]], reps: ri(1, 3) }],
+  freeDance: f => [{ loop: ANIMS.dance.f, reps: ri(2, 4) }],
+  hips: f => [{ loop: ANIMS.hips.f, reps: ri(2, 4) }],
+};
+// What the person tends to do in each moment. A weight can depend on how long the moment has lasted (ms).
+const MOODS = {
+  greet: [['idle', 3], ['wave', 2], ['walk', 4], ['stroll', 2.5], ['roll', 1.5], ['sitCross', 1.5], ['look', 1]],
+  prep: [['box', 4], ['goku', 3], ['ankles', 1.5], ['quad', 1.5], ['hamstring', 1.2], ['legSwing', 1.2], ['lunges', 1.5], ['jog', 1.5], ['walk', 2], ['stroll', 1], ['stretch', 1], ['idle', .6],
+    ['impatient', t => t > 15000 ? 4 : 0]],
+  rest: [['restSit', 4], ['restLie', 2], ['seatedReach', 2], ['walkSlow', 1.5], ['idle', 1]],
+  stretch: [['stretch', 3], ['quad', 2], ['hamstring', 2], ['ankles', 2], ['circles', 2], ['legSwing', 1.5], ['walkSlow', 1]],
+  ready: [['goku', 4], ['box', 4], ['jog', 2], ['legSwing', 1], ['walk', .8]],
+  waiting: [['walk', 3], ['impatient', 3], ['chair', t => t > 6000 ? 3 : 1], ['floorNap', t => t > 10000 ? 3 : .5], ['idle', 1]],
+  coach: [['bounce', 4], ['clap', 2.5], ['pump', 2], ['goku', 1.5], ['point', 1.5], ['jog', 1], ['flex', .8], ['idle', 1.5]],
+  party: [['defaultDance', 3], ['passinho', 3], ['salsa', 3], ['freeDance', 2], ['hips', 1], ['clap', 1], ['jumps', 1.5], ['walk', 1]],
+};
+
+// Soft in-betweens: half linear, half eased, so the motion never stops dead on a key pose.
+const ease = k => .5 * k + .5 * (.5 - .5 * Math.cos(Math.PI * k));
+function lerpPose(a, b, k) {
+  const o = {};
+  for (const key in a) o[key] = Array.isArray(a[key]) ? a[key].map((v, i) => v + (b[key][i] - v) * k) : a[key] + (b[key] - a[key]) * k;
+  return o;
+}
+const frameSum = f => f.reduce((s, x) => s + x[1], 0);
+/** Pose at time e along frames; cyclic loops wrap from the last frame back to the first. */
+function framesAt(f, e, cyclic) {
+  const n = f.length;
+  if (n === 1) return poseOf(f[0][0]);
+  if (!cyclic && e >= frameSum(f) - f[n - 1][1]) return poseOf(f[n - 1][0]);
+  e = cyclic ? e % frameSum(f) : e;
+  let i = 0, acc = 0;
+  while (i < n - 1 && e >= acc + f[i][1]) { acc += f[i][1]; i++; }
+  return lerpPose(poseOf(f[i][0]), poseOf(f[(i + 1) % n][0]), ease(Math.min(1, (e - acc) / f[i][1])));
+}
+
+const R = Math.PI / 180;
+const vec = (a, l) => [Math.sin(a * R) * l, Math.cos(a * R) * l];
+const add = (p, d) => [p[0] + d[0], p[1] + d[1]];
+const sub = (p, q) => [p[0] - q[0], p[1] - q[1]];
+const mul = (p, k) => [p[0] * k, p[1] * k];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/** Target joints for a pose, resting on the floor (y = 0). */
+function solve(p) {
+  const up = [Math.sin(p.t * R), -Math.cos(p.t * R)], perp = [-up[1], up[0]];
+  const len = BONE.T * p.sq, so = 7 * (1 - p.turn), ho = 4.5 * (1 - p.turn);
+  const hip = [0, 0], sh = mul(up, len - 6);
+  const head = add(mul(up, len + 13), mul(perp, p.hx));
+  const shL = add(sh, mul(perp, -so)), shR = add(sh, mul(perp, so)), hpL = mul(perp, -ho), hpR = mul(perp, ho);
+  const eL = add(shL, vec(p.aL[0], BONE.ua)), hL = add(eL, vec(p.aL[1], BONE.fa));
+  const eR = add(shR, vec(p.aR[0], BONE.ua)), hR = add(eR, vec(p.aR[1], BONE.fa));
+  const kL = add(hpL, vec(p.lL[0], BONE.th * p.fL)), fL = add(kL, vec(p.lL[1], BONE.sh * p.fL));
+  const kR = add(hpR, vec(p.lR[0], BONE.th * p.fR)), fR = add(kR, vec(p.lR[1], BONE.sh * p.fR));
+  const j = { hip, sh, head, eL, hL, eR, hR, kL, fL, kR, fR };
+  const low = Math.max(5, sh[1] + 6, head[1] + 9.5, hL[1] + 4, hR[1] + 4, fL[1] + 3, fR[1] + 3, kL[1] + 2, kR[1] + 2, eL[1] + 2, eR[1] + 2);
+  const dy = -low - p.lift;
+  for (const k in j) j[k] = [j[k][0], j[k][1] + dy];
+  return j;
+}
+
+// Spring stiffness / damping per joint: the body is firm, hands lag, the head floats.
+const SPRING = { hip: [380, 30], sh: [300, 24], head: [95, 9], eL: [230, 19], eR: [230, 19], hL: [150, 12], hR: [150, 12], kL: [520, 42], kR: [520, 42], fL: [800, 56], fR: [800, 56] };
+const torsoPath = (len, turn) => {
+  const w = 11 - 2 * turn, b = 3 * turn;
+  return `M0 5C${-w - 1} 5 ${-w} ${-len * .55} ${-w * .55} ${-len * .85}C${-w * .3} ${-len - 2} ${w * .4 + b} ${-len - 2} ${w * .6 + b} ${-len * .8}C${w + b} ${-len * .5} ${w + 1 + b * .6} 5 0 5Z`;
+};
+const limbPath = (a, m, b) => { const c = sub(mul(m, 2), mul(add(a, b), .5)); return `M${a[0].toFixed(2)} ${a[1].toFixed(2)}Q${c[0].toFixed(2)} ${c[1].toFixed(2)} ${b[0].toFixed(2)} ${b[1].toFixed(2)}`; };
+const angDown = d => Math.atan2(d[0], d[1]) / R;
+const ZPATH = 'M0 0h6l-6 7h6';
+// Perspective: z = 1 is at the front of the stage, z = -1 at the back. Farther means smaller, higher (toward the
+// horizon) and closer to the center, where the vanishing point is.
+const PERSP = 1.6, DEPTH_WORLD = 260;
+const depthScale = z => 1 / (1 + (1 - z) / 2 * PERSP);
+const WALK_CYCLE = [['w1', 190], ['w2', 190], ['w3', 190], ['w4', 190]], STEP_CYCLE = [['s1', 300], ['s2', 300]], LUNGE_CYCLE = [['lungeA', 650], ['lungeUp', 350], ['lungeB', 650], ['lungeUp', 350]];
+
+const FIGS = new Set();
+class Figure {
+  constructor(svg) {
+    this.svg = svg; svg._fig = this;
+    this.roam = svg.classList.contains('roam');
+    this.h = +svg.dataset.h || 150;
+    svg.innerHTML = `<ellipse class="sh" cx="0" cy="0" rx="16" ry="2.6"/><g class="root" filter="url(#sketchy)">
+      <g class="chair"><path pathLength="1" d="M-15 -48L-12 -19"/><path pathLength="1" d="M-14 -19H10"/><path pathLength="1" d="M-11 -19L-12 0"/><path pathLength="1" d="M7 -19L8 0"/></g>
+      <path class="lb lL"/><ellipse class="ft fL"/><path class="lb lR"/><ellipse class="ft fR"/>
+      <g class="back"></g>
+      <path class="tfill"/><path class="tline"/><circle class="head" r="9.5"/>
+      <g class="front"><path class="lb aL"/><ellipse class="hn hL" rx="3" ry="4.3"/><path class="lb aR"/><ellipse class="hn hR" rx="3" ry="4.3"/></g></g>
+      <g class="zzz"><path d="${ZPATH}"/><path d="${ZPATH}" style="animation-delay:.8s"/><path d="${ZPATH}" style="animation-delay:1.6s"/></g>`;
+    this.q = n => svg.querySelector('.' + n);
+    this.phase = Math.random() * 10;
+    this.pos = { x: 0, z: this.roam ? .4 : 0 };
+    this.face = 1;
+    this.pose = poseOf('stand');
+    this.J = null; this.V = {};
+    this.last = performance.now();
+    this.vb = { w: 0, h: 0, xMax: 0, depth: 0 };
+    this.setMode(svg.dataset.anim || 'idle', true);
+    FIGS.add(this);
+  }
+  // Bounds of the stage, in drawing units (the figure is 128 units tall at the front).
+  rx() { return rnd(-this.vb.xMax, this.vb.xMax); }
+  rz() { return this.vb.h > 220 ? rnd(-1, 1) : this.pos.z; }
+  /** A random spot on the floor, far enough from here that the walk is worth it. */
+  rpoint() {
+    let best = null;
+    for (let i = 0; i < 6; i++) {
+      const c = { x: this.rx(), z: this.rz() }, d = Math.hypot(c.x - this.pos.x, (c.z - this.pos.z) / 2 * DEPTH_WORLD);
+      if (!best || d > best.d) best = { ...c, d };
+      if (d > 80) break;
+    }
+    return [best.x, best.z];
+  }
+  fitView() {
+    if (!this.roam) return;
+    const W = this.svg.clientWidth, H = this.svg.clientHeight;
+    if (!W || !H || (W === this.vb.pw && H === this.vb.ph)) return;
+    const k = 128 / this.h, w = W * k, h = H * k;
+    this.vb = { pw: W, ph: H, w, h, xMax: Math.max(0, w / 2 - 26), horizon: -h * .95 };
+    this.svg.setAttribute('viewBox', `${(-w / 2).toFixed(1)} ${(-h + 6).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
+    this.pos.x = clamp(this.pos.x, -this.vb.xMax, this.vb.xMax);
+  }
+  /** A mood (random behaviors), a fixed loop, or "=pose" to hold still. */
+  setMode(name, instant = false) {
+    this.mode = name; this.svg.dataset.anim = name; this.queue = [];
+    if (MOODS[name]) { this.mood = name; this.moodT0 = performance.now(); this.lastB = null; this.nextBehavior(instant); return; }
+    this.mood = null;
+    this.loopSeg = name.startsWith('=') ? { loop: [[name.slice(1), 1000]], dur: Infinity } : { loop: ANIMS[name].f, dur: Infinity };
+    this.begin({ ...this.loopSeg }, instant);
+  }
+  play(name) { if (name !== this.mode) this.setMode(name); }
+  /** A one-shot reaction; afterwards the person goes on with the moment. */
+  react(name = 'cheer') {
+    this.queue = this.mood ? [] : [{ ...this.loopSeg }];
+    this.begin({ seq: ANIMS[name].f });
+  }
+  nextBehavior(instant) {
+    const t = performance.now() - this.moodT0;
+    const pool = MOODS[this.mood].map(([n, w]) => [n, typeof w === 'function' ? w(t) : w]).filter(([n, w]) => w > 0 && n !== this.lastB);
+    let r = Math.random() * pool.reduce((s, x) => s + x[1], 0), name = pool[0][0];
+    for (const [n, w] of pool) { if ((r -= w) <= 0) { name = n; break; } }
+    this.lastB = name;
+    // On a stage the person usually travels somewhere else before the next thing, so it never stays put.
+    const travel = this.roam && !MOVERS.has(name) && Math.random() < .7 ? B.wander(this) : [];
+    this.queue = [...travel, ...B[name](this)];
+    this.begin(this.queue.shift(), instant);
+  }
+  next() {
+    if (this.queue.length) this.begin(this.queue.shift());
+    else if (this.mood) this.nextBehavior();
+    else this.begin({ ...this.loopSeg });
+  }
+  begin(seg, instant = false) {
+    const now = performance.now();
+    seg.t0 = now; this.from = instant ? null : { ...this.pose };
+    if (seg.walk || seg.roll != null) {
+      // Moving only makes sense on a stage; a fixed figure skips it.
+      if (!this.roam) return this.next();
+      seg.p0 = { ...this.pos };
+      seg.p1 = seg.walk ? { x: clamp(seg.walk[0], -this.vb.xMax, this.vb.xMax), z: clamp(seg.walk[1], -1, 1) } : { x: clamp(seg.roll, -this.vb.xMax, this.vb.xMax), z: this.pos.z };
+      const dx = seg.p1.x - seg.p0.x, dz = (seg.p1.z - seg.p0.z) / 2 * DEPTH_WORLD, dist = Math.hypot(dx, dz);
+      if (dist < 6) return this.next();
+      seg.sideways = Math.abs(dx) >= Math.abs(dz) * .7;
+      const face = dx >= 0 ? 1 : -1;
+      // Turn to face you first, so changing direction reads as turning around rather than a mirror flip.
+      if ((seg.sideways || seg.roll != null) && face !== this.face && this.pose.turn > .3 && !seg.turned) {
+        seg.turned = true; this.queue.unshift(seg);
+        return this.begin({ seq: [['standB', 280]] });
+      }
+      if (seg.sideways || seg.roll != null) this.face = face;
+      seg.cycle = seg.roll != null ? [['tuck', 1000]] : seg.cyc === 'lunge' ? LUNGE_CYCLE : seg.sideways ? WALK_CYCLE : STEP_CYCLE;
+      seg.dur = dist / (seg.roll != null ? 75 : seg.speed || 34) * 1000;
+    } else if (seg.seq) seg.dur = frameSum(seg.seq);
+    else if (seg.reps) seg.dur = frameSum(seg.loop) * seg.reps;
+    this.seg = seg;
+  }
+  target(now) {
+    const seg = this.seg, e = now - seg.t0;
+    if (e >= seg.dur) {
+      if (seg.p1) this.pos = { ...seg.p1 };
+      this.next(); return this.target(now);
+    }
+    let p;
+    if (seg.p1) {
+      const k = e / seg.dur;
+      this.pos = { x: seg.p0.x + (seg.p1.x - seg.p0.x) * k, z: seg.p0.z + (seg.p1.z - seg.p0.z) * k };
+      p = framesAt(seg.cycle, e, true);
+      if (seg.roll != null) p.spin = (this.pos.x - seg.p0.x) * this.face / 15 / R;
+    } else p = framesAt(seg.seq || seg.loop, e, !seg.seq);
+    if (this.from) {
+      const kb = e / 420;
+      if (kb < 1) p = lerpPose(this.from, p, ease(kb)); else this.from = null;
+    }
+    return p;
+  }
+  tick(now) {
+    this.fitView();
+    const dt = Math.min(.05, (now - this.last) / 1000); this.last = now;
+    const p = this.target(now);
+    this.pose = p;
+    // Always alive: breathing and a slow sway on top of whatever pose it is in.
+    const s = now / 1000 + this.phase;
+    const live = { ...p, sq: p.sq + .018 * Math.sin(s * 2.4), t: p.t + 1.6 * Math.sin(s * 1.3), hx: p.hx + .8 * Math.sin(s * .9) };
+    const T = solve(live);
+    T.head = add(T.head, [Math.sin(s * 1.7) * .9, Math.sin(s * 2.3) * 1.4]);
+    if (!this.J) { this.J = {}; for (const k in T) { this.J[k] = [...T[k]]; this.V[k] = [0, 0]; } }
+    // Small fixed steps keep the springs stable even when a frame comes late.
+    const steps = Math.ceil(dt / (1 / 240)), h = dt / Math.max(1, steps);
+    for (const k in T) {
+      const [kk, c] = SPRING[k], J = this.J[k], V = this.V[k];
+      for (let i = 0; i < steps; i++) for (const a of [0, 1]) { V[a] += (kk * (T[k][a] - J[a]) - c * V[a]) * h; J[a] += V[a] * h; }
+    }
+    this.draw(p);
+  }
+  draw(p) {
+    const J = this.J, q = this.q, face = this.face * (p.face < 0 ? -1 : 1);
+    // Depth: farther back is higher on the stage and smaller.
+    let gx = this.pos.x + p.x * face, gy, s;
+    if (this.roam) {
+      s = depthScale(clamp(this.pos.z + p.z, -1, 1));
+      gy = this.vb.horizon * (1 - s);
+      gx *= s;
+      // A little haze in the distance.
+      q('root').style.opacity = (.6 + .4 * s).toFixed(2);
+    } else { gy = -p.z * 9; s = 1 + .2 * p.z; }
+    const xs = [J.hip[0], J.hL[0], J.hR[0], J.fL[0], J.fR[0], J.head[0]], ys = [J.hip[1], J.head[1], J.fL[1], J.fR[1]];
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    q('root').setAttribute('transform', `translate(${gx.toFixed(2)} ${gy.toFixed(2)}) scale(${(face * s).toFixed(3)} ${s.toFixed(3)})` + (p.spin ? ` rotate(${p.spin.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})` : ''));
+    // Torso between the springy hip and shoulders: it stretches and squashes on its own.
+    const v = sub(J.sh, J.hip), up = mul(v, 1 / Math.max(1, Math.hypot(v[0], v[1]))), perp = [-up[1], up[0]];
+    const len = Math.hypot(v[0], v[1]) + 6, ang = Math.atan2(v[0], -v[1]) / R, d = torsoPath(len, p.turn);
+    const tr = `translate(${J.hip[0].toFixed(2)} ${J.hip[1].toFixed(2)}) rotate(${ang.toFixed(2)})`;
+    q('tfill').setAttribute('d', d); q('tfill').setAttribute('transform', `translate(1.6 1.4) ${tr}`);
+    q('tline').setAttribute('d', d); q('tline').setAttribute('transform', tr);
+    q('head').setAttribute('cx', J.head[0].toFixed(2)); q('head').setAttribute('cy', J.head[1].toFixed(2));
+    const so = 7 * (1 - p.turn), ho = 4.5 * (1 - p.turn);
+    const at = { aL: add(J.sh, mul(perp, -so)), aR: add(J.sh, mul(perp, so)), lL: add(J.hip, mul(perp, -ho)), lR: add(J.hip, mul(perp, ho)) };
+    // In side view the far arm goes behind the body.
+    const aL = q('aL'), hL = q('hL'), back = q('back'), front = q('front');
+    if (p.turn > .5 && aL.parentNode !== back) back.append(aL, hL);
+    if (p.turn <= .5 && aL.parentNode !== front) front.prepend(aL, hL);
+    for (const S of ['L', 'R']) {
+      const e = J['e' + S], h = J['h' + S], k = J['k' + S], f = J['f' + S];
+      q('a' + S).setAttribute('d', limbPath(at['a' + S], e, h));
+      q('l' + S).setAttribute('d', limbPath(at['l' + S], k, f));
+      const ha = angDown(sub(h, e)), hc = add(h, vec(ha, 2)), hn = q('h' + S);
+      hn.setAttribute('cx', hc[0].toFixed(2)); hn.setAttribute('cy', hc[1].toFixed(2)); hn.setAttribute('transform', `rotate(${(-ha).toFixed(1)} ${hc[0].toFixed(2)} ${hc[1].toFixed(2)})`);
+      const fa = angDown(sub(f, k)), off = 1 + 2.6 * p.turn, fc = [f[0] + Math.cos(fa * R) * off, f[1] - Math.sin(fa * R) * off], ft = q('f' + S);
+      ft.setAttribute('rx', (3.8 + 1.9 * p.turn).toFixed(2)); ft.setAttribute('ry', '2.8');
+      ft.setAttribute('cx', fc[0].toFixed(2)); ft.setAttribute('cy', fc[1].toFixed(2)); ft.setAttribute('transform', `rotate(${(-fa).toFixed(1)} ${fc[0].toFixed(2)} ${fc[1].toFixed(2)})`);
+    }
+    // Props: the chair draws itself in; the z's float up from the head while asleep.
+    q('chair').classList.toggle('on', this.seg.prop === 'chair');
+    const zz = q('zzz');
+    zz.classList.toggle('on', !!this.seg.zzz);
+    if (this.seg.zzz) zz.setAttribute('transform', `translate(${(gx + J.head[0] * face * s + 8 * face).toFixed(1)} ${(gy + J.head[1] * s - 12).toFixed(1)})`);
+    const fx = [J.hip[0], J.hL[0], J.hR[0], J.fL[0], J.fR[0]], lo = Math.min(...fx), hi = Math.max(...fx);
+    const sh = q('sh'), span = Math.max(26, hi - lo + 12);
+    sh.setAttribute('cx', (gx + (lo + hi) / 2 * face * s).toFixed(2)); sh.setAttribute('cy', gy.toFixed(2));
+    sh.setAttribute('rx', (span / 2 * s * Math.max(.5, 1 - p.lift / 40)).toFixed(2)); sh.setAttribute('ry', (2.6 * s).toFixed(2));
+    sh.setAttribute('opacity', Math.max(.3, 1 - p.lift / 25).toFixed(2));
+  }
+}
+// The shared pencil: a small displacement whose noise changes a few times per second (line boiling).
+document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="sketchy" x="-15%" y="-15%" width="130%" height="130%">
+  <feTurbulence id="sketchNoise" type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="1"/>
+  <feDisplacementMap in="SourceGraphic" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`);
+let seed = 1;
+setInterval(() => { seed = seed % 4 + 1; document.getElementById('sketchNoise').setAttribute('seed', seed); }, 130);
+(function loop(now) {
+  for (const f of FIGS) { if (!f.svg.isConnected) FIGS.delete(f); else f.tick(now); }
+  requestAnimationFrame(loop);
+})(performance.now());
+function mountFigs() { document.querySelectorAll('svg.rig:not([data-mounted])').forEach(s => { s.dataset.mounted = '1'; new Figure(s); }); }
+new MutationObserver(mountFigs).observe(document.body, { childList: true, subtree: true });
+
+/**
+ * Markup for a person `h` px tall doing `mode`: a mood (random behaviors), a loop, or "=pose".
+ * With `roam` it fills its (position: relative) parent and walks around it.
+ */
+function fig(h, mode, id = '', roam = false) {
+  const idAttr = id ? `id="${id}"` : '';
+  if (roam) return `<svg ${idAttr} class="rig roam" data-anim="${mode}" data-h="${h}" viewBox="-60 -128 120 134" style="position:absolute;inset:0;width:100%;height:100%" aria-label="Personita"></svg>`;
+  return `<svg ${idAttr} class="rig" data-anim="${mode}" data-h="${h}" viewBox="-55 -122 110 128" width="${Math.round(h * 110 / 128)}" height="${h}" aria-label="Personita"></svg>`;
+}
+function setFig(el, mode) { if (!el) return; if (el._fig) el._fig.play(mode); else el.dataset.anim = mode; }
+function react(el, kind = 'cheer') { el?._fig?.react(kind); }
+
+// ---------- Icons (continuous stroke, from the Ejercicio concept) ----------
+const ICONS = {
+  pecho: { main: 'M4 6c3-2 13-2 16 0l-1.5 14h-13L4 6', red: 'M7 10.5c2 2 4 2 5 0c1 2 3 2 5 0' },
+  hombros: { main: 'M12 4a2.5 2.5 0 1 1 0 5a2.5 2.5 0 1 1 0-5M4 19c0-5 3-8 8-8s8 3 8 8', red: 'M5 14l2 1M19 14l-2 1' },
+  home: { main: 'M4 11l8-7 8 7v9H4z', red: 'M10 20v-5h4v5' },
+  gear: { main: 'M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1' },
+  grid: { main: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
+  trash: { main: 'M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13' },
+  check: { main: 'M20 6 9 17l-5-5' },
+  close: { main: 'M6 6l12 12M18 6 6 18' },
+};
+function icon(name, size = 18, color = '#B0B0B0', red = true) {
+  const i = ICONS[name];
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="${i.main}" stroke="${color}"/>${i.red && red ? `<path d="${i.red}" stroke="#D71921"/>` : ''}</svg>`;
+}
+const PLAY = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F5F5F5" stroke-width="1.75" stroke-linejoin="round"><path d="M8 5l11 7-11 7z"/></svg>`;
+
+// ---------- Today's routine (sample data) ----------
+const GROUPS = [['pecho', 'Pecho'], ['hombros', 'Hombros']];
+const WARMUPS = [
+  { name: 'Saltos y plancha', min: 4, anim: 'jacksPlank', pose: 'jack', why: 'Saltos de tijera para subir el pulso y luego plancha y perro boca abajo para abrir hombros y piernas.', tip: 'Aterriza suave; en la plancha, cadera alineada con los hombros.', avg: '4 min' },
+  { name: 'Sombra de boxeo', min: 3, anim: 'box', pose: 'jab', why: 'Despierta hombros y pecho con golpes rápidos y sin carga.', tip: 'Guardia arriba, gira la cadera en cada golpe.', avg: '4 min' },
+  { name: 'Círculos de brazos', min: 2, anim: 'circles', pose: 'side', why: 'Prepara el hombro para el press: lo moviliza en todo su rango.', tip: 'Círculos lentos, primero chicos y luego grandes.', avg: '2 min' },
+];
+const OTHERS = [...WARMUPS,
+  { name: 'Baile libre', min: 3, anim: 'dance', pose: 'danceA', why: 'Calor general sin pensar en la técnica.', tip: 'Lo que quieras, pero sin parar.', avg: '3 min' },
+  { name: 'Estocadas', min: 3, anim: 'lunges', pose: 'lunge', why: 'Calienta piernas y cadera con tu propio peso.', tip: 'La rodilla de enfrente no pasa la punta del pie.', avg: '3 min' },
+  { name: 'Elevación de piernas', min: 2, anim: 'legRaise', pose: 'legsUp', why: 'Activa el abdomen antes de cargar.', tip: 'La espalda baja pegada al piso.', avg: '2 min' },
+  { name: 'Movilidad de cadera', min: 2, anim: 'hips', pose: 'hipA', why: 'Suelta la cadera y la espalda baja.', tip: 'Círculos amplios, manos en la cintura.', avg: '2 min' },
+  { name: 'Saludo y estiramiento', min: 2, anim: 'wave', pose: 'up', why: 'Estira brazos y espalda de forma suave.', tip: 'Respira hondo en cada estiramiento.', avg: '2 min' },
+];
+const EXS = [
+  { name: 'Press de banca', zone: 'pecho', sets: [[10, 60], [8, 65], [8, 65]], kcal: 45, posture: 'Escápulas juntas, pies firmes, la barra baja a la mitad del pecho.', tips: 'Baja en 2 segundos y sube con fuerza. Si la última rep tiembla, no subas peso.', best: '70 kg × 6', hist: [55, 60, 60, 62.5, 65, 70, 65] },
+  { name: 'Aperturas con mancuerna', zone: 'pecho', sets: [[12, 14], [12, 14], [12, 14]], kcal: 30, posture: 'Codos un poco doblados, abre hasta sentir el estiramiento.', tips: 'No choques las mancuernas arriba; detente un poco antes.', best: '16 kg × 10', hist: [12, 12, 14, 14, 14, 16, 14] },
+  { name: 'Press militar', zone: 'hombros', sets: [[10, 30], [10, 30], [8, 32.5]], kcal: 35, posture: 'Abdomen firme, no arquees la espalda; la barra sube en línea recta.', tips: 'Mete la cabeza bajo la barra al final de cada rep.', best: '35 kg × 6', hist: [25, 27.5, 30, 30, 30, 32.5, 35] },
+  { name: 'Elevaciones laterales', zone: 'hombros', sets: [[15, 8], [15, 8], [12, 8]], kcal: 20, posture: 'Sube hasta la altura del hombro, codos guiando el movimiento.', tips: 'Ligero y controlado; si balanceas, baja el peso.', best: '10 kg × 12', hist: [6, 6, 7, 8, 8, 10, 8] },
+];
+
+const S = { stage: 'start', warm: 0, warmChoice: null, exIdx: 0, next: 0, startedAt: null, restLeft: 300, restOver: 0, warmLeft: 0, speed: 10, sets: null };
+function freshSets() { S.sets = EXS.map(e => e.sets.map(([r, kg]) => ({ r, kg, done: false }))); }
+freshSets();
+
+// ---------- Helpers ----------
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const elapsed = () => S.startedAt ? (Date.now() - S.startedAt) / 1000 : 0;
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 1600); }
+function toggleSpeed() { S.speed = S.speed === 10 ? 1 : 10; $('speedBtn').textContent = S.speed === 10 ? 'TIEMPO ×10' : 'TIEMPO REAL'; $('speedBtn').classList.toggle('on', S.speed === 10); }
+
+/** Calls h.left/right/up/down on a swipe over el. */
+function swipe(el, h) {
+  let x0 = null, y0 = null;
+  el.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
+  el.addEventListener('pointerup', e => {
+    if (x0 == null) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) (dx > 0 ? h.right : h.left)?.(e);
+    else if (Math.abs(dy) > 45) (dy < 0 ? h.up : h.down)?.(e);
+    else h.tap?.(e);
+  });
+  el.addEventListener('pointercancel', () => { x0 = null; });
+}
+/** Calls fn after keeping a finger still on el for ms. */
+function hold(el, ms, fn) {
+  let t = null, x0, y0;
+  const stop = () => { clearTimeout(t); t = null; };
+  el.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; t = setTimeout(() => { t = null; fn(); }, ms); });
+  el.addEventListener('pointermove', e => { if (t && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, stop));
+}
+
+function topBar() {
+  return `<div class="row">
+    <button class="tool" onclick="go('general')" aria-label="Vista general">${icon('home', 22)}</button>
+    <div class="groups">${GROUPS.map(([k, n]) => `<span>${icon(k, 18)}${n}</span>`).join('')}</div>
+    <button class="tool" onclick="toast('Abre los ajustes de Ejercicio')" aria-label="Ajustes de Ejercicio">${icon('gear', 22)}</button>
+  </div>`;
+}
+
+// ---------- Stages ----------
+function go(stage) {
+  S.stage = stage;
+  if (stage === 'start') { freshSets(); S.startedAt = null; S.exIdx = 0; }
+  if (stage === 'rest' && S.restLeft <= 0) S.restLeft = 300;
+  ({ general, start, warm, warmRun, ex, rest, end })[stage]();
+}
+
+function general() {
+  $('view').innerHTML = `
+    <div class="row"><span class="label muted">EJERCICIO</span><button class="tool" onclick="toast('Abre los ajustes de Ejercicio')">${icon('gear', 22)}</button></div>
+    <div class="card note" style="margin-top:20px">
+      <b>Vista general</b> (hoy · semana · cuerpo). Es el boceto de Ejercicio que ya existe: <a style="color:#F5F5F5" href="EjercicioVisual.html">EjercicioVisual.html</a>.<br><br>
+      Cuando es hora de entrenar, Ejercicio abre directo en el inicio de la rutina en lugar de aquí.
+    </div>
+    <div style="flex:1;position:relative">${fig(130, 'greet', 'fig', true)}</div>
+    <button class="btn" style="align-self:center" onclick="go('start')">EMPEZAR LA RUTINA DE HOY</button>`;
+  $('fig').addEventListener('click', () => react($('fig')));
+}
+
+function start() {
+  $('view').innerHTML = `${topBar()}
+    <div class="stage" id="stage">${fig(150, 'prep', 'fig', true)}</div>
+    <div class="startTrack" id="track"><div class="line"></div><div class="target"></div>
+      <button class="play" id="play" aria-label="Mantén y arrastra al punto para iniciar"><div class="water" id="water"></div>${PLAY}</button></div>
+    <div style="height:8px"></div>`;
+  $('fig').addEventListener('click', () => react($('fig')));
+  const play = $('play'), water = $('water'), track = $('track');
+  const dist = 240 - 72 + 4;
+  let filling = null, fill = 0, armed = false, x0 = 0, dx = 0;
+  const reset = () => {
+    clearInterval(filling); filling = null; armed = false; fill = 0; dx = 0;
+    play.style.transition = 'transform .3s'; play.style.transform = ''; water.style.top = '115%'; track.classList.remove('armed');
+  };
+  play.addEventListener('pointerdown', e => {
+    play.setPointerCapture(e.pointerId); x0 = e.clientX; play.style.transition = 'none';
+    filling = setInterval(() => {
+      fill = Math.min(1, fill + 0.05); water.style.top = (115 - fill * 175) + '%';
+      if (fill >= 1) { clearInterval(filling); filling = null; armed = true; track.classList.add('armed'); react($('fig'), 'nod'); }
+    }, 40);
+  });
+  play.addEventListener('pointermove', e => {
+    if (!armed) return;
+    dx = Math.max(0, Math.min(dist, e.clientX - x0)); play.style.transform = `translateX(${dx}px)`;
+  });
+  play.addEventListener('pointerup', () => {
+    if (armed && dx > dist - 26) { S.startedAt = Date.now(); react($('fig')); setTimeout(() => go('warm'), 700); return; }
+    reset();
+  });
+  play.addEventListener('pointercancel', reset);
+}
+
+function warm() {
+  const cards = [...WARMUPS, null];
+  $('view').innerHTML = `${topBar()}
+    <div class="stage" id="stage">${fig(150, WARMUPS[S.warm]?.anim || 'look', 'fig')}<span class="chev" style="right:0">›</span></div>
+    <div class="carousel" id="car"><div class="track" id="trk">${cards.map(w => w ? `
+      <div class="wcard"><div class="art">${fig(58, '=' + w.pose)}</div><div style="flex:1"><div class="wname">${w.name}</div><div class="num">${w.min} MIN</div></div><span class="num gray">⌃</span></div>` : `
+      <div class="wcard" id="otros" style="cursor:pointer"><div class="art">${icon('grid', 26)}</div><div style="flex:1"><div class="wname">Otros</div><div class="num">VER TODOS</div></div></div>`).join('')}</div></div>
+    <div class="pips" id="pips">${cards.map((_, i) => `<i class="pip"></i>`).join('')}</div>
+    <div class="sheet" id="detail"></div>
+    <div class="sheet" id="others"></div>`;
+  const f = $('fig');
+  const show = () => {
+    $('trk').style.transform = `translateX(${-S.warm * 100}%)`;
+    [...$('pips').children].forEach((p, i) => p.classList.toggle('on', i === S.warm));
+    const w = WARMUPS[S.warm];
+    setFig(f, w ? w.anim : 'look');
+  };
+  show();
+  f.addEventListener('click', () => react(f));
+  swipe($('car'), {
+    left: () => { if (S.warm < cards.length - 1) { S.warm++; show(); } },
+    right: () => { if (S.warm > 0) { S.warm--; show(); } },
+    up: () => WARMUPS[S.warm] ? openDetail(WARMUPS[S.warm]) : openOthers(),
+    tap: () => { if (!WARMUPS[S.warm]) openOthers(); },
+  });
+  hold($('car'), 500, () => { if (!WARMUPS[S.warm]) openOthers(); });
+  swipe($('stage'), { right: () => chooseWarm(WARMUPS[S.warm] || WARMUPS[0]) });
+}
+function openDetail(w) {
+  const d = $('detail');
+  d.innerHTML = `<div class="peek">${peek()}</div>
+    <h3>${w.name}</h3><div class="num">${w.min} MIN</div>
+    <div class="sec">POR QUÉ</div><p>${w.why}</p>
+    <div class="sec">TU PROGRESO</div>
+    <div class="row" style="justify-content:flex-start;gap:8px">${[1, 1, 0, 1, 1, 1, 0, 1].map(v => `<i style="width:8px;height:8px;border-radius:4px;background:${v ? '#F5F5F5' : '#2A2A2A'}"></i>`).join('')}<span class="num" style="margin-left:8px">${w.avg} PROMEDIO</span></div>
+    <p style="margin-top:6px">Un punto por sesión reciente: blanco si calentaste con esto.</p>
+    <div class="sec">TIP</div><p>${w.tip}</p>
+    <div class="row" style="margin-top:22px"><span class="num gray">⌄ CERRAR</span><span class="num">DESLIZA → PARA EMPEZAR</span></div>`;
+  d.classList.add('open');
+  swipe(d, { down: () => d.classList.remove('open'), right: () => chooseWarm(w) });
+}
+function peek() {
+  // The person spying over the sheet edge: head, eyes and two hands on the border.
+  return `<svg id="peekFig" class="peekSvg" viewBox="0 0 56 50" width="56" height="50">
+    <circle cx="28" cy="24" r="13"/><circle class="eye" cx="23" cy="23" r="1.8"/><circle class="eye" cx="33" cy="23" r="1.8"/>
+    <ellipse cx="12" cy="44" rx="5" ry="3.4"/><ellipse cx="44" cy="44" rx="5" ry="3.4"/></svg>`;
+}
+function openOthers() {
+  const o = $('others');
+  o.innerHTML = `<div class="row"><span class="label red">CALENTAMIENTOS</span><button class="tool" onclick="$('others').classList.remove('open')">${icon('close', 18)}</button></div>
+    <div class="grid">${OTHERS.map((w, i) => `<button onclick="chooseWarm(OTHERS[${i}])">${fig(52, '=' + w.pose)}${w.name}</button>`).join('')}</div>`;
+  o.classList.add('open');
+  swipe(o, { down: () => o.classList.remove('open') });
+}
+function chooseWarm(w) {
+  S.warmChoice = w; S.warmLeft = w.min * 60;
+  if (!S.startedAt) S.startedAt = Date.now();
+  react($('fig'));
+  setTimeout(() => go('warmRun'), 500);
+}
+
+function warmRun() {
+  const w = S.warmChoice || WARMUPS[0];
+  $('view').innerHTML = `
+    <div class="row"><span class="num js-clock">${fmt(elapsed())}</span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
+    <div style="text-align:center"><div class="wname" style="font-size:20px">${w.name}</div></div>
+    <div class="huge js-warm">${fmt(S.warmLeft)}</div>
+    <div class="stage" id="stage">${fig(160, w.anim, 'fig')}</div>
+    <div style="height:70px"></div>
+    ${arcHtml(true)}`;
+  $('fig').addEventListener('click', () => react($('fig')));
+  bindArc(() => { S.next = 0; S.restLeft = 60; S.restOver = 0; go('rest'); });
+}
+
+function muscleSvg(zone, p) {
+  const fill = z => z === zone ? `class="zone on" style="fill:rgba(215,25,33,${(0.08 + p * 0.72).toFixed(2)})"` : 'class="zone"';
+  return `<svg class="muscle" id="muscle" viewBox="0 0 120 150" width="150" height="188" aria-label="Músculo trabajado">
+    <circle cx="60" cy="14" r="9"/>
+    <path d="M54 23v5Q42 29 34 35L27 66 24 88M66 23v5Q78 29 86 35l7 31 3 22"/>
+    <path d="M40 40l5 52-3 50M80 40l-5 52 3 50M60 98v44"/>
+    <path ${fill('hombros')} d="M34 36Q38 30 45 33L43 43Q36 43 34 36ZM86 36Q82 30 75 33L77 43Q84 43 86 36Z"/>
+    <path ${fill('pecho')} d="M45 40Q52 36 59 40V55Q51 59 46 53ZM75 40Q68 36 61 40V55Q69 59 74 53Z"/>
+    <path ${fill('core')} d="M49 61H71L69 90H51Z"/>
+    <path ${fill('brazos')} d="M30 45l6 2-3 18-6-2ZM90 45l-6 2 3 18 6-2Z"/>
+    <path ${fill('piernas')} d="M47 100h11l-2 38h-8ZM73 100H62l2 38h8Z"/>
+  </svg>`;
+}
+function exProgress(i) { const s = S.sets[i]; return s.length ? s.filter(x => x.done).length / s.length : 0; }
+
+function ex() {
+  const e = EXS[S.exIdx];
+  if (!S.startedAt) S.startedAt = Date.now();
+  $('view').innerHTML = `
+    <div class="row">${fig(64, 'coach', 'mini')}<span class="big js-clock" style="font-size:26px">${fmt(elapsed())}</span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
+    <div class="area" id="area">
+      <div class="exdots">${EXS.map((_, i) => `<i class="${i < S.exIdx ? 'w' : i === S.exIdx ? 'r' : ''}"></i>`).join('')}</div>
+      <div class="wname" style="font-size:18px;margin-top:6px">${e.name}</div>
+      <div style="position:relative;width:100%;display:grid;place-items:center">${muscleSvg(e.zone, exProgress(S.exIdx))}
+        <span class="chev" style="left:0">‹</span><span class="chev" style="right:0">›</span></div>
+      <span class="num gray" style="font-size:10px">MANTÉN PARA INFO</span>
+    </div>
+    <div class="sets" id="sets"></div>
+    ${arcHtml(false)}
+    <div class="sheet" id="info"></div>
+    <div class="panel left" id="pNext"></div>
+    <div class="panel right" id="pDash"></div>`;
+  const mini = $('mini');
+  mini.addEventListener('click', () => react(mini, 'nod'));
+  renderSets();
+  swipe($('area'), { right: openNext, left: openDash });
+  hold($('area'), 550, () => openInfo(e));
+  bindArc(() => {
+    if (S.exIdx < EXS.length - 1) { S.next = S.exIdx + 1; S.restLeft = 300; S.restOver = 0; go('rest'); } else go('end');
+  });
+}
+function renderSets() {
+  const sets = S.sets[S.exIdx], cur = sets.findIndex(s => !s.done);
+  $('sets').innerHTML = sets.map((s, i) => `
+    <div class="setwrap" data-i="${i}"><div class="swipeRow"><div class="trash" onclick="delSet(${i})">${icon('trash', 22, '#F5F5F5', false)}</div>
+      <div class="set">
+        <span class="sn ${i === cur ? 'cur' : ''}">${i + 1}</span>
+        <button class="val" onclick="toggleStep(${i})">${s.r}<small>REPS</small></button>
+        <button class="val" onclick="toggleStep(${i})">${s.kg}<small>KG</small></button>
+        <button class="chk ${s.done ? 'done' : i === cur ? 'cur' : ''}" onclick="markSet(${i})" aria-label="Marcar serie ${i + 1}">${s.done ? icon('check', 14, '#000', false) : ''}</button>
+      </div></div>
+      <div class="stepper" id="st${i}">
+        <div class="step"><button onclick="bump(${i},'r',-1)">−</button><span>${s.r} reps</span><button onclick="bump(${i},'r',1)">+</button></div>
+        <div class="step"><button onclick="bump(${i},'kg',-2.5)">−</button><span>${s.kg} kg</span><button onclick="bump(${i},'kg',2.5)">+</button></div>
+      </div></div>`).join('') + `<button class="add" onclick="addSet()" aria-label="Agregar serie">+</button>`;
+  document.querySelectorAll('.setwrap').forEach(bindRowSwipe);
+  $('arc').classList.toggle('ready', sets.length > 0 && cur === -1);
+}
+function bindRowSwipe(wrap) {
+  const row = wrap.querySelector('.set'), i = +wrap.dataset.i;
+  let x0 = null, y0, dx = 0, open = false;
+  row.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; x0 = e.clientX; y0 = e.clientY; dx = 0; row.style.transition = 'none'; });
+  row.addEventListener('pointermove', e => {
+    if (x0 == null) return;
+    const d = e.clientX - x0 + (open ? -72 : 0);
+    if (Math.abs(e.clientY - y0) > 20 && Math.abs(d) < 20) { x0 = null; return; }
+    dx = Math.min(0, d); row.style.transform = `translateX(${dx}px)`;
+  });
+  const end = () => {
+    if (x0 == null) return; x0 = null; row.style.transition = '';
+    if (dx < -150) { delSet(i); return; }
+    open = dx < -50; row.style.transform = open ? 'translateX(-72px)' : '';
+  };
+  row.addEventListener('pointerup', end); row.addEventListener('pointerleave', end);
+}
+function updateMuscle() { $('muscle').outerHTML = muscleSvg(EXS[S.exIdx].zone, exProgress(S.exIdx)); }
+function markSet(i) {
+  const s = S.sets[S.exIdx][i]; s.done = !s.done;
+  renderSets(); updateMuscle();
+  if (s.done) react($('mini'), 'cheer');
+  if (S.sets[S.exIdx].every(x => x.done)) { setTimeout(() => react($('mini'), 'clapOnce'), 900); setFig($('mini'), 'party'); }
+}
+function toggleStep(i) { $('st' + i).classList.toggle('open'); }
+function bump(i, k, d) {
+  const s = S.sets[S.exIdx][i]; s[k] = Math.max(0, +(s[k] + d).toFixed(1));
+  renderSets(); $('st' + i).classList.add('open');
+  if (k === 'kg') react($('mini'), 'flexOnce');
+}
+function addSet() { const sets = S.sets[S.exIdx], last = sets[sets.length - 1] || { r: 10, kg: 20 }; sets.push({ r: last.r, kg: last.kg, done: false }); renderSets(); }
+function delSet(i) { S.sets[S.exIdx].splice(i, 1); renderSets(); updateMuscle(); }
+
+function openInfo(e) {
+  const d = $('info');
+  d.innerHTML = `<h3>${e.name}</h3><div class="num">≈ ${e.kcal} KCAL · ${S.sets[S.exIdx].length} SERIES</div>
+    <div class="sec">POSTURA</div><p>${e.posture}</p><div class="sec">TIPS</div><p>${e.tips}</p>
+    <div class="row" style="margin-top:20px"><span class="num gray">⌄ CERRAR</span></div>`;
+  d.classList.add('open');
+  swipe(d, { down: () => d.classList.remove('open'), tap: () => d.classList.remove('open') });
+}
+function openNext() {
+  const p = $('pNext');
+  p.innerHTML = `<div class="row">${fig(52, 'look')}<button class="tool" onclick="$('pNext').classList.remove('open')">${icon('close', 20)}</button></div>
+    <div class="sec" style="margin:0">TIEMPO EN LA RUTINA</div><div class="huge js-clock" style="text-align:left">${fmt(elapsed())}</div>
+    <div>${EXS.map((x, i) => `<div class="exrow" onclick="S.exIdx=${i};go('ex')">${icon(x.zone, 22, i < S.exIdx ? '#F5F5F5' : i === S.exIdx ? '#F5F5F5' : '#5C5C5C', i === S.exIdx)}
+      <span style="flex:1;color:${i <= S.exIdx ? '#F5F5F5' : '#5C5C5C'}">${x.name}</span>
+      ${S.sets[i].every(s => s.done) && S.sets[i].length ? icon('check', 16, '#F5F5F5', false) : i === S.exIdx ? '<i style="width:6px;height:6px;border-radius:3px;background:#D71921"></i>' : ''}</div>`).join('')}</div>
+    <span class="num gray" style="margin-top:auto;text-align:center">TOCA UNO PARA IR A ÉL · DESLIZA ← PARA VOLVER</span>`;
+  p.classList.add('open');
+  swipe(p, { left: () => p.classList.remove('open') });
+}
+function openDash() {
+  const e = EXS[S.exIdx], p = $('pDash'), max = Math.max(...e.hist);
+  p.innerHTML = `<div class="row"><span class="tag">POR DISEÑAR</span><button class="tool" onclick="$('pDash').classList.remove('open')">${icon('close', 20)}</button></div>
+    <div class="wname" style="font-size:20px">${e.name}</div>
+    <div class="sec" style="margin:0">MEJOR MARCA</div><div class="big">${e.best}</div>
+    <div class="sec" style="margin:0">PESO POR SESIÓN</div>
+    <div class="bars">${e.hist.map(v => `<i class="${v === max ? 'best' : ''}" style="height:${(v / max * 100).toFixed(0)}%"></i>`).join('')}</div>
+    <div class="sec" style="margin:0">REGISTROS ANTERIORES</div>
+    ${['22 OCT', '15 OCT', '8 OCT'].map((d, k) => `<div class="row num" style="padding:6px 0;border-top:1px solid #161616"><span>${d}</span><span>${e.sets.map(([r, kg]) => `${kg - k * 2.5}×${r}`).join('  ')}</span><span>${14 - k}'</span></div>`).join('')}
+    <span class="num gray" style="margin-top:auto;text-align:center">DESLIZA → PARA VOLVER</span>`;
+  p.classList.add('open');
+  swipe(p, { right: () => p.classList.remove('open') });
+}
+
+function arcHtml(ready) {
+  return `<div class="arc ${ready ? 'ready' : ''}" id="arc">
+    <svg width="100%" height="92" viewBox="0 0 390 92" preserveAspectRatio="none"><path d="M30 92 A165 74 0 0 1 360 92" fill="none" stroke="#1C1C1C" stroke-width="2"/>
+      <path id="arcFill" d="M30 92 A165 74 0 0 1 360 92" fill="none" stroke="#D71921" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/></svg>
+    <div class="knob"></div><span class="lbl">CONTINUAR</span></div>`;
+}
+/** Swipe the arc up, then keep holding until the red line closes. */
+function bindArc(onDone) {
+  const arc = $('arc'), line = $('arcFill');
+  let y0 = null, t = null, p = 0;
+  const reset = () => { y0 = null; clearInterval(t); t = null; p = 0; line.setAttribute('stroke-dasharray', '0 100'); arc.style.transform = ''; };
+  arc.addEventListener('pointerdown', e => { arc.setPointerCapture(e.pointerId); y0 = e.clientY; });
+  arc.addEventListener('pointermove', e => {
+    if (y0 == null) return;
+    const dy = Math.min(0, e.clientY - y0); arc.style.transform = `translateY(${Math.max(-60, dy)}px)`;
+    if (dy < -45 && !t) t = setInterval(() => {
+      p = Math.min(100, p + 4); line.setAttribute('stroke-dasharray', `${p} 100`);
+      if (p >= 100) { clearInterval(t); t = null; y0 = null; arc.style.transform = ''; onDone(); }
+    }, 30);
+  });
+  arc.addEventListener('pointerup', reset); arc.addEventListener('pointercancel', reset);
+}
+
+function rest() {
+  const n = EXS[S.next];
+  $('view').innerHTML = `
+    <div class="row"><span class="num js-clock">${fmt(elapsed())}</span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
+    <div class="huge js-rest" id="restClock" style="margin-top:28px">${fmt(S.restLeft)}</div>
+    <div class="stage" id="stage">${fig(150, 'rest', 'fig', true)}</div>
+    <div class="nextCard" onclick="endRest()">${icon(n.zone, 26, '#F5F5F5')}
+      <div style="flex:1"><div class="wname">${n.name}</div><div class="num">${S.sets[S.next].length} SERIES · ${n.sets[0][1]} KG</div></div><span class="red" style="font-size:20px">›</span></div>
+    <button class="btn" style="align-self:center" onclick="endRest()">SALTAR</button>`;
+  $('fig').addEventListener('click', () => react($('fig'), 'nod'));
+  restFigure();
+}
+function restFigure() {
+  const f = $('fig'); if (!f) return;
+  const total = S.restTotal || 300, frac = S.restLeft / total;
+  const mode = S.restLeft <= 0 ? 'waiting' : frac > .6 ? 'rest' : frac > .3 ? 'stretch' : 'ready';
+  setFig(f, mode);
+}
+function endRest() { S.exIdx = S.next; S.restOver = 0; go('ex'); }
+
+function end() {
+  const kcal = EXS.reduce((a, e) => a + e.kcal, 0);
+  $('view').innerHTML = `
+    <div class="row"><span></span><button class="tool" onclick="go('general')">${icon('home', 22)}</button></div>
+    <div class="stage">${fig(150, 'party', 'fig', true)}</div>
+    <div class="row" style="justify-content:center;gap:18px">${EXS.map(e => icon(e.zone, 26, '#F5F5F5', false)).join('')}</div>
+    <div class="row" style="justify-content:space-around"><div style="text-align:center"><div class="big">${fmt(elapsed())}</div><div class="num">TIEMPO</div></div>
+      <div style="text-align:center"><div class="big">${kcal}</div><div class="num">KCAL</div></div></div>
+    <button class="btn" style="align-self:center" onclick="go('general')">VOLVER</button>`;
+  $('fig').addEventListener('click', () => react($('fig')));
+}
+
+// ---------- Clock ----------
+let lastTick = Date.now();
+setInterval(() => {
+  const now = Date.now(), dt = (now - lastTick) / 1000 * S.speed; lastTick = now;
+  document.querySelectorAll('.js-clock').forEach(el => el.textContent = fmt(elapsed()));
+  if (S.stage === 'warmRun') {
+    S.warmLeft = Math.max(0, S.warmLeft - dt);
+    const el = document.querySelector('.js-warm'); if (el) el.textContent = fmt(Math.ceil(S.warmLeft));
+  }
+  if (S.stage === 'rest') {
+    if (!S.restTotal || S.restLeft > S.restTotal) S.restTotal = S.restLeft;
+    if (S.restLeft > 0) S.restLeft = Math.max(0, S.restLeft - dt); else S.restOver += dt;
+    const el = $('restClock');
+    if (el) {
+      el.textContent = S.restLeft > 0 ? fmt(Math.ceil(S.restLeft)) : '+' + fmt(S.restOver);
+      el.style.color = S.restLeft > 0 ? '#F5F5F5' : '#D71921';
+    }
+    restFigure();
+  } else S.restTotal = 0;
+}, 250);
+
+go('start');
+</script>
+</body>
+</html>
