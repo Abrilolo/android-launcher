@@ -438,7 +438,11 @@ fun WaterTile(habits: Set<String>, now: LocalDateTime, settings: ModuleSettings,
                                         onClick = {
                                             tapFrom = count
                                             val target = if (g == count) g - 1 else g
-                                            for (n in 1..goal) onSetHabit(waterKey(date, n), n <= target)
+                                            for (n in 1..goal) {
+                                                val key = waterKey(date, n)
+                                                val done = n <= target
+                                                if ((key in habits) != done) onSetHabit(key, done)
+                                            }
                                             if (target > count) { if (target == goal) reactions.done() else reactions.tick() }
                                         },
                                         onLongClick = onLongClick,

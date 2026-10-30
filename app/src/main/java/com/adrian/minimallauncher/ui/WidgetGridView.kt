@@ -149,9 +149,9 @@ fun WidgetGridView(
                     DropPreview(col, row, w, h, valid = true, merge = onTop != null) to onTop?.id
                 } else {
                     // Taken: the free cell closest to the finger, so a drop a bit off still lands where meant.
-                    val (c, r) = (0..stacks.usedRows()).flatMap { r -> (0..GRID_COLUMNS - w).map { c -> c to r } }
+                    val (c, r) = (0..stacks.usedRows() + h).flatMap { r -> (0..GRID_COLUMNS - w).map { c -> c to r } }
                         .filter { (c, r) -> stacks.fits(c, r, w, h) }
-                        .minBy { (c, r) -> abs(c - col) + abs(r - row) }
+                        .minByOrNull { (c, r) -> abs(c - col) + abs(r - row) } ?: (0 to stacks.usedRows())
                     DropPreview(c, r, w, h, valid = true, merge = false) to null
                 }
             }

@@ -75,7 +75,8 @@ val DEFAULT_PLACES = listOf(Place(PlaceIds.CASA, "Casa"), Place(PlaceIds.OFICINA
 private val Context.routineStore by preferencesDataStore(name = "routine")
 
 /** The routine's own preferences: phases, places and the last place event. Kept apart from the settings store. */
-class RoutineRepository(private val context: Context, private val settings: SettingsRepository = SettingsRepository(context)) {
+class RoutineRepository(context: Context, private val settings: SettingsRepository = SettingsRepository(context)) {
+    private val context: Context = context.applicationContext ?: context
     private val phasesKey = stringPreferencesKey("phases")
     private val placesKey = stringPreferencesKey("places")
     private val lastEventKey = stringPreferencesKey("last_place_event")

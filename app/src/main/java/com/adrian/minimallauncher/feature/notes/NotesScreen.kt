@@ -175,7 +175,7 @@ fun NotesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: ()
                         if (!note.done) plays = plays + (note.id to (plays[note.id] ?: 0) + 1)
                         viewModel.setNoteDone(note.id, !note.done)
                     },
-                    onPin = { notes.filter { it.pinned && it.id != note.id }.forEach { viewModel.setNotePinned(it.id, false) }; viewModel.setNotePinned(note.id, !note.pinned) },
+                    onPin = { viewModel.setNotePinned(note.id, !note.pinned) },
                     onDelete = { viewModel.deleteNote(note.id) },
                 )
             }

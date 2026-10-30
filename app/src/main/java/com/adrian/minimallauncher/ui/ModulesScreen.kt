@@ -253,6 +253,7 @@ private fun ModuleEditor(id: String, settings: ModuleSettings, onUpdate: ((Modul
         "diet" -> {
             MealsEditor(settings.meals) { meals -> onUpdate { it.copy(meals = meals) } }
             WaterEditor(settings, onUpdate)
+            NutritionGoalsEditor(settings, onUpdate)
         }
         "world" -> {
             SmallLabel("LAS DOS PRIMERAS VAN EN LA TARJETA DEL INICIO")
@@ -411,6 +412,39 @@ private fun WaterEditor(settings: ModuleSettings, onUpdate: ((ModuleSettings) ->
     ChipRow((6..10).map { LocalTime.of(it, 0) }, settings.waterFrom, { it.format(DateTimeFormatter.ofPattern("HH:mm")) }) { t -> onUpdate { it.copy(waterFrom = t) } }
     SmallLabel("HASTA")
     ChipRow((19..23).map { LocalTime.of(it, 0) }, settings.waterTo, { it.format(DateTimeFormatter.ofPattern("HH:mm")) }) { t -> onUpdate { it.copy(waterTo = t) } }
+}
+
+/** Daily nutrition and body targets used by the Comida progress bars and IMC calculation. */
+@Composable
+private fun NutritionGoalsEditor(settings: ModuleSettings, onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit) {
+    var kcal by remember(settings.kcalGoal) { mutableStateOf(if (settings.kcalGoal > 0) settings.kcalGoal.toString() else "") }
+    var protein by remember(settings.proteinGoalG) { mutableStateOf(if (settings.proteinGoalG > 0) settings.proteinGoalG.toString() else "") }
+    var fiber by remember(settings.fiberGoalG) { mutableStateOf(if (settings.fiberGoalG > 0) settings.fiberGoalG.toString() else "") }
+    var weightGoal by remember(settings.weightGoalKg) { mutableStateOf(if (settings.weightGoalKg > 0f) settings.weightGoalKg.toString() else "") }
+    var heightCm by remember(settings.heightCm) { mutableStateOf(if (settings.heightCm > 0f) settings.heightCm.toString() else "") }
+    Divider()
+    SmallLabel("METAS DEL DÍA · 0 O VACÍO = SIN META", Modifier.padding(top = 8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        ModuleTextField(kcal, { kcal = it.filter(Char::isDigit).take(5) }, "Kcal", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+        ModuleTextField(protein, { protein = it.filter(Char::isDigit).take(4) }, "Proteína g", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+        ModuleTextField(fiber, { fiber = it.filter(Char::isDigit).take(3) }, "Fibra g", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+    }
+    SmallLabel("CUERPO · META DE PESO Y ESTATURA")
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        ModuleTextField(weightGoal, { weightGoal = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "Meta kg", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+        ModuleTextField(heightCm, { heightCm = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "Estatura cm", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+    }
+    ActionLabel("GUARDAR METAS") {
+        onUpdate {
+            it.copy(
+                kcalGoal = kcal.toIntOrNull()?.coerceIn(0, 15_000) ?: 0,
+                proteinGoalG = protein.toIntOrNull()?.coerceIn(0, 1_000) ?: 0,
+                fiberGoalG = fiber.toIntOrNull()?.coerceIn(0, 500) ?: 0,
+                weightGoalKg = weightGoal.toFloatOrNull()?.coerceIn(0f, 350f) ?: 0f,
+                heightCm = heightCm.toFloatOrNull()?.coerceIn(0f, 260f) ?: 0f,
+            )
+        }
+    }
 }
 
 @Composable

@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /** How a stroke icon is lit: gray when missing, white when done, white with its red detail when active. */
 enum class StrokeState { OFF, DONE, NOW }
@@ -117,18 +116,37 @@ private val StrokeGray = Color(0xFF5C5C5C)
 private val StrokeWhite = Color(0xFFF5F5F5)
 private val StrokeRed = Color(0xFFD71921)
 
-/** Each "M" starts its own piece, so PathMeasure (one contour at a time) can draw the line from start to end. */
-private fun pieces(data: String?): List<Path> =
-    data?.split(Regex("(?=M)")).orEmpty().filter { it.isNotBlank() }.map { PathParser().parsePathString(it).toPath() }
+private class Piece(val path: Path, val length: Float)
 
-private class Parsed(val main: List<Path>, val red: List<Path>, val mainLength: Float, val redLength: Float)
+/** Each "M" starts its own piece, so PathMeasure (one contour at a time) can draw the line from start to end. */
+private fun pieces(data: String?, measure: PathMeasure): List<Piece> =
+    data?.split(Regex("(?=M)")).orEmpty().filter { it.isNotBlank() }.map { raw ->
+        val path = PathParser().parsePathString(raw).toPath()
+        measure.setPath(path, false)
+        Piece(path, measure.length)
+    }
+
+private class Parsed(
+    val main: List<Piece>,
+    val red: List<Piece>,
+    val mainLength: Float,
+    val redLength: Float,
+    val measure: PathMeasure,
+) {
+    val segment = Path()
+}
 
 private fun parse(glyph: StrokeGlyph): Parsed {
-    val main = pieces(glyph.main)
-    val red = pieces(glyph.red)
     val measure = PathMeasure()
-    fun length(paths: List<Path>) = paths.sumOf { measure.setPath(it, false); measure.length.toDouble() }.toFloat()
-    return Parsed(main, red, length(main), length(red))
+    val main = pieces(glyph.main, measure)
+    val red = pieces(glyph.red, measure)
+    return Parsed(
+        main = main,
+        red = red,
+        mainLength = main.sumOf { it.length.toDouble() }.toFloat(),
+        redLength = red.sumOf { it.length.toDouble() }.toFloat(),
+        measure = measure,
+    )
 }
 
 /**
@@ -155,25 +173,39 @@ fun StrokeIcon(name: String, state: StrokeState, size: Dp, modifier: Modifier = 
         val redP = if (parsed.red.isEmpty()) 0f else ((p - MAIN_SHARE) / (1f - MAIN_SHARE)).coerceIn(0f, 1f)
         val line = Stroke(LINE_WIDTH, cap = StrokeCap.Round, join = StrokeJoin.Round)
         scale(k, k, pivot = Offset.Zero) {
-            drawPieces(parsed.main, parsed.mainLength * mainP, lineColor, line)
-            if (parsed.red.isNotEmpty()) drawPieces(parsed.red, parsed.redLength * redP, redColor, line)
+            drawPieces(parsed.main, parsed.mainLength * mainP, parsed.mainLength, lineColor, line, parsed.measure, parsed.segment)
+            if (parsed.red.isNotEmpty()) {
+                drawPieces(parsed.red, parsed.redLength * redP, parsed.redLength, redColor, line, parsed.measure, parsed.segment)
+            }
         }
     }
 }
 
-/** Draws [paths] in order up to [budget] of their total length. */
-private fun DrawScope.drawPieces(paths: List<Path>, budget: Float, color: Color, stroke: Stroke) {
+/** Draws [pieces] in order up to [budget] of their [totalLength], reusing [measure] and [segment]. */
+private fun DrawScope.drawPieces(
+    pieces: List<Piece>,
+    budget: Float,
+    totalLength: Float,
+    color: Color,
+    stroke: Stroke,
+    measure: PathMeasure,
+    segment: Path,
+) {
+    if (budget <= 0f) return
+    if (budget >= totalLength) {
+        for (piece in pieces) drawPath(piece.path, color, style = stroke)
+        return
+    }
     var left = budget
-    val measure = PathMeasure()
-    for (path in paths) {
+    for (piece in pieces) {
         if (left <= 0f) return
-        measure.setPath(path, false)
-        val len = measure.length
-        if (left >= len) drawPath(path, color, style = stroke)
+        val len = piece.length
+        if (left >= len) drawPath(piece.path, color, style = stroke)
         else {
-            val part = Path()
-            measure.getSegment(0f, left, part, true)
-            drawPath(part, color, style = stroke)
+            segment.rewind()
+            measure.setPath(piece.path, false)
+            measure.getSegment(0f, left, segment, true)
+            drawPath(segment, color, style = stroke)
         }
         left -= len
     }

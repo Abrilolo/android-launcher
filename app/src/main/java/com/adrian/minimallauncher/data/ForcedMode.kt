@@ -62,7 +62,8 @@ object ForcedMode {
 private val Context.forcedStore by preferencesDataStore(name = "forced")
 
 /** Pending payments and the salida "register what is pending" mark. */
-class ForcedRepository(private val context: Context, private val db: LauncherDatabase = LauncherDatabase.get(context)) {
+class ForcedRepository(context: Context, private val db: LauncherDatabase = LauncherDatabase.get(context)) {
+    private val context: Context = context.applicationContext ?: context
     private val pending = db.pending()
     private val personal = db.personal()
     private val routinePendingKey = stringPreferencesKey("routine_pending_date")

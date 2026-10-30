@@ -422,7 +422,11 @@ private fun WaterRow(date: LocalDate, settings: ModuleSettings, habits: Set<Stri
                                     .size(glass)
                                     .clickable(role = Role.Button) {
                                         val target = if (g == count) g - 1 else g
-                                        for (n in 1..goal) onSetHabit(waterKey(date, n), n <= target)
+                                        for (n in 1..goal) {
+                                            val key = waterKey(date, n)
+                                            val done = n <= target
+                                            if ((key in habits) != done) onSetHabit(key, done)
+                                        }
                                         if (target > count) {
                                             for (n in count + 1..target) plays[n] = (plays[n] ?: 0) + 1
                                             reactions.tick()

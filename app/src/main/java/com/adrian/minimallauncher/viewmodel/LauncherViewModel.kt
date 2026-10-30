@@ -250,7 +250,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             combine(personal.reminders, routine.phases) { list, all -> list to all }.collect { (list, all) ->
                 val spaces = settings.spaces.first()
                 list.forEach { r ->
-                    if (all.none { it.id == r.phaseId }) personal.upsertReminder(r.copy(phaseId = PhaseReminders.phaseIdFor(r.phaseId, r.hour, r.minute, all, spaces)))
+                    if (all.isNotEmpty() && all.none { it.id == r.phaseId }) {
+                        val resolved = PhaseReminders.phaseIdFor(r.phaseId, r.hour, r.minute, all, spaces)
+                        if (resolved != r.phaseId) personal.upsertReminder(r.copy(phaseId = resolved))
+                    }
                 }
             }
         }
@@ -462,8 +465,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             return
         }
         updatePhases(current.zip(value) { phase, space ->
-            val window = Trigger.Between(space.startsAt, space.endsAt)
-            phase.copy(name = space.name, window = window, trigger = if (phase.trigger is Trigger.Between) window else phase.trigger, groups = space.availableGroups)
+            val window = if (phase.window != null || space.startsAt != space.endsAt) Trigger.Between(space.startsAt, space.endsAt) else null
+            phase.copy(name = space.name, window = window, trigger = if (phase.trigger is Trigger.Between && window != null) window else phase.trigger, groups = space.availableGroups)
         })
     }
 

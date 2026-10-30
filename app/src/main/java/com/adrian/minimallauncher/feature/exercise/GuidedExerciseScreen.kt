@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
@@ -34,7 +36,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.adrian.minimallauncher.data.LauncherDatabase
 import com.adrian.minimallauncher.data.ModuleSettings
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
@@ -54,12 +60,21 @@ internal fun GuidedExerciseScreen(date: LocalDate, settings: ModuleSettings, onE
         value = withContext(Dispatchers.IO) { runCatching { repository.load(date, settings) } }
     }
     var view by remember { mutableStateOf<WebView?>(null) }
+    val result = loaded
+    val bridge = remember(date, result) {
+        result?.getOrNull()?.let { initial ->
+            GuidedExerciseBridge(initial, repository, date, context.getSystemService(Vibrator::class.java).takeIf { settings.haptics }) { exit() }
+        }
+    }
     BackHandler { view?.evaluateJavascript("window.sessionBack && window.sessionBack()", null) ?: exit() }
-    DisposableEffect(lifecycle, view) {
+    DisposableEffect(lifecycle, view, bridge) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> view?.let { web ->
-                    web.evaluateJavascript("window.sessionCheckpoint && window.sessionCheckpoint()") { web.onPause() }
+                    web.evaluateJavascript("window.sessionCheckpoint && window.sessionCheckpoint()") {
+                        bridge?.flush()
+                        web.onPause()
+                    }
                 }
                 Lifecycle.Event.ON_RESUME -> view?.let { web ->
                     web.onResume()
@@ -69,18 +84,17 @@ internal fun GuidedExerciseScreen(date: LocalDate, settings: ModuleSettings, onE
             }
         }
         lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
+        onDispose {
+            lifecycle.removeObserver(observer)
+            bridge?.flush()
+        }
     }
-    val result = loaded
-    if (result == null || result.isFailure) {
+    if (result == null || result.isFailure || bridge == null) {
         Column(modifier.fillMaxSize()) {
             Text(if (result == null) "Preparando tu sesión…" else "No se pudo abrir la sesión. Tus registros siguen guardados.")
             Button(onClick = { exit() }) { Text("Volver") }
         }
         return
-    }
-    val bridge = remember(date, result) {
-        GuidedExerciseBridge(result.getOrThrow(), repository, date) { exit() }
     }
     AndroidView(
         modifier = modifier.fillMaxSize(),
@@ -121,6 +135,7 @@ internal fun GuidedExerciseScreen(date: LocalDate, settings: ModuleSettings, onE
             }
         },
         onRelease = { web ->
+            bridge.flush()
             view = null
             web.stopLoading()
             web.removeJavascriptInterface("AndroidSession")
@@ -134,9 +149,38 @@ internal class GuidedExerciseBridge(
     private val initial: String,
     private val repository: GuidedExerciseRepository,
     private val date: LocalDate,
+    /** Null when vibration is off in Módulos. */
+    private val vibrator: Vibrator?,
     private val onExit: () -> Unit,
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+    @Volatile private var lastJob: Job? = null
+
     @JavascriptInterface fun load(): String = initial
-    @JavascriptInterface fun save(snapshot: String): Boolean = runBlocking(Dispatchers.IO) { repository.save(date, snapshot) }
-    @JavascriptInterface fun exit() { Handler(Looper.getMainLooper()).post(onExit) }
+
+    @JavascriptInterface
+    fun save(snapshot: String): Boolean {
+        if (snapshot.length > 2_000_000 || !snapshot.startsWith("{")) return false
+        lastJob = scope.launch { repository.save(date, snapshot) }
+        return true
+    }
+
+    /** A short pulse for the start gesture; strength 1-255 where the motor supports it. */
+    @JavascriptInterface
+    fun vibrate(ms: Int, amplitude: Int) {
+        val v = vibrator ?: return
+        val strength = if (v.hasAmplitudeControl()) amplitude.coerceIn(1, 255) else VibrationEffect.DEFAULT_AMPLITUDE
+        v.vibrate(VibrationEffect.createOneShot(ms.coerceIn(1, 200).toLong(), strength))
+    }
+
+    fun flush() {
+        val job = lastJob ?: return
+        if (job.isActive) runBlocking { job.join() }
+    }
+
+    @JavascriptInterface
+    fun exit() {
+        flush()
+        Handler(Looper.getMainLooper()).post(onExit)
+    }
 }

@@ -202,6 +202,7 @@ private fun Amount(cents: Long, big: Boolean, modifier: Modifier = Modifier) {
 /** A number pad to correct an amount the bank read wrong; ✓ with nothing typed keeps the old one. */
 @Composable
 private fun ColumnScope.AmountKeypad(onDone: (Long?) -> Unit) {
+    BackHandler { onDone(null) }
     var typed by remember { mutableStateOf("") }
     Text(
         typed.ifEmpty { "0" }, style = MaterialTheme.typography.displayLarge, color = LauncherRed,
@@ -325,6 +326,7 @@ private fun RecipeCircle(recipe: Recipe, picked: Boolean, onPick: () -> Unit) {
 /** Search ingredients, tap to add one portion; tapping the grams steps them by 50 (up to 300, then 50 again). */
 @Composable
 private fun ColumnScope.IngredientPicker(viewModel: LauncherViewModel, onClose: () -> Unit, onSave: (String, Map<String, Float>) -> Unit) {
+    BackHandler(onBack = onClose)
     val all by viewModel.ingredients.collectAsState()
     var query by remember { mutableStateOf("") }
     val picked = remember { mutableStateMapOf<String, Float>() }

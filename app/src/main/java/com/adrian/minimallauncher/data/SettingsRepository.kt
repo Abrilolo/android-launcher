@@ -140,7 +140,8 @@ val DEFAULT_HOME_PAGES = HomePages(
     mainId = APPS_PAGE,
 )
 
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(context: Context) {
+    private val context: Context = context.applicationContext ?: context
     private val spacesKey = stringPreferencesKey("spaces")
     private val hiddenSectionsKey = stringSetPreferencesKey("hidden_sections")
     private val pauseSecondsKey = intPreferencesKey("pause_seconds")

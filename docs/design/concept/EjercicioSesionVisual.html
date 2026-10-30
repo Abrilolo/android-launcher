@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
 <style>
   :root { --red: #D71921; --muted: #B0B0B0; --gray: #5C5C5C; --card: #0B0B0B; --line: #222; --white: #F5F5F5; }
+  *, *::before, *::after { -webkit-tap-highlight-color: transparent; outline: none; }
   body { margin: 0; background: #111; color: #fff; font-family: 'Space Grotesk', sans-serif; display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; padding: 24px 16px 48px; }
   h2 { width: 100%; text-align: center; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 3px; color: #777; margin: 0; }
   .phone { position: relative; overflow: hidden; width: 390px; max-width: 100%; height: 844px; background: #000; border-radius: 36px; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; }
@@ -60,33 +61,13 @@
   .groups { display: flex; gap: 14px; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 18px; background: #0B0B0B; box-shadow: 0 6px 18px #000; }
   .groups span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 
-  /* Start: a living ink blot reaches toward the destination when held. */
-  .startTrack { position: relative; height: 80px; margin: 0 auto; width: 240px; touch-action: none; }
-  .target { position: absolute; right: 8px; top: 32px; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #5C5C5C; box-sizing: border-box; transition: border-color .3s, transform .25s, box-shadow .25s; }
-  .startTrack.armed .target { border-color: var(--red); }
-  .play { position: absolute; left: 0; top: 4px; width: 72px; height: 72px; border: 0; background: transparent; overflow: visible; cursor: grab; padding: 0; touch-action: none; transition: transform .4s cubic-bezier(.2,.8,.2,1); }
-  .play:focus-visible { outline: 1px solid var(--white); outline-offset: 10px; border-radius: 22px; }
-  .play .blobSvg { position: absolute; left: -20px; top: -20px; width: 112px; height: 112px; overflow: visible; pointer-events: none; animation: inkFloat 4.8s ease-in-out infinite; }
-  .blobOutline { fill: #210507; stroke: var(--red); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: fill .3s; }
-  .play.pressed { cursor: grabbing; }
-  .play.pressed .blobSvg { animation: none; }
-  .play.pressed .blobOutline { fill: #410A0E; }
-  .play > svg:not(.blobSvg) { pointer-events: none; }
-  .startTrack.armed .play > svg:not(.blobSvg) { animation: inviteRight 1.3s ease-in-out infinite; }
-  @keyframes inkFloat { 0%,100% { transform: rotate(-4deg) scale(.98,1.03); } 45% { transform: rotate(4deg) scale(1.04,.97); } 72% { transform: rotate(-1deg) skewX(3deg); } }
-  @keyframes inviteRight { 0%,100% { transform: translateX(0); } 55% { transform: translateX(7px); } }
-  .startTrack.near .target { transform: scale(1.35); box-shadow: 0 0 0 7px #D7192122; }
-  .startTrack.docked .target { animation: dockRipple .55s ease-out; }
-  .play.docked .blobSvg { animation: inkSettle .55s ease-out both; }
-  .play.docked .blobOutline { fill: var(--red); }
-  .startTrack.docked .play > svg:not(.blobSvg) { animation: none; }
-  @keyframes inkSettle { 0% { transform: scale(1.2,.82); } 38% { transform: scale(.85,1.12); } 70% { transform: scale(1.05,.96); } 100% { transform: scale(1); } }
-  @keyframes dockRipple { from { transform: scale(1); box-shadow: 0 0 0 0 #D7192188; } to { transform: scale(2.5); box-shadow: 0 0 0 16px #D7192100; opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) {
-    .play .blobSvg, .play.docked .blobSvg, .startTrack.armed .play > svg:not(.blobSvg), .startTrack.docked .target { animation: none; }
-    .play, .blobOutline, .target { transition: none; }
-  }
-  .play svg { position: relative; z-index: 1; }
+  /* Start: a gooey mass travels a soft rail to the goal; hold it there to begin. */
+  .startTrack { position: relative; display: block; height: 120px; width: 100%; max-width: 320px; margin: 0 auto; padding: 0; border: 0; background: none; touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; }
+  .startTrack.pressed { cursor: grabbing; }
+
+  .startTrack svg.startGoo { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .startTrack .mass { fill: var(--red); }
+  .startTrack .dockShadow { fill: #5C5C5C; }
 
   /* Warm-ups: a stack of cards. */
   .carousel { overflow: hidden; touch-action: none; border-radius: 24px; }
@@ -832,7 +813,14 @@ function previewAction(stage, name, mood) {
 // ---------- Icons (continuous stroke, from the Ejercicio concept) ----------
 const ICONS = {
   pecho: { main: 'M4 6c3-2 13-2 16 0l-1.5 14h-13L4 6', red: 'M7 10.5c2 2 4 2 5 0c1 2 3 2 5 0' },
+  espalda: { main: 'M4 6c4 1.5 12 1.5 16 0l-4 14H8L4 6', red: 'M12 9v9' },
+  piernas: { main: 'M8 3h8M8 3v8l-2 10M16 3v8l2 10', red: 'M8 11h.01M16 11h.01' },
   hombros: { main: 'M12 4a2.5 2.5 0 1 1 0 5a2.5 2.5 0 1 1 0-5M4 19c0-5 3-8 8-8s8 3 8 8', red: 'M5 14l2 1M19 14l-2 1' },
+  brazos: { main: 'M4 20V9l4-5h3l-1 3H8v4c2-2 6-2 8 0l4 4v5H4', red: 'M10 14c1-1 3-1 4 0' },
+  core: { main: 'M7 3h10v18H7z', red: 'M12 3v18M7 9h10M7 15h10' },
+  cardio: { main: 'M9 17.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0M22 17.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0', red: 'M5.5 17.5L9 9h6l3.5 8.5M8 6h3' },
+  bici: { main: 'M9 17.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0M22 17.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 1 1 7 0', red: 'M5.5 17.5L9 9h6l3.5 8.5M8 6h3' },
+  hiit: { main: 'M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0', red: 'M13 6l-4 7h4l-2 5' },
   home: { main: 'M4 11l8-7 8 7v9H4z', red: 'M10 20v-5h4v5' },
   gear: { main: 'M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1' },
   grid: { main: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
@@ -907,24 +895,25 @@ function swipe(el, h) {
   const options = { signal: el._swipe.signal };
   let x0 = null, y0 = null;
   el.addEventListener('pointerdown', e => {
+    el._held = false;
     // Capturing a button's pointer would retarget its click to the sheet and swallow the action.
     if (e.target.closest('button, input, textarea, select, a, .peekSvg')) { x0 = null; return; }
     x0 = e.clientX; y0 = e.clientY; el.setPointerCapture(e.pointerId);
   }, options);
   el.addEventListener('pointerup', e => {
-    if (x0 == null) return;
+    if (x0 == null || el._held) { x0 = null; el._held = false; return; }
     const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
     if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) (dx > 0 ? h.right : h.left)?.(e);
     else if (Math.abs(dy) > 45) (dy < 0 ? h.up : h.down)?.(e);
     else h.tap?.(e);
   }, options);
-  el.addEventListener('pointercancel', () => { x0 = null; }, options);
+  el.addEventListener('pointercancel', () => { x0 = null; el._held = false; }, options);
 }
 /** Calls fn after keeping a finger still on el for ms. */
 function hold(el, ms, fn) {
   let t = null, x0, y0;
   const stop = () => { clearTimeout(t); t = null; };
-  el.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; t = setTimeout(() => { t = null; fn(); }, ms); });
+  el.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; t = setTimeout(() => { t = null; el._held = true; fn(); }, ms); });
   el.addEventListener('pointermove', e => { if (t && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, stop));
 }
@@ -965,88 +954,105 @@ function start() {
   $('view').innerHTML = `${topBar()}
     <div class="intro"><h1>Un momento para ti.</h1></div>
     <div class="stage" id="stage">${fig(150, 'prep', 'fig', true)}</div>
-    <div class="startTrack" id="track"><div class="target"></div>
-      <button class="play" id="play" aria-label="Mantén y arrastra al punto para iniciar"><svg class="blobSvg" viewBox="-56 -56 112 112" aria-hidden="true"><path class="blobOutline"/></svg>${PLAY}</button></div>`;
+    <button class="startTrack" id="track" aria-label="Arrastra hasta el punto y mantén para iniciar"><svg class="startGoo" aria-hidden="true">
+      <defs><filter id="startGooFilter" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 30 -12"/></filter>
+      <filter id="startSoftFilter" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="12"/></filter></defs>
+      <ellipse class="dockShadow" filter="url(#startSoftFilter)" opacity="0"/><g class="mass" filter="url(#startGooFilter)"></g><g class="glyph"><g transform="translate(-12 -12)">${PLAY}</g></g></svg></button>`;
   $('fig').addEventListener('click', () => react($('fig')));
-  startGestureCleanup = bindLiquidStart($('play'), $('track'), () => { S.startedAt = Date.now(); go('warm'); }, kind => react($('fig'), kind));
+  startGestureCleanup?.();
+  startGestureCleanup = bindGooStart($('track'), () => { S.startedAt = Date.now(); go('warm'); }, kind => react($('fig'), kind));
 }
 
-/** Hold the blot until it reaches right, then drag and release over the target. */
-function bindLiquidStart(play, track, onComplete, onReact) {
+/** Haptic pulse: the native bridge when present (it honors the vibration setting), else the browser. */
+function buzz(ms, amplitude = 120) {
+  try { if (window.AndroidSession?.vibrate) AndroidSession.vibrate(ms, amplitude); else navigator.vibrate?.(ms); } catch (e) {}
+}
+
+/**
+ * A mass of fused drops (blur + alpha threshold) on a soft rail: easy toward the goal, heavy backward and
+ * sideways. Near the goal a shadow shows the spot, pulses quicken and a magnet pulls it in; holding it there
+ * starts. Released early, it springs back with a bounce.
+ */
+function bindGooStart(track, onComplete, onReact) {
   const controller = new AbortController(), options = { signal: controller.signal };
-  const target = track.querySelector('.target');
-  const outline = play.querySelector('.blobOutline');
-  let frame = null, completion = null, pointer = null, started = 0, armed = false, committed = false;
-  let origin = 0, distance = 0, dx = 0, lastX = 0, tilt = 0, near = false;
-  // A closed spline, not a circular container: pressure grows a right-facing lobe;
-  // velocity pulls a tail behind the finger. The play glyph stays legible above it.
-  const paintBlob = (time, pressure, pull = 0) => {
-    const points = Array.from({ length: 16 }, (_, i) => {
-      const a = i * Math.PI / 8, c = Math.cos(a), s = Math.sin(a);
-      const r = 31 + 3.8 * Math.sin(5 * a + time * 1.6) + 2.6 * Math.cos(3 * a - time);
-      const reach = Math.pow(Math.max(0, c), 8) * pressure * (18 + 5 * Math.sin(time * 5));
-      const tail = Math.pow(Math.max(0, -c * Math.sign(pull)), 5) * Math.abs(pull) * 18;
-      return [c * (r + reach + tail), s * r * (1 - pressure * .16)];
+  const NS = 'http://www.w3.org/2000/svg', mass = track.querySelector('.mass'), glyph = track.querySelector('.glyph'), shadow = track.querySelector('.dockShadow');
+  const W = track.clientWidth || 300, H = track.clientHeight || 120;
+  const O = { x: 44, y: H / 2 }, G = { x: W - 34, y: H / 2 }, span = G.x - O.x;
+  const goal = document.createElementNS(NS, 'circle'); goal.setAttribute('cx', G.x); goal.setAttribute('cy', G.y); mass.appendChild(goal);
+  shadow.setAttribute('cx', G.x); shadow.setAttribute('cy', G.y);
+  const parts = Array.from({ length: 7 }, (_, i) => {
+    const el = document.createElementNS(NS, 'circle'); mass.appendChild(el);
+    return { el, x: O.x, y: O.y, vx: 0, vy: 0, a: i / 7 * Math.PI * 2, ph: Math.random() * 6, sp: .7 + Math.random() * .9,
+      r: 14 + Math.random() * 6, k: 90 + i * 35, z: .32 + Math.random() * .15, d: i ? 9 + Math.random() * 8 : 0 };
+  });
+  let p = { ...O }, v = { x: 0, y: 0 }, pointer = null, last = null, scale = 1, hold = 0, press = 0, pulse = 0;
+  let committed = false, nextTick = 0, wasNear = false, lt = null, frame = null, completion = null;
+  const spring = (o, t, k, z, dt) => {
+    const c = 2 * z * Math.sqrt(k);
+    o.vx += (-k * (o.x - t.x) - c * o.vx) * dt; o.vy += (-k * (o.y - t.y) - c * o.vy) * dt;
+    o.x += o.vx * dt; o.y += o.vy * dt;
+  };
+  const commit = () => {
+    committed = true; pointer = null; track.classList.remove('pressed'); track.disabled = true;
+    buzz(70, 255); onReact('cheer');
+    completion = setTimeout(onComplete, motionPreference.matches ? 0 : 450);
+  };
+  const step = now => {
+    const dt = lt ? Math.min((now - lt) / 1000, .032) : .016, t = motionPreference.matches ? 0 : now / 1000; lt = now;
+    const dragging = pointer !== null, dG = Math.hypot(p.x - G.x, p.y - G.y), near = Math.max(0, 1 - dG / (span * .9));
+    if (committed) { p.x += (G.x - p.x) * Math.min(1, dt * 12); p.y += (G.y - p.y) * Math.min(1, dt * 12); hold = 1; }
+    else if (dragging) {
+      if (dG < 64) { const s = (1 - dG / 64) * 9 * dt; p.x += (G.x - p.x) * s; p.y += (G.y - p.y) * s; }
+      if (near > .05 && now > nextTick) { buzz(Math.round(6 + near * 18), Math.round(40 + near * 200)); pulse = 1; nextTick = now + 320 - near * 260; }
+      const atGoal = dG < 22;
+      if (atGoal && !wasNear) onReact('flexOnce');
+      wasNear = atGoal;
+      hold = atGoal ? Math.min(1, hold + dt / .9) : Math.max(0, hold - dt * 2);
+      if (hold >= 1) commit();
+    } else {
+      hold = Math.max(0, hold - dt * 3);
+      const o = { x: p.x, y: p.y, vx: v.x, vy: v.y }; spring(o, O, 200, .2, dt);
+      p = { x: o.x, y: o.y }; v = { x: o.vx, y: o.vy };
+    }
+    press += ((dragging ? 1 : 0) - press) * Math.min(1, dt * 10); pulse *= Math.exp(-dt * 7);
+    const sh = dragging || committed ? near : near * .4;
+    shadow.setAttribute('opacity', (sh * .55 + pulse * sh * .25).toFixed(3));
+    shadow.setAttribute('rx', 26 + sh * 12 + pulse * 4); shadow.setAttribute('ry', 20 + sh * 8 + pulse * 3);
+    goal.setAttribute('r', 3 + near * 6 + hold * 18);
+    const spread = (1 - hold) * (1 + press * .35);
+    parts.forEach((o, i) => {
+      const wob = Math.sin(t * o.sp + o.ph), ang = o.a + t * .35 * (i % 2 ? 1 : -1) + wob * .6;
+      spring(o, { x: p.x + Math.cos(ang) * o.d * spread * (1 + .25 * wob), y: p.y + Math.sin(ang) * o.d * spread * (1 - .2 * wob) }, o.k, o.z, dt);
+      o.el.setAttribute('cx', o.x.toFixed(1)); o.el.setAttribute('cy', o.y.toFixed(1));
+      o.el.setAttribute('r', ((o.r + Math.sin(t * o.sp * 1.7 + o.ph) * 2.5) * (1 + press * .12) * (1 - hold * .15)).toFixed(1));
     });
-    const xy = p => p.map(v => v.toFixed(2)).join(' ');
-    let d = 'M' + xy(points[0]);
-    for (let i = 0; i < points.length; i++) {
-      const before = points[(i + 15) % 16], p = points[i], q = points[(i + 1) % 16], after = points[(i + 2) % 16];
-      d += 'C' + xy(p.map((v, a) => v + (q[a] - before[a]) / 6)) + ' ' + xy(q.map((v, a) => v - (after[a] - p[a]) / 6)) + ' ' + xy(q);
-    }
-    outline.setAttribute('d', d + 'Z');
+    glyph.setAttribute('transform', `translate(${parts[0].x.toFixed(1)} ${parts[0].y.toFixed(1)})`);
+    glyph.setAttribute('opacity', (1 - hold).toFixed(2));
+    frame = requestAnimationFrame(step);
   };
-  paintBlob(0, 0);
-  const reset = () => {
-    cancelAnimationFrame(frame); frame = null; pointer = null; armed = false; dx = 0; tilt = 0; near = false;
-    play.style.transition = ''; play.style.transform = ''; paintBlob(0, 0);
-    play.classList.remove('pressed'); track.classList.remove('armed', 'near');
-  };
-  const animate = now => {
-    const fill = Math.min(1, (now - started) / 800);
-    if (fill >= 1 && !armed) { armed = true; track.classList.add('armed'); onReact('nod'); }
-    tilt *= .9;
-    paintBlob(motionPreference.matches ? 0 : (now - started) / 1000, fill, motionPreference.matches ? 0 : -tilt / 22);
-    frame = requestAnimationFrame(animate);
-  };
-  play.addEventListener('pointerdown', e => {
+  const local = e => { const r = track.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; };
+  track.addEventListener('pointerdown', e => {
     if (committed || pointer !== null || e.button !== 0 || e.isPrimary === false) return;
-    // Measure untransformed centers, so the liquid button docks exactly on the destination.
-    reset();
-    const scale = track.getBoundingClientRect().width / track.offsetWidth;
-    distance = target.offsetLeft + target.offsetWidth / 2 - play.offsetLeft - play.offsetWidth / 2;
-    pointer = e.pointerId; origin = lastX = e.clientX; started = performance.now();
-    play.dataset.dragScale = scale;
-    play.setPointerCapture(pointer); play.classList.add('pressed');
-    play.style.transform = motionPreference.matches ? '' : 'scale(1.06, .9)';
-    paintBlob(0, .3);
-    tilt = 12; onReact('look'); frame = requestAnimationFrame(animate);
+    scale = track.getBoundingClientRect().width / track.offsetWidth || 1;
+    const q = local(e);
+    if (Math.hypot(q.x - p.x, q.y - p.y) > 56) return;
+    pointer = e.pointerId; last = q; v = { x: 0, y: 0 };
+    track.setPointerCapture(pointer); track.classList.add('pressed');
+    buzz(10); onReact('look');
   }, options);
-  play.addEventListener('pointermove', e => {
+  track.addEventListener('pointermove', e => {
     if (e.pointerId !== pointer || committed) return;
-    const scale = +play.dataset.dragScale;
-    tilt = Math.max(-22, Math.min(22, tilt - (e.clientX - lastX) / scale * .7)); lastX = e.clientX;
-    if (!armed) { origin = e.clientX; return; }
-    dx = Math.max(0, Math.min(distance, (e.clientX - origin) / scale));
-    const nextNear = distance > 0 && Math.abs(distance - dx) < 18;
-    if (nextNear && !near) onReact('flexOnce');
-    near = nextNear; track.classList.toggle('near', near);
-    const stretch = motionPreference.matches ? 0 : Math.min(.09, Math.abs(tilt) / 240);
-    play.style.transition = 'border-color .2s';
-    play.style.transform = `translateX(${dx}px) scale(${1 + stretch}, ${1 - stretch})`;
+    const q = local(e), dx = q.x - last.x, dy = q.y - last.y; last = q;
+    // The rail: forward is light, backward heavier, sideways heavy and heavier the further off it goes.
+    const fx = dx > 0 ? .85 : .55, fy = .35 / (1 + Math.abs(p.y - O.y) / 24);
+    p.x = Math.max(O.x - 20, Math.min(G.x + 10, p.x + dx * fx));
+    p.y = Math.max(16, Math.min(H - 16, p.y + dy * fy));
   }, options);
-  play.addEventListener('pointerup', e => {
-    if (e.pointerId !== pointer || committed) return;
-    if (armed && near) {
-      committed = true; pointer = null; cancelAnimationFrame(frame);
-      play.classList.remove('pressed'); play.classList.add('docked'); track.classList.remove('near'); track.classList.add('docked');
-      play.style.transition = ''; play.style.transform = `translateX(${distance}px) scale(1)`; paintBlob(0, 0);
-      play.disabled = true; onReact('cheer');
-      completion = setTimeout(onComplete, motionPreference.matches ? 0 : 550); return;
-    }
-    reset();
-  }, options);
-  for (const event of ['pointercancel', 'lostpointercapture']) play.addEventListener(event, e => { if (!committed && e.pointerId === pointer) reset(); }, options);
+  const release = e => { if (e.pointerId !== pointer || committed) return; pointer = null; wasNear = false; v = { x: 0, y: 0 }; track.classList.remove('pressed'); };
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) track.addEventListener(event, release, options);
+  // Keyboard and screen readers start directly.
+  track.addEventListener('click', e => { if (e.detail === 0 && !committed) commit(); }, options);
+  frame = requestAnimationFrame(step);
   return () => { controller.abort(); cancelAnimationFrame(frame); clearTimeout(completion); };
 }
 
@@ -1245,9 +1251,11 @@ function muscleSvg(zone, p) {
     <path d="M40 40l5 52-3 50M80 40l-5 52 3 50M60 98v44"/>
     <path ${fill('hombros')} d="M34 36Q38 30 45 33L43 43Q36 43 34 36ZM86 36Q82 30 75 33L77 43Q84 43 86 36Z"/>
     <path ${fill('pecho')} d="M45 40Q52 36 59 40V55Q51 59 46 53ZM75 40Q68 36 61 40V55Q69 59 74 53Z"/>
+    <path ${fill('espalda')} d="M43 38L58 43V64L46 58ZM77 38L62 43V64L74 58Z"/>
     <path ${fill('core')} d="M49 61H71L69 90H51Z"/>
     <path ${fill('brazos')} d="M30 45l6 2-3 18-6-2ZM90 45l-6 2 3 18 6-2Z"/>
     <path ${fill('piernas')} d="M47 100h11l-2 38h-8ZM73 100H62l2 38h8Z"/>
+    <path ${fill('cardio')} d="M56 44Q60 39 64 44Q68 49 60 56Q52 49 56 44Z"/>
   </svg>`;
 }
 function exProgress(i) { const s = S.sets[i]; return s.length ? s.filter(x => x.done).length / s.length : 0; }
@@ -1310,7 +1318,7 @@ function bindRowSwipe(wrap) {
     if (dx < -150) { delSet(i); return; }
     open = dx < -50; row.style.transform = open ? 'translateX(-72px)' : '';
   };
-  row.addEventListener('pointerup', end); row.addEventListener('pointerleave', end);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => row.addEventListener(ev, end));
 }
 function updateMuscle() { $('muscle').outerHTML = muscleSvg(exerciseAt(S.exIdx).zone, exProgress(S.exIdx)); }
 function markSet(i) {
@@ -1384,6 +1392,9 @@ function bindArc(onDone) {
       p = Math.min(100, p + 4); line.setAttribute('stroke-dasharray', `${p} 100`);
       if (p >= 100) { clearInterval(t); t = null; y0 = null; arc.style.transform = ''; onDone(); }
     }, 30);
+    else if (dy >= -45 && t) {
+      clearInterval(t); t = null; p = 0; line.setAttribute('stroke-dasharray', '0 100');
+    }
   });
   arc.addEventListener('pointerup', reset); arc.addEventListener('pointercancel', reset);
 }

@@ -25,7 +25,14 @@ function sessionSnapshot() {
       logs.push({ exerciseId: id, index, r: row.r, kg: row.kg }); counters.set(id, index + 1);
     }
   }
-  return { version: 1, date: HOST.date, state: { ...S, setCache: caches.map(cache => [...cache]) },
+  const state = {
+    ...S,
+    restLeft: S.restDeadline ? library.restSeconds : Math.round(S.restLeft || 0),
+    restOver: S.restDeadline ? 0 : Math.round(S.restOver || 0),
+    warmLeft: S.warmDeadline ? (S.warmChoice?.min || 3) * 60 : Math.round(S.warmLeft || 0),
+    setCache: caches.map(cache => [...cache]),
+  };
+  return { version: 1, date: HOST.date, state,
     managedIds: [...managed], logs, library: { ...library, custom: CUSTOM } };
 }
 function sessionCheckpoint() {

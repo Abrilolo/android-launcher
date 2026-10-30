@@ -61,9 +61,9 @@ fun SettingsScreen(
             val parsed = drafts.mapNotNull { draft -> runCatching {
                 draft.source.copy(startsAt = LocalTime.parse(draft.start), endsAt = LocalTime.parse(draft.end), availableGroups = draft.groups)
             }.getOrNull() }
-            if (parsed.size == drafts.size && (0 until 1_440).all { minute ->
-                    parsed.count { it.contains(LocalTime.of(minute / 60, minute % 60)) } == 1
-                }) onSaveSpaces(parsed)
+            if (parsed.size == drafts.size) onSaveSpaces(parsed)
+
+
         }, modifier = Modifier.padding(top = 8.dp)) { Text("GUARDAR ESPACIOS") }
         Text("PAUSA PARA APPS", Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(pauseText, { pauseText = it.filter(Char::isDigit).take(3) }, label = { Text("Segundos (0–300)") }, singleLine = true)
