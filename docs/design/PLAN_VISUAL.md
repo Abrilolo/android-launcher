@@ -85,9 +85,9 @@ El usuario cambia los íconos de puntos estilo Nothing por **íconos de una sola
 - **No cambian** los íconos animados de los asistentes IA (`AiDotIcon`).
 - Los números pueden seguir en puntos (`DotMatrixText`).
 
-## Sin texto en la vista (2026-10-28)
+## Text inside the app; icon-only widgets (updated 2026-10-30)
 
-Mientras se usa una vista o un widget, no hay etiquetas: solo íconos, horas y números. Lo que sigue se ve por color. Los nombres aparecen solo al editar (lápiz) o en los ajustes (engrane). La descripción para lectores de pantalla se mantiene.
+Full app views may use titles, labels, instructions, exercise names, and action text. The icon-only rule applies to widgets: icons, times, and numbers communicate their state. Keep accessible descriptions in both. This supersedes the 2026-10-28 restriction on text inside views.
 
 ## Sin contadores "N/M" (2026-10-28)
 

@@ -101,6 +101,12 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { personal.setCheck(day.value.date.toString(), DayCheck.WORKOUT, done) }
     }
 
+    /** Clears today's sets, workout completion check, and guided session state to test the routine flow from scratch. */
+    fun resetRoutine() {
+        val date = day.value.date
+        viewModelScope.launch { GuidedExerciseRepository(db).reset(date) }
+    }
+
     fun addBodyMetric(type: String, value: Float) { viewModelScope.launch { personal.addBodyMetric(type, value) } }
 
     fun saveSettings(value: ModuleSettings) { viewModelScope.launch { settingsRepository.setModuleSettings(value) } }

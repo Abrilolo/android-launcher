@@ -249,83 +249,126 @@ test('unknown animation identifiers fall back without crashing the character', (
   f.play('=missingPose'); e.advance(f); assert.equal(f.mode, 'idle');
 });
 
-function liquidControl(scale = 1) {
-  let now = 0, id = 0, completed = 0;
-  const frames = new Map(), timers = new Map(), reactions = [];
+function hatchControl(reduced = false, scale = 1) {
+  let now = 0, id = 0, completed = 0, captured = null;
+  const frames = new Map(), pulses = [], reactions = [], nodes = new Map();
+  let stops = 0;
   function element() {
-    const el = new EventTarget(), classes = new Set();
-    el.dataset = {}; el.style = { setProperty(name, value) { this[name] = value; } };
-    el.classList = { add: (...xs) => xs.forEach(x => classes.add(x)), remove: (...xs) => xs.forEach(x => classes.delete(x)), toggle: (x, on) => on ? classes.add(x) : classes.delete(x), contains: x => classes.has(x) };
-    el.setPointerCapture = () => {};
+    const el = new EventTarget();
+    el.attrs = {}; el.children = []; el.style = { setProperty(k, v) { this[k] = v; } };
+    el.setAttribute = (k, v) => { assert.doesNotMatch(String(v), /NaN|undefined|Infinity/); el.attrs[k] = String(v); };
+    el.appendChild = child => el.children.push(child);
+    el.remove = () => el.removed = true;
     return el;
   }
-  const play = element(), track = element();
-  const outline = new Node();
-  play.querySelector = () => outline;
-  play.offsetLeft = 0; play.offsetWidth = 72;
-  track.offsetWidth = 240; track.getBoundingClientRect = () => ({ width: 240 * scale });
-  track.querySelector = () => ({ offsetLeft: 208, offsetWidth: 32 });
-  const source = script.slice(script.indexOf('function bindLiquidStart('), script.indexOf('function warm()'));
-  const bind = vm.runInNewContext(source + '\nbindLiquidStart', {
-    AbortController, performance: { now: () => now }, motionPreference: { matches: false },
+  const track = element(), phone = element(), view = element(), document = element(), window = element();
+  document.createElement = element; document.hidden = false;
+  track.offsetTop = 700; track.offsetHeight = 120;
+  track.getBoundingClientRect = () => ({ left: 0, top: 0, right: 112 * scale, bottom: 120 * scale });
+  track.closest = selector => selector === '#view' ? view : phone;
+  track.querySelector = selector => { if (!nodes.has(selector)) nodes.set(selector, element()); return nodes.get(selector); };
+  track.setPointerCapture = pointer => captured = pointer;
+  track.hasPointerCapture = pointer => captured === pointer;
+  track.releasePointerCapture = () => captured = null;
+  const source = script.slice(script.indexOf('function bindGooStart('), script.indexOf('function warm()'));
+  const bind = vm.runInNewContext(source + '\nbindGooStart', {
+    AbortController, window, document, motionPreference: { matches: reduced },
+    buzz: (ms, amplitude) => pulses.push({ ms, amplitude }), stopBuzz: () => stops++,
     requestAnimationFrame: fn => { frames.set(++id, fn); return id; }, cancelAnimationFrame: key => frames.delete(key),
-    setTimeout: fn => { timers.set(++id, fn); return id; }, clearTimeout: key => timers.delete(key),
   });
-  const dispose = bind(play, track, () => completed++, kind => reactions.push(kind));
+  const dispose = bind(track, () => completed++, kind => reactions.push(kind));
+  const event = (target, type, fields = {}) => { const e = new Event(type, { cancelable: true }); Object.assign(e, fields); target.dispatchEvent(e); };
   return {
-    play, track, outline, reactions, dispose, frames, timers, completed: () => completed,
-    step(ms) { now += ms; const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now)); },
-    finish() { const pending = [...timers.values()]; timers.clear(); pending.forEach(fn => fn()); },
-    pointer(type, x, pointerId = 1) {
-      const e = new Event(type); Object.assign(e, { pointerId, clientX: x, button: 0, isPrimary: true }); play.dispatchEvent(e);
-    },
+    track, view, phone, document, window, frames, pulses, reactions, dispose, event, completed: () => completed, stops: () => stops,
+    attr: (selector, key) => nodes.get(selector).attrs[key],
+    step(ms) { for (let i = 0; i < ms; i += 16) { now += 16; const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now)); } },
+    pointer(type, fields = {}) { event(track, type, { pointerId: 1, button: 0, isPrimary: true, clientX: 56 * scale, clientY: 60 * scale, ...fields }); },
+    key(type, key = ' ', repeat = false) { event(track, type, { key, repeat }); },
   };
 }
 
-test('liquid start rejects a tap, early drag, cancellation, and release outside the target', () => {
-  const c = liquidControl();
-  const idleShape = c.outline.attrs.d;
-  c.pointer('pointerdown', 0); c.step(200); c.pointer('pointermove', 188); c.pointer('pointerup', 188);
-  c.finish(); assert.equal(c.completed(), 0); assert.equal(c.outline.attrs.d, idleShape); assert.equal(c.frames.size, 0);
-  c.pointer('pointerdown', 0); c.step(800); c.pointer('pointermove', 70); c.pointer('pointerup', 70);
-  assert.equal(c.timers.size, 0);
-  c.pointer('pointerdown', 0); c.step(800); c.pointer('pointercancel', 0);
-  assert.equal(c.frames.size, 0); assert.equal(c.track.classList.contains('armed'), false);
-  c.pointer('pointerdown', 0); c.step(800); c.pointer('lostpointercapture', 0);
-  assert.equal(c.frames.size, 0); c.dispose();
+test('start remains centered and circular, then becomes jelly without starting itself', () => {
+  const c = hatchControl(); c.step(16); const circle = c.attr('.mass', 'd');
+  c.step(2200); assert.equal(c.attr('.mass', 'd'), circle);
+  c.step(2000); assert.notEqual(c.attr('.mass', 'd'), circle);
+  assert.equal(c.attr('.mass', 'transform'), 'translate(56 60) rotate(0) scale(1) translate(-56 -60)');
+  c.step(8000); assert.equal(c.completed(), 0); assert.equal(c.pulses.length, 0); c.dispose();
 });
 
-test('the blot grows toward the destination on hold and changes shape with drag inertia', () => {
-  const c = liquidControl();
-  // The first spline point is the forward tip: holding should extend it to the right.
-  const tip = () => Number(c.outline.attrs.d.match(/^M([\d.-]+)/)[1]);
-  const restingTip = tip();
-  c.pointer('pointerdown', 0); c.step(800);
-  assert.ok(tip() > restingTip + 10);
-  const heldShape = c.outline.attrs.d;
-  c.pointer('pointermove', 90); c.step(16);
-  assert.notEqual(c.outline.attrs.d, heldShape);
-  assert.ok(c.outline.attrs.d.endsWith('Z'));
-  c.pointer('pointercancel', 90); assert.equal(tip(), restingTip); c.dispose();
+test('tap, synthetic clicks, early release and interrupted holds never hatch', () => {
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    const c = hatchControl();
+    c.pointer('pointerdown'); c.step(600); c.pointer(type);
+    c.event(c.track, 'click', { detail: 0 }); c.event(c.track, 'click', { detail: 1 });
+    const count = c.pulses.length; c.step(2500);
+    assert.equal(c.completed(), 0); assert.equal(c.pulses.length, count); assert.ok(c.stops() > 0);
+    c.pointer('pointerdown'); c.step(700); assert.equal(c.track.disabled, false); c.pointer('pointerup');
+    c.step(1800); assert.equal(c.completed(), 0); c.dispose();
+  }
 });
 
-test('liquid start docks at the scaled target and confirms exactly once with valid reactions', () => {
-  const c = liquidControl(2), e = engine();
-  c.pointer('pointerdown', 100); c.step(800);
-  c.pointer('pointermove', 476, 2); assert.equal(c.track.classList.contains('near'), false);
-  c.pointer('pointermove', 476); assert.equal(c.track.classList.contains('near'), true);
-  c.pointer('pointerup', 476); c.pointer('pointerup', 476); c.pointer('lostpointercapture', 476);
-  assert.equal(c.play.style.transform, 'translateX(188px) scale(1)');
-  assert.equal(c.track.classList.contains('docked'), true); assert.equal(c.play.disabled, true);
-  assert.equal(c.frames.size, 0); assert.equal(c.timers.size, 1);
+test('continuous hold builds haptics and light, then hatches exactly once even after release', () => {
+  const c = hatchControl(), e = engine();
+  c.pointer('pointerdown'); c.step(600); assert.ok(+c.attr('.innerLight', 'opacity') > .1);
+  assert.equal(c.completed(), 0); assert.ok(c.pulses.length >= 3);
+  c.pointer('pointerup', { pointerId: 2 }); c.step(450); assert.equal(c.track.disabled, undefined);
+  c.step(220); assert.equal(c.track.disabled, true);
+  assert.ok(c.pulses.slice(1).every((pulse, i) => pulse.amplitude >= c.pulses[i].amplitude));
+  assert.deepEqual(c.pulses.at(-1), { ms: 65, amplitude: 230 });
+  c.pointer('pointerup'); c.event(c.track, 'click'); c.pointer('pointerdown');
+  c.step(180); assert.ok(+c.phone.children[0].style.opacity > .2); assert.ok(+c.attr('.hatchRing', 'r') > 36);
+  c.step(800); assert.equal(c.completed(), 1); assert.equal(c.frames.size, 0);
+  assert.equal(c.view.style.opacity, ''); assert.equal(c.phone.children[0].removed, true);
   for (const kind of c.reactions) assert.ok(e.ANIMS[kind]?.f, kind);
-  c.finish(); c.finish(); assert.equal(c.completed(), 1); c.dispose();
+  c.step(1000); assert.equal(c.completed(), 1); c.dispose();
 });
 
-test('leaving the start screen cancels both filling and pending navigation', () => {
-  const filling = liquidControl(); filling.pointer('pointerdown', 0); filling.dispose();
-  assert.equal(filling.frames.size, 0);
-  const docked = liquidControl(); docked.pointer('pointerdown', 0); docked.step(800);
-  docked.pointer('pointermove', 188); docked.pointer('pointerup', 188); docked.dispose(); docked.finish();
-  assert.equal(docked.completed(), 0); assert.equal(docked.timers.size, 0);
+test('moving outside cancels at scaled bounds; extra fingers and secondary buttons do not start', () => {
+  const c = hatchControl(false, 2);
+  c.pointer('pointerdown', { button: 2 }); c.step(2000); assert.equal(c.pulses.length, 0);
+  c.pointer('pointerdown', { isPrimary: false }); c.step(2000); assert.equal(c.pulses.length, 0);
+  c.pointer('pointerdown'); c.step(500); c.pointer('pointermove', { clientX: 225 }); c.step(2000);
+  assert.equal(c.completed(), 0);
+  c.pointer('pointerdown'); c.step(1800); assert.equal(c.completed(), 1); c.dispose();
+});
+
+test('keyboard holds match touch; repeat keys cannot reset charge or bypass it', () => {
+  for (const key of [' ', 'Enter']) {
+    const c = hatchControl(); c.key('keydown', key); c.step(600); c.key('keyup', key); c.step(1800);
+    assert.equal(c.completed(), 0);
+    c.key('keydown', key); c.step(700); c.key('keydown', key, true); c.step(1100);
+    assert.equal(c.completed(), 1); c.dispose();
+  }
+});
+
+test('backgrounding and navigation cancel charge or burst and stop haptics', () => {
+  for (const elapsed of [600, 1350]) for (const interrupt of ['sessionpause', 'visibilitychange', 'windowblur', 'dispose']) {
+    const c = hatchControl(); c.pointer('pointerdown'); c.step(elapsed);
+    if (interrupt === 'dispose') c.dispose();
+    else if (interrupt === 'visibilitychange') { c.document.hidden = true; c.event(c.document, interrupt); }
+    else if (interrupt === 'windowblur') c.event(c.window, 'blur');
+    else c.event(c.track, interrupt);
+    const count = c.pulses.length; c.step(2500);
+    assert.equal(c.completed(), 0); assert.equal(c.pulses.length, count); assert.ok(c.stops() > 0);
+    assert.equal(c.view.style.opacity, ''); c.dispose(); assert.equal(c.frames.size, 0);
+  }
+});
+
+test('reduced motion keeps the same hold duration without shaking or flashing', () => {
+  const c = hatchControl(true); c.step(16); const circle = c.attr('.mass', 'd'); c.step(5000);
+  assert.equal(c.attr('.mass', 'd'), circle);
+  c.pointer('pointerdown'); c.step(600); assert.equal(c.completed(), 0); c.pointer('pointerup'); c.step(1800);
+  assert.equal(c.completed(), 0);
+  c.pointer('pointerdown'); c.step(1250); assert.equal(c.completed(), 0);
+  assert.equal(c.phone.children[0].style.opacity, '0'); assert.equal(c.attr('.hatchRing', 'opacity'), '0');
+  assert.equal(c.attr('.mass', 'transform'), 'translate(56 60) rotate(0) scale(1) translate(-56 -60)');
+  c.step(200); assert.equal(c.completed(), 1); c.dispose();
+});
+
+test('haptics use the Android bridge and cancel through the same bridge', () => {
+  const calls = [];
+  const bridge = { vibrate: (...args) => calls.push(args), stopVibration: () => calls.push('stop') };
+  const source = script.slice(script.indexOf('function buzz('), script.indexOf('/** A continuous hold'));
+  const api = vm.runInNewContext(source + '\n({buzz, stopBuzz})', { window: { AndroidSession: bridge }, AndroidSession: bridge });
+  api.buzz(26, 190); api.stopBuzz(); assert.deepEqual(calls, [[26, 190], 'stop']);
 });

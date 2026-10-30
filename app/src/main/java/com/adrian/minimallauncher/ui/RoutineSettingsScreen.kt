@@ -404,6 +404,7 @@ private fun DebugSection(open: Boolean, places: List<Place>, viewModel: Launcher
             DebouncedField(settings.whatsappText, "Mensaje") { viewModel.setWhatsApp(settings.whatsappPhone, it) }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SettingsChip("REINICIAR RUTINA", on = false, icon = "reiniciar") { viewModel.resetRoutine(); onMessage("Rutina reiniciada") }
             SettingsChip("PAGO DE PRUEBA", on = false, icon = "pago") { viewModel.debugAddPendingPayment(); onMessage("Pago de prueba") }
             SettingsChip("PROBAR WHATSAPP", on = false, icon = "whatsapp") { if (!viewModel.openWhatsAppLeft()) onMessage("Falta el teléfono") }
             val active = refresh.let { viewModel.forcedServiceEnabled() }

@@ -71,7 +71,8 @@ internal fun GuidedExerciseScreen(date: LocalDate, settings: ModuleSettings, onE
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> view?.let { web ->
-                    web.evaluateJavascript("window.sessionCheckpoint && window.sessionCheckpoint()") {
+                    bridge?.stopVibration()
+                    web.evaluateJavascript("window.sessionPause && window.sessionPause(); window.sessionCheckpoint && window.sessionCheckpoint()") {
                         bridge?.flush()
                         web.onPause()
                     }
@@ -86,6 +87,7 @@ internal fun GuidedExerciseScreen(date: LocalDate, settings: ModuleSettings, onE
         lifecycle.addObserver(observer)
         onDispose {
             lifecycle.removeObserver(observer)
+            bridge?.stopVibration()
             bridge?.flush()
         }
     }
@@ -135,6 +137,7 @@ internal fun GuidedExerciseScreen(date: LocalDate, settings: ModuleSettings, onE
             }
         },
         onRelease = { web ->
+            bridge.stopVibration()
             bridge.flush()
             view = null
             web.stopLoading()
@@ -165,12 +168,23 @@ internal class GuidedExerciseBridge(
         return true
     }
 
+    @JavascriptInterface
+    fun reset(): Boolean {
+        lastJob = scope.launch { repository.reset(date) }
+        return true
+    }
+
     /** A short pulse for the start gesture; strength 1-255 where the motor supports it. */
     @JavascriptInterface
     fun vibrate(ms: Int, amplitude: Int) {
         val v = vibrator ?: return
         val strength = if (v.hasAmplitudeControl()) amplitude.coerceIn(1, 255) else VibrationEffect.DEFAULT_AMPLITUDE
         v.vibrate(VibrationEffect.createOneShot(ms.coerceIn(1, 200).toLong(), strength))
+    }
+
+    @JavascriptInterface
+    fun stopVibration() {
+        vibrator?.cancel()
     }
 
     fun flush() {

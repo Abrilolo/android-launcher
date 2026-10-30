@@ -50,6 +50,7 @@ object StrokeIcons {
         "candado" to StrokeGlyph("M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z", "M12 15v2"),
         "pin" to StrokeGlyph("M12 21s-6-5.7-6-11a6 6 0 0 1 12 0c0 5.3-6 11-6 11z", "M12 10h.01"),
         "reloj" to StrokeGlyph("M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0", "M12 7v5l3 2"),
+        "reiniciar" to StrokeGlyph("M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", "M3 3v5h5"),
         "nueva" to StrokeGlyph("M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0", "M12 8v8M8 12h8"),
         "lapiz" to StrokeGlyph("M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"),
         "papelera" to StrokeGlyph("M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"),

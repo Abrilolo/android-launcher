@@ -339,6 +339,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 onLogSet = exerciseViewModel::logSet,
                 onUndoSet = exerciseViewModel::undoSet,
                 onSetCompleted = exerciseViewModel::setCompleted,
+                onResetRoutine = exerciseViewModel::resetRoutine,
                 onAddBodyMetric = exerciseViewModel::addBodyMetric,
                 onSaveSettings = exerciseViewModel::saveSettings,
                 onSaveStackExercise = viewModel::saveStackExercise,

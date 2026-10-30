@@ -112,6 +112,8 @@ class RoutineRepository(context: Context, private val settings: SettingsReposito
     }
     suspend fun setLastEvent(event: PlaceEvent) { context.routineStore.edit { it[lastEventKey] = "${event.phaseId}@${event.at}" } }
     suspend fun setLastEntered(phaseId: String) { context.routineStore.edit { it[lastEnteredKey] = phaseId } }
+    suspend fun clearLastEvent() { context.routineStore.edit { it.remove(lastEventKey) } }
+    suspend fun clearLastEntered() { context.routineStore.edit { it.remove(lastEnteredKey) } }
 
     /** Phases and places for the backup file. */
     suspend fun toJson(): JSONObject = JSONObject()

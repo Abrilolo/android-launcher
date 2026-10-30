@@ -61,13 +61,14 @@
   .groups { display: flex; gap: 14px; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 18px; background: #0B0B0B; box-shadow: 0 6px 18px #000; }
   .groups span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 
-  /* Start: a gooey mass travels a soft rail to the goal; hold it there to begin. */
-  .startTrack { position: relative; display: block; height: 120px; width: 100%; max-width: 320px; margin: 0 auto; padding: 0; border: 0; background: none; touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; }
-  .startTrack.pressed { cursor: grabbing; }
+  /* Start: a centered circle softens into jelly, then hatches on activation. */
+  .startTrack { position: relative; display: block; flex: none; height: 120px; width: 112px; margin: 0 auto; padding: 0; border: 0; background: none; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+  .startTrack:disabled { cursor: default; }
 
   .startTrack svg.startGoo { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-  .startTrack .mass { fill: var(--red); }
-  .startTrack .dockShadow { fill: #5C5C5C; }
+  .startTrack .mass { fill: url(#startMassFill); }
+  .startTrack:focus-visible { outline: 1px solid #FF6754; outline-offset: 4px; border-radius: 24px; }
+  .startBloom { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% var(--start-origin-y, calc(100% - 88px)), #FFF1DC 0%, #FFB38E 12%, #F34B38 32%, #B71922 57%, transparent 76%); }
 
   /* Warm-ups: a stack of cards. */
   .carousel { overflow: hidden; touch-action: none; border-radius: 24px; }
@@ -97,7 +98,7 @@
   .muscle path, .muscle circle { fill: none; stroke: var(--gray); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .muscle .zone { stroke: #2E2E2E; fill: transparent; transition: fill .6s, stroke .6s; }
   .muscle .zone.on { stroke: var(--red); }
-  .sets { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 96px; }
+  .sets { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; flex: 1; padding-bottom: calc(var(--arc-radius, 80px) + 16px); }
   .setwrap { flex: none; }
   .swipeRow { position: relative; border-radius: 18px; overflow: hidden; }
   .trash { position: absolute; inset: 0; background: var(--red); display: flex; justify-content: flex-end; align-items: center; padding-right: 22px; cursor: pointer; }
@@ -118,12 +119,13 @@
   .add { align-self: center; width: 40px; height: 40px; border-radius: 20px; border: 1px dashed #3A3A3A; background: none; color: var(--muted); font-size: 20px; cursor: pointer; flex: none; }
 
   /* Continue arc: swipe up, then keep holding. */
-  .arc { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 14px; touch-action: none; cursor: grab; z-index: 4; background: linear-gradient(transparent, #000 45%); }
-  .arc svg { position: absolute; bottom: 0; left: 0; }
-  .arc .lbl { position: relative; font: 10px 'Space Mono', monospace; letter-spacing: 2px; color: var(--gray); transition: color .3s; }
-  .arc.ready .lbl { color: var(--white); }
-  .arc .knob { position: relative; width: 8px; height: 8px; border-radius: 4px; background: var(--gray); margin-bottom: 6px; transition: background .3s; }
-  .arc.ready .knob { background: var(--red); }
+  /* Continue: a full-width semicircle; dragging keeps its width and lengthens it. */
+  .arc { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; pointer-events: none; touch-action: none; }
+  .arc svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .arc .massBody { pointer-events: auto; touch-action: none; cursor: grab; }
+  .arc .lbl { font: 11px 'Space Mono', monospace; letter-spacing: 3px; fill: var(--gray); text-anchor: middle; dominant-baseline: central; pointer-events: none; transition: fill .3s; }
+  .arc.ready .lbl { fill: var(--white); fill-opacity: .8; }
+  .arcSpace { flex: none; height: var(--arc-radius, 70px); }
 
   .panel { position: absolute; inset: 0; background: #000; z-index: 6; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; transition: transform .3s ease; touch-action: none; }
   .panel.left { transform: translateX(-105%); } .panel.right { transform: translateX(105%); }
@@ -164,7 +166,7 @@
 <div class="side">
   <div class="card note">
     <b>1 · Entrada.</b> Si es hora de entrenar, Ejercicio abre directo aquí; si no, en la vista general (el boceto actual). Arriba flotan los grupos de hoy, con home a la vista general y el engrane. La personita se prepara a su manera (ver abajo) y recorre la pantalla. Tócala y reacciona.<br>
-    <b>Iniciar:</b> mantén la mancha ▷: se aplasta y estira hacia el punto para invitarte a arrastrarla. Al moverla deja una cola elástica; al soltarla sobre el punto se recoge y confirma. Si sueltas antes, vuelve a su lugar.<br><br>
+    <b>Iniciar:</b> el botón ▷ está centrado y empieza como un círculo quieto. Después de unos segundos sin tocarlo se vuelve gelatinoso, sin desplazarse. Mantén presionado durante 1,2 segundos: recupera su forma circular, tiembla y crece hasta convertirse en puro brillo, con vibraciones cada vez más intensas en el celular. La luz se expande y da paso a la siguiente pantalla. Si sueltas antes, se cancela. Con teclado, mantén Espacio o Enter.<br><br>
     <b>2 · Elegir.</b> Tanto para calentar como después de cada descanso: desliza ← → por las opciones definidas y luego <b>Otros</b>. Tocar una opción de Otros vuelve a su vista previa; <b>Elegir y continuar</b> o deslizar → sobre la personita confirma. Explorar no cambia tus series; si vuelves a una opción ya usada, recupera lo registrado en ese lugar de la rutina.<br>
     · <b>Desliza hacia arriba</b> la tarjeta: insights, tu progreso y tips, con la personita espiando arriba.<br>
     · <b>Desliza a la derecha</b> sobre la personita (o en el detalle) para empezar ese calentamiento.<br><br>
@@ -954,106 +956,143 @@ function start() {
   $('view').innerHTML = `${topBar()}
     <div class="intro"><h1>Un momento para ti.</h1></div>
     <div class="stage" id="stage">${fig(150, 'prep', 'fig', true)}</div>
-    <button class="startTrack" id="track" aria-label="Arrastra hasta el punto y mantén para iniciar"><svg class="startGoo" aria-hidden="true">
-      <defs><filter id="startGooFilter" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 30 -12"/></filter>
-      <filter id="startSoftFilter" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="12"/></filter></defs>
-      <ellipse class="dockShadow" filter="url(#startSoftFilter)" opacity="0"/><g class="mass" filter="url(#startGooFilter)"></g><g class="glyph"><g transform="translate(-12 -12)">${PLAY}</g></g></svg></button>`;
+    <button class="startTrack" id="track" aria-label="Mantén presionado para iniciar sesión" type="button"><svg class="startGoo" viewBox="0 0 112 120" aria-hidden="true">
+      <defs>
+        <filter id="startSoftFilter" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="12"/></filter>
+        <filter id="startLightFilter" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
+        <radialGradient id="startMassFill"><stop class="massCore" offset="0" stop-color="#ED2833"/><stop class="massMid" offset=".65" stop-color="#DF1D29"/><stop class="massEdge" offset="1" stop-color="#C81122"/></radialGradient>
+      </defs>
+      <circle class="massHalo" cx="56" cy="60" r="44" fill="#FF674C" filter="url(#startSoftFilter)" opacity="0"/>
+      <path class="mass" d="M98 60a42 42 0 1 0-84 0a42 42 0 1 0 84 0"/>
+      <ellipse class="innerLight" cx="56" cy="60" rx="12" ry="12" fill="#FFF3DD" filter="url(#startLightFilter)" opacity="0"/>
+      <circle class="hatchRing" cx="56" cy="60" r="42" fill="none" stroke="#FFD9BA" stroke-width="2" opacity="0"/>
+      <g class="glyph" transform="translate(44 48)">${PLAY}</g></svg></button>`;
   $('fig').addEventListener('click', () => react($('fig')));
   startGestureCleanup?.();
-  startGestureCleanup = bindGooStart($('track'), () => { S.startedAt = Date.now(); go('warm'); }, kind => react($('fig'), kind));
+  startGestureCleanup = bindGooStart($('track'), () => {
+    S.startedAt = Date.now(); go('warm');
+    if (!motionPreference.matches) $('view').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.7,.3,1)' });
+  }, kind => react($('fig'), kind));
 }
 
 /** Haptic pulse: the native bridge when present (it honors the vibration setting), else the browser. */
 function buzz(ms, amplitude = 120) {
   try { if (window.AndroidSession?.vibrate) AndroidSession.vibrate(ms, amplitude); else navigator.vibrate?.(ms); } catch (e) {}
 }
+function stopBuzz() {
+  try { if (window.AndroidSession?.stopVibration) AndroidSession.stopVibration(); else navigator.vibrate?.(0); } catch (e) {}
+}
 
-/**
- * A mass of fused drops (blur + alpha threshold) on a soft rail: easy toward the goal, heavy backward and
- * sideways. Near the goal a shadow shows the spot, pulses quicken and a magnet pulls it in; holding it there
- * starts. Released early, it springs back with a bounce.
- */
+/** A continuous hold rounds and grows the mass into light; releasing early cancels. */
 function bindGooStart(track, onComplete, onReact) {
   const controller = new AbortController(), options = { signal: controller.signal };
-  const NS = 'http://www.w3.org/2000/svg', mass = track.querySelector('.mass'), glyph = track.querySelector('.glyph'), shadow = track.querySelector('.dockShadow');
-  const W = track.clientWidth || 300, H = track.clientHeight || 120;
-  const O = { x: 44, y: H / 2 }, G = { x: W - 34, y: H / 2 }, span = G.x - O.x;
-  const goal = document.createElementNS(NS, 'circle'); goal.setAttribute('cx', G.x); goal.setAttribute('cy', G.y); mass.appendChild(goal);
-  shadow.setAttribute('cx', G.x); shadow.setAttribute('cy', G.y);
-  const parts = Array.from({ length: 7 }, (_, i) => {
-    const el = document.createElementNS(NS, 'circle'); mass.appendChild(el);
-    return { el, x: O.x, y: O.y, vx: 0, vy: 0, a: i / 7 * Math.PI * 2, ph: Math.random() * 6, sp: .7 + Math.random() * .9,
-      r: 14 + Math.random() * 6, k: 90 + i * 35, z: .32 + Math.random() * .15, d: i ? 9 + Math.random() * 8 : 0 };
-  });
-  let p = { ...O }, v = { x: 0, y: 0 }, pointer = null, last = null, scale = 1, hold = 0, press = 0, pulse = 0;
-  let committed = false, nextTick = 0, wasNear = false, lt = null, frame = null, completion = null;
-  const spring = (o, t, k, z, dt) => {
-    const c = 2 * z * Math.sqrt(k);
-    o.vx += (-k * (o.x - t.x) - c * o.vx) * dt; o.vy += (-k * (o.y - t.y) - c * o.vy) * dt;
-    o.x += o.vx * dt; o.y += o.vy * dt;
+  const mass = track.querySelector('.mass'), glyph = track.querySelector('.glyph'), core = track.querySelector('.massCore');
+  const mid = track.querySelector('.massMid'), edge = track.querySelector('.massEdge');
+  const halo = track.querySelector('.massHalo'), light = track.querySelector('.innerLight'), ring = track.querySelector('.hatchRing');
+  const view = track.closest('#view'), phone = track.closest('.phone');
+  const bloom = document.createElement('div'); bloom.className = 'startBloom'; bloom.setAttribute('aria-hidden', 'true'); phone.appendChild(bloom);
+  const smooth = value => { const x = Math.max(0, Math.min(1, value)); return x * x * (3 - 2 * x); };
+  let frame = null, last = null, idle = 0, elapsed = 0, active = false, finished = false, latched = false;
+  let pointer = null, key = null, nextPulse = .18;
+  const activate = () => {
+    active = true; elapsed = 0; last = null; nextPulse = .18;
+    bloom.style.setProperty('--start-origin-y', `${track.offsetTop + track.offsetHeight / 2}px`);
+    buzz(12, 70); onReact('flexOnce');
   };
-  const commit = () => {
-    committed = true; pointer = null; track.classList.remove('pressed'); track.disabled = true;
-    buzz(70, 255); onReact('cheer');
-    completion = setTimeout(onComplete, motionPreference.matches ? 0 : 450);
+  const cancel = (force = false) => {
+    if (finished || (latched && !force)) return;
+    const captured = pointer;
+    pointer = null; key = null; active = false; latched = false; elapsed = 0; idle = 0; last = null;
+    track.disabled = false; bloom.style.opacity = '0'; view.style.opacity = ''; stopBuzz();
+    if (captured !== null && track.hasPointerCapture(captured)) track.releasePointerCapture(captured);
   };
+  track.addEventListener('pointerdown', event => {
+    if (active || finished || event.button !== 0 || event.isPrimary === false) return;
+    pointer = event.pointerId; track.setPointerCapture(pointer); activate();
+  }, options);
+  track.addEventListener('pointermove', event => {
+    if (event.pointerId !== pointer || latched) return;
+    const bounds = track.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) cancel();
+  }, options);
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) track.addEventListener(type, event => {
+    if (event.pointerId === pointer) cancel();
+  }, options);
+  track.addEventListener('keydown', event => {
+    if (![' ', 'Enter'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.repeat || active || finished) return;
+    key = event.key; activate();
+  }, options);
+  track.addEventListener('keyup', event => {
+    if (event.key !== key) return;
+    event.preventDefault(); cancel();
+  }, options);
+  // The synthetic click after release must never bypass the hold requirement.
+  track.addEventListener('click', event => event.preventDefault(), options);
+  track.addEventListener('contextmenu', event => event.preventDefault(), options);
+  track.addEventListener('blur', () => cancel(), options);
+  track.addEventListener('sessionpause', () => cancel(true), options);
+  window.addEventListener('blur', () => cancel(true), options);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancel(true); }, options);
   const step = now => {
-    const dt = lt ? Math.min((now - lt) / 1000, .032) : .016, t = motionPreference.matches ? 0 : now / 1000; lt = now;
-    const dragging = pointer !== null, dG = Math.hypot(p.x - G.x, p.y - G.y), near = Math.max(0, 1 - dG / (span * .9));
-    if (committed) { p.x += (G.x - p.x) * Math.min(1, dt * 12); p.y += (G.y - p.y) * Math.min(1, dt * 12); hold = 1; }
-    else if (dragging) {
-      if (dG < 64) { const s = (1 - dG / 64) * 9 * dt; p.x += (G.x - p.x) * s; p.y += (G.y - p.y) * s; }
-      if (near > .05 && now > nextTick) { buzz(Math.round(6 + near * 18), Math.round(40 + near * 200)); pulse = 1; nextTick = now + 320 - near * 260; }
-      const atGoal = dG < 22;
-      if (atGoal && !wasNear) onReact('flexOnce');
-      wasNear = atGoal;
-      hold = atGoal ? Math.min(1, hold + dt / .9) : Math.max(0, hold - dt * 2);
-      if (hold >= 1) commit();
-    } else {
-      hold = Math.max(0, hold - dt * 3);
-      const o = { x: p.x, y: p.y, vx: v.x, vy: v.y }; spring(o, O, 200, .2, dt);
-      p = { x: o.x, y: o.y }; v = { x: o.vx, y: o.vy };
+    if (finished) return;
+    const dt = last === null ? 0 : Math.min((now - last) / 1000, .05); last = now;
+    const reduced = motionPreference.matches;
+    if (active) elapsed += dt; else idle += dt;
+    const chargeDuration = 1.2, burstDuration = reduced ? .12 : .48;
+    if (active && !latched && elapsed >= chargeDuration) {
+      latched = true; pointer = null; key = null; track.disabled = true;
+      buzz(65, 230); onReact('cheer');
+    } else if (active && !latched && elapsed >= nextPulse) {
+      const progress = elapsed / chargeDuration;
+      buzz(Math.round(10 + progress * 16), Math.round(70 + progress * 130));
+      nextPulse = elapsed + .22 - progress * .14;
     }
-    press += ((dragging ? 1 : 0) - press) * Math.min(1, dt * 10); pulse *= Math.exp(-dt * 7);
-    const sh = dragging || committed ? near : near * .4;
-    shadow.setAttribute('opacity', (sh * .55 + pulse * sh * .25).toFixed(3));
-    shadow.setAttribute('rx', 26 + sh * 12 + pulse * 4); shadow.setAttribute('ry', 20 + sh * 8 + pulse * 3);
-    goal.setAttribute('r', 3 + near * 6 + hold * 18);
-    const spread = (1 - hold) * (1 + press * .35);
-    parts.forEach((o, i) => {
-      const wob = Math.sin(t * o.sp + o.ph), ang = o.a + t * .35 * (i % 2 ? 1 : -1) + wob * .6;
-      spring(o, { x: p.x + Math.cos(ang) * o.d * spread * (1 + .25 * wob), y: p.y + Math.sin(ang) * o.d * spread * (1 - .2 * wob) }, o.k, o.z, dt);
-      o.el.setAttribute('cx', o.x.toFixed(1)); o.el.setAttribute('cy', o.y.toFixed(1));
-      o.el.setAttribute('r', ((o.r + Math.sin(t * o.sp * 1.7 + o.ph) * 2.5) * (1 + press * .12) * (1 - hold * .15)).toFixed(1));
-    });
-    glyph.setAttribute('transform', `translate(${parts[0].x.toFixed(1)} ${parts[0].y.toFixed(1)})`);
-    glyph.setAttribute('opacity', (1 - hold).toFixed(2));
+    const charge = active ? smooth(elapsed / chargeDuration) : 0;
+    const burst = active ? Math.max(0, Math.min(1, (elapsed - chargeDuration) / burstDuration)) : 0;
+    const jelly = reduced ? 0 : smooth((idle - 2.4) / 1.5) * (active ? 1 - smooth(elapsed / .2) : 1);
+    const t = reduced ? 0 : idle + elapsed;
+    const wobble = reduced ? 0 : Math.sin(elapsed * 28) * charge * charge;
+    // Only the idle contour deforms. Holding restores a circle before uniform growth.
+    if (jelly === 0) mass.setAttribute('d', 'M98 60a42 42 0 1 0-84 0a42 42 0 1 0 84 0');
+    else {
+      const points = Array.from({ length: 64 }, (_, i) => {
+        const a = i / 64 * Math.PI * 2;
+        const ripple = jelly * (Math.sin(a * 3 + t * 2.3) * 2.2 + Math.sin(a * 2 - t * 1.7) * 1.8);
+        const radius = 42 + ripple;
+        return `${(56 + Math.cos(a) * radius).toFixed(2)} ${(60 + Math.sin(a) * radius).toFixed(2)}`;
+      });
+      mass.setAttribute('d', 'M' + points.join(' L') + ' Z');
+    }
+    const growth = active ? smooth((elapsed - .2) / (chargeDuration - .2)) : 0;
+    const expansion = reduced ? 1 : 1 + growth * .65 + smooth(burst) * 1.8;
+    const rock = reduced ? 0 : wobble * 7;
+    const shake = wobble * (1 - smooth(burst));
+    mass.setAttribute('transform', `translate(${56 + shake * 1.4} ${60 + shake * .6}) rotate(${rock}) scale(${expansion}) translate(-56 -60)`);
+    mass.setAttribute('opacity', (1 - smooth(burst)).toFixed(3));
+    const whiten = smooth((charge - .35) / .65);
+    for (const [stop, rgb] of [[core, [237, 40, 51]], [mid, [223, 29, 41]], [edge, [200, 17, 34]]]) {
+      stop.setAttribute('stop-color', `rgb(${rgb.map((value, i) => Math.round(value + ([255, 243, 221][i] - value) * whiten)).join(',')})`);
+    }
+    glyph.setAttribute('opacity', (1 - smooth(charge * 2)).toFixed(3));
+    halo.setAttribute('r', 44 + growth * 28 + (reduced ? 0 : smooth(burst) * 150));
+    halo.setAttribute('fill', `rgb(255,${103 + Math.round(whiten * 130)},${76 + Math.round(whiten * 134)})`);
+    halo.setAttribute('opacity', ((jelly * .08 + charge * .8) * (1 - burst)).toFixed(3));
+    const lightRadius = 12 + charge * 34 + (reduced ? 0 : burst * 60);
+    light.setAttribute('rx', lightRadius); light.setAttribute('ry', lightRadius);
+    light.setAttribute('opacity', (charge * charge * .85 * (1 - smooth(burst))).toFixed(3));
+    ring.setAttribute('r', 42 + (reduced ? 0 : growth * 27 + smooth(burst) * 135));
+    ring.setAttribute('opacity', reduced ? 0 : (Math.sin(burst * Math.PI) * .8).toFixed(3));
+    bloom.style.opacity = reduced ? '0' : (Math.sin(Math.PI * burst) * .85).toFixed(3);
+    view.style.opacity = active ? (1 - smooth(burst)).toFixed(3) : '';
+    if (active && elapsed >= chargeDuration + burstDuration) {
+      finished = true; controller.abort(); bloom.remove(); view.style.opacity = ''; onComplete(); return;
+    }
     frame = requestAnimationFrame(step);
   };
-  const local = e => { const r = track.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; };
-  track.addEventListener('pointerdown', e => {
-    if (committed || pointer !== null || e.button !== 0 || e.isPrimary === false) return;
-    scale = track.getBoundingClientRect().width / track.offsetWidth || 1;
-    const q = local(e);
-    if (Math.hypot(q.x - p.x, q.y - p.y) > 56) return;
-    pointer = e.pointerId; last = q; v = { x: 0, y: 0 };
-    track.setPointerCapture(pointer); track.classList.add('pressed');
-    buzz(10); onReact('look');
-  }, options);
-  track.addEventListener('pointermove', e => {
-    if (e.pointerId !== pointer || committed) return;
-    const q = local(e), dx = q.x - last.x, dy = q.y - last.y; last = q;
-    // The rail: forward is light, backward heavier, sideways heavy and heavier the further off it goes.
-    const fx = dx > 0 ? .85 : .55, fy = .35 / (1 + Math.abs(p.y - O.y) / 24);
-    p.x = Math.max(O.x - 20, Math.min(G.x + 10, p.x + dx * fx));
-    p.y = Math.max(16, Math.min(H - 16, p.y + dy * fy));
-  }, options);
-  const release = e => { if (e.pointerId !== pointer || committed) return; pointer = null; wasNear = false; v = { x: 0, y: 0 }; track.classList.remove('pressed'); };
-  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) track.addEventListener(event, release, options);
-  // Keyboard and screen readers start directly.
-  track.addEventListener('click', e => { if (e.detail === 0 && !committed) commit(); }, options);
   frame = requestAnimationFrame(step);
-  return () => { controller.abort(); cancelAnimationFrame(frame); clearTimeout(completion); };
+  return () => { cancel(true); finished = true; controller.abort(); cancelAnimationFrame(frame); bloom.remove(); view.style.opacity = ''; stopBuzz(); };
 }
 
 function warm() {
@@ -1237,7 +1276,7 @@ function warmRun() {
     <div style="text-align:center"><div class="wname" style="font-size:20px">${htmlText(w.name)}</div></div>
     <div class="huge js-warm">${fmt(S.warmLeft)}</div>
     <div class="stage" id="stage">${fig(160, movementFor(w, true), 'fig')}</div>
-    <div style="height:70px"></div>
+    <div class="arcSpace"></div>
     ${arcHtml(true)}`;
   $('fig').addEventListener('click', () => react($('fig')));
   bindArc(() => { S.next = 0; S.restLeft = 60; S.restOver = 0; go('rest'); });
@@ -1374,29 +1413,68 @@ function openDash() {
 }
 
 function arcHtml(ready) {
-  return `<div class="arc ${ready ? 'ready' : ''}" id="arc">
-    <svg width="100%" height="92" viewBox="0 0 390 92" preserveAspectRatio="none"><path d="M30 92 A165 74 0 0 1 360 92" fill="none" stroke="#1C1C1C" stroke-width="2"/>
-      <path id="arcFill" d="M30 92 A165 74 0 0 1 360 92" fill="none" stroke="#D71921" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/></svg>
-    <div class="knob"></div><span class="lbl">CONTINUAR</span></div>`;
+  return `<div class="arc ${ready ? 'ready' : ''}" id="arc"><svg aria-hidden="true">
+    <defs><linearGradient id="massFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CE1212"/><stop offset=".6" stop-color="#3A0000"/><stop offset="1" stop-color="#100000"/></linearGradient>
+    <filter id="massGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter></defs>
+    <ellipse class="massHalo" fill="#CE1212" opacity="0" filter="url(#massGlow)"/><path class="massBody" fill="url(#massFill)"/><text class="lbl">CONTINUAR</text></svg></div>`;
 }
-/** Swipe the arc up, then keep holding until the red line closes. */
-function bindArc(onDone) {
-  const arc = $('arc'), line = $('arcFill');
-  let y0 = null, t = null, p = 0;
-  const reset = () => { y0 = null; clearInterval(t); t = null; p = 0; line.setAttribute('stroke-dasharray', '0 100'); arc.style.transform = ''; };
-  arc.addEventListener('pointerdown', e => { arc.setPointerCapture(e.pointerId); y0 = e.clientY; });
+/**
+ * Pull the semicircle up: its width stays and only its straight sides grow, as a stadium does. Released past the
+ * goal it shoots up and fades; before it, it bounces back. [canContinue] may refuse, and then it bounces back too.
+ */
+function bindArc(onDone, canContinue = () => true) {
+  const arc = $('arc'), controller = new AbortController(), options = { signal: controller.signal };
+  const body = arc.querySelector('.massBody'), label = arc.querySelector('.lbl'), halo = arc.querySelector('.massHalo');
+  let W = 0, H = 0, R = 0, goal = 0, longest = 0;
+  const measure = () => {
+    W = arc.closest('.phone').clientWidth; R = W / 2;
+    const room = Math.max(R, arc.closest('.phone').clientHeight - 40);
+    longest = Math.min(W * .9, room - R); goal = Math.min(W * .57, longest * .63); H = R + longest;
+    arc.style.height = `${H}px`;
+    arc.closest('.phone').style.setProperty('--arc-radius', `${R}px`);
+  };
+  measure(); window.addEventListener('resize', measure, options);
+  let a = 0, v = 0, pointer = null, lastY = 0, flying = false, reached = false, fly = 0, lt = null;
+  body.addEventListener('pointerdown', e => {
+    if (flying || pointer !== null || e.isPrimary === false) return;
+    pointer = e.pointerId; lastY = e.clientY; v = 0; arc.setPointerCapture(pointer); buzz(10);
+  }, options);
   arc.addEventListener('pointermove', e => {
-    if (y0 == null) return;
-    const dy = Math.min(0, e.clientY - y0); arc.style.transform = `translateY(${Math.max(-60, dy)}px)`;
-    if (dy < -45 && !t) t = setInterval(() => {
-      p = Math.min(100, p + 4); line.setAttribute('stroke-dasharray', `${p} 100`);
-      if (p >= 100) { clearInterval(t); t = null; y0 = null; arc.style.transform = ''; onDone(); }
-    }, 30);
-    else if (dy >= -45 && t) {
-      clearInterval(t); t = null; p = 0; line.setAttribute('stroke-dasharray', '0 100');
+    if (e.pointerId !== pointer) return;
+    const d = lastY - e.clientY, p = Math.min(1, Math.max(0, a) / goal); lastY = e.clientY;
+    a = Math.max(-R / 5, Math.min(longest, a + d * (d > 0 ? 1 - p * .3 : 1)));
+    if (a >= goal && !reached) buzz(20, 200);
+    reached = a >= goal;
+  }, options);
+  const release = e => {
+    if (e.pointerId !== pointer) return;
+    pointer = null; v = 0;
+    if (e.type !== 'pointerup' || a < goal || !canContinue()) return;
+    buzz(70, 255);
+    if (motionPreference.matches) onDone(); else flying = true;
+  };
+  for (const event of ['pointerup', 'pointercancel']) arc.addEventListener(event, release, options);
+  const step = now => {
+    if (!arc.isConnected) { controller.abort(); return; }
+    const dt = lt ? Math.min((now - lt) / 1000, .032) : .016, t = now / 1000; lt = now;
+    if (flying) {
+      fly += dt; a += (1500 * fly + 250) * W / 300 * dt;
+      if (fly > .8) { controller.abort(); onDone(); return; }
+    } else if (pointer === null) {
+      const k = 400, c = 2 * .2 * Math.sqrt(k); v += (-k * a - c * v) * dt; a += v * dt;
+      if (motionPreference.matches) { a = 0; v = 0; }
     }
-  });
-  arc.addEventListener('pointerup', reset); arc.addEventListener('pointercancel', reset);
+    const length = Math.max(0, a), ry = R + Math.min(0, a), base = H - length, top = base - ry;
+    body.setAttribute('d', `M0 ${H + 2} L0 ${base} A${R} ${ry} 0 0 1 ${W} ${base} L${W} ${H + 2} Z`);
+    const p = Math.min(1, length / goal), beat = motionPreference.matches ? .6 : .6 - .15 * (.5 - .5 * Math.cos(t * Math.PI / 1.8)), fade = flying ? Math.max(0, 1 - fly / .8) : 1;
+    body.setAttribute('opacity', (Math.min(1, beat + p * .25) * fade).toFixed(3));
+    const labelY = top + ry * .45;
+    label.setAttribute('x', W / 2); label.setAttribute('y', labelY); label.setAttribute('opacity', fade);
+    halo.setAttribute('cx', W / 2); halo.setAttribute('cy', labelY); halo.setAttribute('rx', W * .37); halo.setAttribute('ry', W / 6);
+    halo.setAttribute('opacity', (p * .4 * fade).toFixed(3));
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 function rest() {

@@ -46,4 +46,7 @@ interface ExerciseDao {
 
     @Query("DELETE FROM set_logs WHERE date = :date AND exerciseId = :exerciseId AND setIndex >= :fromIndex")
     suspend fun deleteFrom(date: String, exerciseId: String, fromIndex: Int)
+
+    @Query("DELETE FROM set_logs WHERE date = :date")
+    suspend fun deleteAllOn(date: String)
 }

@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ejercicio · Hoy y tu rutina</title>
+<style>
+  :root { color-scheme: dark; --red:#D71921; --white:#F5F5F5; --muted:#B0B0B0; --line:#252525; --card:#0B0B0B; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#151515; color:var(--white); font:14px 'Space Grotesk','Segoe UI',sans-serif; }
+  button,input,select { font:inherit; } button,a,input,select { -webkit-tap-highlight-color:transparent; }
+  button,a { touch-action:manipulation; } button { cursor:pointer; color:inherit; } button:disabled { cursor:default; opacity:.35; }
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid #eee; outline-offset:3px; }
+  h1,h2,h3,p { margin:0; } h1,h2,h3 { font-weight:500; } svg { display:block; flex:none; }
+  .workspace { max-width:1260px; margin:auto; padding:34px 30px 44px; }
+  .eyebrow,.mono { font:10px 'Space Mono',Consolas,monospace; letter-spacing:1.6px; text-transform:uppercase; }
+  .eyebrow { color:var(--muted); } .red { color:var(--red); } .muted { color:var(--muted); }
+  header { display:flex; align-items:end; justify-content:space-between; gap:24px; margin:14px 0 26px; }
+  header h1 { font-size:30px; letter-spacing:-1px; } header p { max-width:400px; color:var(--muted); line-height:1.5; font-size:12px; }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:26px; }
+  .switcher { display:flex; gap:6px; } .switcher button,.phase-control { background:#1B1B1B; border:1px solid #333; color:var(--muted); border-radius:24px; padding:10px 15px; font-size:12px; }
+  .switcher button[aria-pressed=true] { background:var(--white); color:#111; border-color:var(--white); }
+  .phase-control { display:flex; gap:10px; align-items:center; padding:7px 12px; } select { border:0; color:white; background:#1B1B1B; padding:4px; }
+  .board { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; align-items:start; }
+  .caption { display:flex; align-items:center; justify-content:space-between; margin-bottom:13px; color:var(--muted); font-size:11px; }
+  .caption span:first-child { color:var(--white); } .panel.selected .caption span:first-child::before { content:''; display:inline-block; width:5px; height:5px; background:var(--red); margin:0 7px 2px 0; border-radius:50%; }
+  .phone { position:relative; height:792px; background:#000; border:1px solid #303030; border-radius:34px; overflow:hidden; display:flex; flex-direction:column; }
+  .status { height:44px; padding:17px 23px 0; display:flex; justify-content:space-between; font-size:11px; flex:none; }
+  .status-icons { display:flex; gap:5px; align-items:center; } .signal { width:11px; height:9px; border-left:2px solid; border-right:3px solid; transform:skewY(-20deg); } .battery { width:18px; height:9px; border:1px solid; border-radius:2px; position:relative; } .battery::before { content:''; position:absolute; inset:1px 4px 1px 1px; background:currentColor; }
+  .content { position:relative; z-index:0; isolation:isolate; padding:20px 22px 0; flex:1; min-height:0; display:flex; flex-direction:column; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .topbar { margin-bottom:26px; min-height:36px; } .topbar h2 { font-size:20px; letter-spacing:-.5px; }
+  .icon-button { display:grid; place-items:center; border:0; background:none; padding:10px; min-width:40px; min-height:40px; border-radius:50%; }
+  .topbar .icon-button { margin-right:-9px; } .back { margin-left:-10px; }
+  .intro h3 { font-size:29px; line-height:1.15; letter-spacing:-1px; margin:12px 0 10px; }
+  .shiny-text { color:#EEE; background:linear-gradient(110deg,#BBB 32%,#FFF 46%,#FFF 50%,#BBB 64%); background-size:260% 100%; background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:text-shine 6s ease-in-out infinite; }
+  @keyframes text-shine { 0%,18% { background-position:100% 50%; } 65%,100% { background-position:0% 50%; } }
+  .shine-frame.shine-frame { position:relative; border:0; border-block:1px solid #000; border-radius:0; background:none; margin-left:-22px; width:calc(100% + 44px); padding-left:22px; padding-right:22px; }
+  .border-runner { position:absolute; left:0; top:-1px; width:100%; height:1px; overflow:visible; pointer-events:none; }
+  .border-runner line { fill:none; stroke:#FF4153; stroke-width:1.2; stroke-dasharray:15 185; stroke-linecap:round; opacity:0; filter:drop-shadow(0 0 2px #FFB0B8) drop-shadow(0 0 5px #E71937); }
+  .routine-link { color:var(--white); width:100%; padding:18px 16px; margin-top:24px; text-align:left; }
+  .routine-link strong { display:block; font-weight:500; font-size:14px; margin-bottom:6px; } .routine-link small { color:var(--muted); font-size:11px; }
+  .routine-link .link-arrow { width:30px; height:30px; display:grid; place-items:center; }
+  .character-stage { flex:1; min-height:130px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .person { width:154px; max-height:100%; height:212px; overflow:visible; }
+  .phase-note { margin-bottom:22px; text-align:center; }
+  .phase-note strong { font-size:14px; font-weight:500; }
+  .bottom-nav { margin:0 14px 10px; padding:8px 6px 9px; border:1px solid var(--red); border-bottom-color:transparent; border-radius:22px; display:grid; grid-template-columns:repeat(4,1fr); gap:2px; }
+  .bottom-nav button { border:0; background:none; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; min-height:44px; color:var(--muted); font-size:10px; position:relative; padding:2px 0; }
+  .bottom-nav button.active { color:var(--white); } .bottom-nav .active::before { content:''; width:3px; height:3px; border-radius:50%; background:var(--red); position:absolute; top:-4px; }
+  .home-line { flex:none; width:100px; height:4px; border-radius:4px; background:#777; margin:0 auto 8px; }
+  .routine-content { padding-top:15px; touch-action:pan-y; } .routine-content .topbar { margin-bottom:14px; }
+  .day-strip { touch-action:pan-y; padding:12px 3px; margin-bottom:16px; flex:none; user-select:none; }
+  .calendar-week { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; margin-bottom:12px; }
+  .calendar-day { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; min-height:58px; padding:0; border:0; background:none; color:var(--muted); touch-action:pan-y; }
+  .day-initial { font-size:10px; } .day-number { display:grid; place-items:center; width:34px; height:34px; border:1px solid transparent; border-radius:50%; color:var(--white); font-size:13px; }
+  .calendar-day.today .day-number { border-color:var(--red); }
+  .calendar-day[aria-pressed=true] .day-number { background:var(--red); color:#FFF; }
+  .calendar-day[aria-pressed=true] .day-initial { color:#FFF; }
+  .day-title { text-align:center; } .day-title strong { font-size:14px; font-weight:500; display:block; margin-bottom:5px; } .day-title small { font-size:10px; color:var(--muted); }
+  .muscle-stack { position:relative; isolation:isolate; height:210px; flex:none; overflow:hidden; margin:0 -8px 14px; touch-action:pan-y; cursor:grab; user-select:none; }
+  .muscle-stack.dragging { cursor:grabbing; }
+  .muscle-card { position:absolute; top:8px; left:50%; width:124px; padding:0; display:flex; flex-direction:column; align-items:center; gap:9px; border:0; background:none; color:var(--muted); font-size:11px; transform-origin:50% 50%; transition:transform .36s cubic-bezier(.2,.8,.2,1),opacity .3s; }
+  .muscle-stack.dragging .muscle-card { transition:none; }
+  .gallery-art { width:120px; height:138px; display:grid; place-items:center; border:1px solid #333; border-radius:18px; background:linear-gradient(150deg,#171717,#060606); }
+  .muscle-card.active { color:var(--white); } .muscle-card.active .gallery-art { border-color:#862832; background:linear-gradient(150deg,#260E12,#080405); }
+  .overview-stage { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; }
+  .overview-summary { text-align:center; margin:14px 0 40px; }
+  .overview-summary h3 { font-size:20px; } .overview-summary p { color:var(--muted); font-size:11px; margin-top:9px; }
+  .group-sheet { height:78%; max-height:85%; display:flex; flex-direction:column; overflow:hidden; }
+  .group-header { position:relative; flex:none; margin-bottom:18px; }
+  .group-header>.icon-button { position:absolute; right:-10px; top:0; }
+  .group-toggle { border:0; background:none; display:flex; align-items:center; justify-content:center; gap:10px; min-height:44px; margin:auto; padding:0 40px; font-size:20px; }
+  .group-toggle .chevron { font-size:14px; color:#999; }
+  .group-options { position:absolute; top:48px; left:18px; right:18px; z-index:15; padding:6px; border:1px solid #333; border-radius:14px; background:#181818; box-shadow:0 14px 30px #0009; max-height:210px; overflow:auto; }
+  .group-options[hidden] { display:none; }
+  .group-options button { display:flex; align-items:center; gap:12px; border:0; border-radius:8px; background:none; width:100%; padding:12px; text-align:left; }
+  .group-options button[aria-pressed=true] { background:#2A1519; }
+  .group-sheet>.primary { flex:none; margin-top:16px; }
+  .group-sheet .exercise-row { background:#101010; }
+  .list-highlight { position:absolute; top:0; left:0; right:0; pointer-events:none; z-index:2; border-radius:12px; border:1px solid #FFFFFF13; background:#FFFFFF09; box-shadow:inset 2px 0 #EB364A; opacity:0; transition:transform .32s cubic-bezier(.2,.85,.2,1),height .25s,opacity .2s; }
+
+  .section-label { margin-bottom:12px; } .section-label span { font-size:11px; color:var(--muted); }
+  .exercise-list { position:relative; isolation:isolate; overflow-y:auto; flex:1; min-height:80px; touch-action:pan-y; scrollbar-width:none; }
+  .exercise-list::-webkit-scrollbar { display:none; }
+  .exercise-item { position:relative; z-index:1; overflow:hidden; border-top:1px solid #202020; }
+  .exercise-item:first-child { border-top:0; }
+  .exercise-row { position:relative; display:flex; align-items:center; gap:11px; padding:14px 0; min-height:74px; background:#000; transition:transform .22s ease; touch-action:pan-y; }
+  .exercise-row.dragging { transition:none; }
+  .exercise-copy { min-width:0; flex:1; }
+  .exercise-actions { position:absolute; right:0; top:0; bottom:0; width:116px; display:flex; opacity:0; pointer-events:none; }
+  .exercise-item.open .exercise-actions { opacity:1; pointer-events:auto; }
+  .exercise-actions button { width:58px; border:0; background:#161616; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:9px; }
+  .exercise-actions .delete { background:#461019; color:#FFB1B8; }
+  .undo { float:right; border:0; background:none; color:#FFF; text-decoration:underline; font:inherit; padding:0 0 0 10px; }
+  .exercise-copy strong { font-size:12px; font-weight:500; display:block; margin-bottom:6px; line-height:1.35; }
+  .exercise-copy small { font-size:10px; color:var(--muted); } .exercise-row>.icon-button { padding:8px; min-width:34px; }
+  .exercise-symbol { color:var(--muted); padding:9px; border:1px solid #252525; border-radius:13px; }
+  .action-footer { padding:17px 0 18px; flex:none; }
+  .add-exercise { width:44px; height:44px; margin:10px auto 4px; border:0; background:none; display:grid; place-items:center; }
+  .save-button.save-button { display:block; width:86%; margin-inline:auto; min-height:54px; border:0; border-radius:28px; background:var(--white); color:#111; font-size:14px; transition:background .16s,color .16s,transform .16s; }
+  .save-button.save-button:active { background:var(--red); color:#FFF; transform:scale(.985); }
+  .gallery-layout { position:relative; }
+  .gallery-layout .muscle-stack { margin:0 24px 14px; }
+  .group-tools { position:absolute; top:60px; left:0; right:0; display:flex; justify-content:space-between; z-index:2; pointer-events:none; }
+  .group-tools>* { pointer-events:auto; }
+  .group-chip[data-action=add-groups] { order:2; }
+  .group-chip[data-action=remove-groups] { order:1; }
+  .group-chip { display:grid; place-items:center; width:34px; height:34px; border:1px solid #4B252A; border-radius:50%; background:#11090A; color:#F16B76; }
+  .group-chip[aria-expanded=true] { background:#45121B; border-color:#E74A5A; }
+  .group-picker { position:absolute; right:44px; top:0; width:220px; max-width:calc(100vw - 130px); z-index:3; border:1px solid #3D292D; background:#151214; border-radius:18px; padding:12px; box-shadow:0 14px 35px #000B; transform-origin:100% 16px; animation:picker-pop .25s cubic-bezier(.2,.8,.2,1); }
+  .group-picker[data-mode=remove] { right:auto; left:44px; transform-origin:0 16px; }
+  .picker-heading { display:flex; align-items:center; justify-content:space-between; gap:4px; margin-bottom:6px; font-size:13px; }
+  .picker-heading .icon-button { min-width:30px; min-height:30px; padding:6px; }
+  .picker-list { position:relative; max-height:210px; overflow:auto; scrollbar-width:none; }
+  .picker-list::-webkit-scrollbar { display:none; }
+  .picker-highlight { position:absolute; left:0; right:0; top:0; height:44px; border-radius:10px; background:#FFFFFF0B; pointer-events:none; transition:transform .24s cubic-bezier(.2,.85,.2,1); }
+  .picker-option { position:relative; width:100%; min-height:44px; display:flex; align-items:center; gap:9px; border:0; border-radius:10px; padding:9px; background:none; font-size:12px; text-align:left; }
+  .picker-option .pick-check { margin-left:auto; opacity:0; color:#FF6877; } .picker-option[aria-checked=true] .pick-check { opacity:1; }
+  .picker-note { color:#AAA; font-size:10px; line-height:1.5; margin:10px 2px 0; }
+  .group-picker .primary { margin-top:12px; min-height:38px; padding:8px; font-size:12px; }
+  @keyframes picker-pop { from { opacity:0; transform:translate(-5px,-4px) scale(.94); } to { opacity:1; transform:none; } }
+  .primary,.secondary { display:flex; justify-content:center; align-items:center; gap:9px; width:100%; min-height:46px; border-radius:15px; border:1px solid #444; color:var(--white); background:none; padding:12px; text-decoration:none; }
+  .primary { background:var(--red); border-color:var(--red); font-size:12px; } .secondary { font-size:12px; background:#050505; border-radius:0; }
+  .done .intro h3 { font-size:28px; margin-top:17px; } .stats { display:flex; justify-content:center; gap:26px; margin-bottom:20px; }
+  .stat strong { font:26px Consolas,monospace; display:block; text-align:center; font-weight:400; } .stat small { color:var(--muted); display:block; text-align:center; font-size:10px; margin-top:5px; }
+  .done .character-stage { min-height:140px; } .done .action-footer { padding-top:0; }
+  .footnote { margin:14px 4px 0; font-size:12px; line-height:1.6; color:var(--muted); }
+  .footnote b { color:#EEE; font-weight:500; }
+  .scrim { position:absolute; inset:0; z-index:20; background:#0009; display:flex; align-items:end; }
+  .scrim[hidden] { display:none; } .sheet { width:100%; max-height:85%; overflow-y:auto; background:#101010; border-top:1px solid #3A3A3A; border-radius:26px 26px 0 0; padding:12px 22px 28px; }
+  .handle { width:32px; height:3px; background:#555; border-radius:3px; margin:0 auto 18px; }
+  .sheet h3 { font-size:21px; margin-bottom:8px; } .sheet p { color:var(--muted); font-size:12px; line-height:1.6; }
+  .sheet .row { margin-bottom:15px; } .sheet .primary { margin-top:18px; }
+  .field { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid #292929; font-size:12px; }
+  .field input { width:82px; border:1px solid #444; background:#080808; color:white; padding:10px; border-radius:11px; text-align:center; }
+  .field input[type=text],.field select { width:65%; min-width:0; text-align:left; }
+  .alternatives { display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+  .alternative { display:flex; align-items:center; gap:12px; text-align:left; background:#090909; border:1px solid #333; padding:13px; border-radius:14px; }
+  .alternative strong { font-size:12px; font-weight:500; } .alternative small { display:block; color:var(--muted); margin-top:5px; font-size:10px; }
+  .sheet .text-action { border:0; background:none; font-size:12px; text-decoration:underline; color:var(--muted); padding:15px 0 3px; }
+  .toast { position:absolute; bottom:108px; left:20px; right:20px; z-index:30; padding:13px 15px; border:1px solid #444; border-radius:14px; background:#202020; font-size:12px; line-height:1.5; }
+  .toast[hidden] { display:none; } .empty { text-align:center; padding:24px 8px; color:var(--muted); line-height:1.6; font-size:12px; }
+  .empty svg { margin:0 auto 12px; }
+  @media(max-width:1050px) { .workspace { max-width:700px; padding:24px 20px; } header { align-items:start; flex-direction:column; gap:12px; } .board { display:block; } .panel { display:none; max-width:390px; margin:auto; } .panel.selected { display:block; } .phone { height:792px; } .toolbar { justify-content:center; } }
+  @media(max-width:420px) { .workspace { padding:20px 12px; } header h1 { font-size:27px; } .switcher button { padding:10px 12px; } .phone { border-radius:28px; height:780px; } }
+  @media(prefers-reduced-motion:reduce) { .shiny-text { animation:none; background:none; -webkit-text-fill-color:currentColor; } .border-runner { display:none; } .group-picker { animation:none; } .save-button,.muscle-card,.exercise-row,.list-highlight,.picker-highlight { transition:none; } }
+</style>
+</head>
+<body>
+<main class="workspace">
+  <div class="eyebrow">EJERCICIO / EXPLORACIÓN VISUAL 02</div>
+  <header><h1>Tu día. Tu ritmo. Tu rutina.</h1><p>Prototipo interactivo con datos de ejemplo. Hoy, elección de rutina y cierre. La vista de Semana queda pendiente.</p></header>
+  <div class="toolbar">
+    <div class="switcher" aria-label="Pantallas del prototipo"><button data-screen="today" aria-pressed="true">01 · Hoy</button><button data-screen="routine" aria-pressed="false">02 · Tu rutina</button><button data-screen="done" aria-pressed="false">03 · Terminaste</button></div>
+    <label class="phase-control">Fase de Hoy <select id="phase"><option value="morning">Mañana</option><option value="commute">Traslado</option><option value="work">Trabajo</option><option value="training">Hora de entrenar</option><option value="night">Noche</option></select></label>
+  </div>
+  <div class="board">
+    <section class="panel selected" id="panel-today"><div class="caption"><span>01 / HOY</span><span>La personita acompaña</span></div><div class="phone" id="phone-today"><div class="status"><span>07:30</span><span class="status-icons"><i class="signal"></i><i class="battery"></i></span></div><div class="content" id="today-content"></div><div class="bottom-nav" data-owner="today"></div><div class="home-line"></div><div class="scrim" hidden></div><div class="toast" role="status" hidden></div></div><p class="footnote"><b>Ver tu rutina</b> abre el detalle. La pose y el mensaje cambian con la fase del día.</p></section>
+    <section class="panel" id="panel-routine"><div class="caption"><span>02 / TU RUTINA</span><span>Explorar → ajustar → guardar</span></div><div class="phone" id="phone-routine"><div class="status"><span>07:30</span><span class="status-icons"><i class="signal"></i><i class="battery"></i></span></div><div class="content routine-content" id="routine-content"></div><div class="home-line"></div><div class="scrim" hidden></div><div class="toast" role="status" hidden></div></div><p class="footnote"><b>← siguiente · anterior →.</b> Desliza sobre la fecha para cambiar de día; sobre un ejercicio, hacia la izquierda para editar o borrar. Explorar no cambia la rutina de hoy hasta guardar.</p></section>
+    <section class="panel" id="panel-done"><div class="caption"><span>03 / HOY, AL TERMINAR</span><span>El cierre vuelve a Hoy</span></div><div class="phone done" id="phone-done"><div class="status"><span>19:12</span><span class="status-icons"><i class="signal"></i><i class="battery"></i></span></div><div class="content" id="done-content"></div><div class="bottom-nav" data-owner="done"></div><div class="home-line"></div><div class="scrim" hidden></div><div class="toast" role="status" hidden></div></div><p class="footnote"><b>Tiempo y sesión terminada</b> en texto. La personita celebra y dirige la atención hacia Metas.</p></section>
+  </div>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const paths = {
+  trash:'M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 10v7m4-7v7',
+  plus:'M12 5v14M5 12h14',
+  arrow:'M5 12h14M13 6l6 6-6 6', back:'M19 12H5m6-6-6 6 6 6', check:'M5 12l4 4L19 6',
+  today:'M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+  week:'M5 5h14v15H5zM8 3v4m8-4v4M5 10h14M8 14h2m4 0h2m-8 3h2',
+  goal:'M5 21V4h13l-3 4 3 4H5', settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.5 1.5m9.8 9.8 1.5 1.5M5.6 18.4l1.5-1.5m9.8-9.8 1.5-1.5',
+  edit:'m5 15 10-10 4 4L9 19l-5 1 1-5m8-8 4 4', swap:'M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4', close:'m6 6 12 12M18 6 6 18',
+  chest:'M4 6q8-4 16 0l-2 14H6L4 6m3 5q3 3 5 0 2 3 5 0', shoulder:'M9 6a3 3 0 1 0 6 0 3 3 0 1 0-6 0M4 21q0-10 8-10t8 10M5 15l3 1m8 0 3-1',
+  legs:'M8 3h8M8 3v8L5 21m11-18v8l3 10M8 11h8', backMuscle:'M4 6q8 3 16 0l-4 14H8L4 6m8 3v8',
+  all:'M3 10v4m3-7v10m12-10v10m3-7v4M6 12h12', rest:'M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10Z', heart:'M12 20C-3 10 5 1 12 8c7-7 15 2 0 12Z'
+};
+function icon(name,size=22) { return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.all}"/></svg>`; }
+function person(pose='stretch') {
+  const arms = pose==='celebrate' ? 'M65 91Q45 83 38 48M91 91q21-8 30-43' : pose==='sleep' ? 'M65 91q-13 22 3 29M91 91q13 22-3 29' : pose==='work' ? 'M65 91q-5 20 21 20M91 91q12 8 23 3' : pose==='commute' ? 'M65 91q-16-14-12-41M91 91q17 9 13 26' : 'M65 91Q43 68 54 39M91 91Q109 68 98 39';
+  const legs = pose==='work' ? 'M69 127v20h29v24M86 127v14h23v30' : 'M69 127q-2 27-12 46M86 127q1 26 11 46';
+  const prop = pose==='work' ? '<path d="M112 102h33v4h-33m6-4V80h24v22m-24 7v66M54 140h36m-33 0v35" stroke="#666"/>' : pose==='commute' ? '<path d="M45 31h70M53 31v13m-6 0h12v10H47z" stroke="#666"/>' : '';
+  return `<svg class="person" viewBox="0 0 160 210" fill="none" stroke="#EEE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="78" cy="188" rx="38" ry="4" fill="#101010" stroke="none"/><g ${pose==='sleep'?'transform="translate(-9 128) rotate(-70 80 110) scale(.85)"':''}>${prop}<path d="M68 83q-14 14-7 35 9 20 27 7 14-10 6-30-8-17-26-12" fill="#D71921" stroke="none"/><path d="M71 82q-17 11-12 32 5 19 24 13 15-6 12-24-3-24-24-21"/><path d="${arms}"/><path d="${legs}"/><path d="M55 174q-13-2-11 4 8 4 16-1m35-3q14-3 13 3-5 5-14 1"/><path d="M65 45q-15 8-9 25 7 12 24 7 17-4 16-18-3-20-19-16-7 0-12 2Z"/><path d="M66 46q12-8 22 2" stroke="#AAA" stroke-width="1"/><circle cx="77" cy="62" r="1" fill="#EEE"/><circle cx="85" cy="61" r="1" fill="#EEE"/></g>${pose==='celebrate'?'<path d="m31 37-4-6m91 1 4-6m-47-3v-7" stroke="#777"/>':''}</svg>`;
+}
+const exercise = (id,name,group,sets,reps,kg) => ({id,name,group,sets,reps,kg});
+const days = [
+  {day:'Lunes',date:'26 OCT',name:'Pecho y espalda',minutes:45,items:[exercise('a','Flexiones','chest',3,12,0),exercise('b','Remo con mancuerna','backMuscle',3,12,12)]},
+  {day:'Martes',date:'27 OCT',name:'Cardio',minutes:30,items:[exercise('c','Bicicleta estática','heart',1,30,0)]},
+  {day:'Miércoles',date:'28 OCT',name:'Piernas y hombros',minutes:45,items:[exercise('d','Sentadilla goblet','legs',3,12,16),exercise('e','Press de hombros','shoulder',3,10,8)]},
+  {day:'Jueves',date:'29 OCT',name:'Espalda',minutes:40,items:[exercise('f','Remo con mancuerna','backMuscle',3,12,12),exercise('g','Jalón al pecho','backMuscle',3,10,30)]},
+  {day:'Viernes',date:'30 OCT',name:'Pecho y hombros',minutes:45,items:[exercise('h','Press de banca','chest',3,10,20),exercise('i','Aperturas con mancuernas','chest',3,12,8),exercise('j','Press de hombros','shoulder',3,10,8),exercise('k','Elevaciones laterales','shoulder',3,12,4)]},
+  {day:'Sábado',date:'31 OCT',name:'Piernas',minutes:40,items:[exercise('l','Sentadilla goblet','legs',3,12,16),exercise('m','Peso muerto rumano','legs',3,10,20),exercise('n','Zancadas hacia atrás','legs',2,12,0)]},
+  {day:'Domingo',date:'01 NOV',name:'Descanso',minutes:0,items:[]}
+];
+const groupNames = {all:'Todos',chest:'Pecho',shoulder:'Hombros',legs:'Piernas',backMuscle:'Espalda',heart:'Cardio'};
+const clone = value => JSON.parse(JSON.stringify(value));
+const routineGroups=plan=>[...new Set([...(plan.groups||[]),...plan.items.map(item=>item.group)])].filter(group=>group!=='all'&&groupNames[group]);
+let groupPicker=null,pickerCleanup=null;
+function closeGroupPicker(restoreFocus=true) {
+  const previous=groupPicker;groupPicker=null;pickerCleanup?.();pickerCleanup=null;
+  $('group-picker')?.remove();
+  document.querySelectorAll('.group-chip').forEach(button=>button.setAttribute('aria-expanded','false'));
+  if(restoreFocus&&previous?.trigger?.isConnected)previous.trigger.focus({preventScroll:true});
+}
+function openGroupPicker(mode) {
+  const wasOpen=groupPicker?.mode===mode;closeGroupPicker(false);if(wasOpen)return;
+  const tools=$('routine-content').querySelector('.group-tools');
+  const trigger=tools.querySelector(`[data-action=${mode==='add'?'add-groups':'remove-groups'}]`);
+  const current=routineGroups(state.drafts[state.day]);
+  const choices=Object.keys(groupNames).filter(group=>group!=='all'&&(mode==='add'?!current.includes(group):current.includes(group)));
+  groupPicker={mode,day:state.day,selected:new Set(),choices,trigger};trigger.setAttribute('aria-expanded','true');
+  tools.insertAdjacentHTML('beforeend',`<section class="group-picker" id="group-picker" data-mode="${mode}" role="dialog" aria-label="${mode==='add'?'Agregar':'Quitar'} grupos"><div class="picker-heading"><strong>${mode==='add'?'Agregar grupos':'Quitar grupos'}</strong><button class="icon-button" data-action="cancel-groups" aria-label="Cancelar">${icon('close',16)}</button></div><div class="picker-list"><div class="picker-highlight" aria-hidden="true" ${choices.length?'':'hidden'}></div>${choices.map(group=>`<button class="picker-option" data-pick-group="${group}" role="checkbox" aria-checked="false">${icon(group,20)}<span>${groupNames[group]}</span><span class="pick-check">${icon('check',16)}</span></button>`).join('')||`<p class="picker-note">${mode==='add'?'Ya están todos los grupos.':'No hay grupos para quitar.'}</p>`}</div>${mode==='remove'&&choices.length?'<p class="picker-note">También se quitarán sus ejercicios.</p>':''}<button class="primary" data-action="confirm-groups" disabled>Confirmar</button></section>`);
+  const picker=$('group-picker'),list=picker.querySelector('.picker-list'),highlight=picker.querySelector('.picker-highlight');
+  const rows=[...picker.querySelectorAll('.picker-option')],controller=new AbortController(),options={signal:controller.signal};
+  const glide=row=>{highlight.style.transform=`translateY(${row.offsetTop}px)`;highlight.style.height=row.offsetHeight+'px';};
+  list.addEventListener('pointermove',e=>{const row=e.target.closest('.picker-option');if(row)glide(row);},options);
+  list.addEventListener('focusin',e=>{const row=e.target.closest('.picker-option');if(row)glide(row);},options);
+  picker.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeGroupPicker();return;}
+    const index=rows.indexOf(document.activeElement);if(index<0)return;
+    const next={ArrowDown:Math.min(rows.length-1,index+1),ArrowUp:Math.max(0,index-1),Home:0,End:rows.length-1}[e.key];
+    if(next!==undefined){e.preventDefault();rows[next].focus({preventScroll:true});rows[next].scrollIntoView({block:'nearest'});}
+  },options);
+  pickerCleanup=()=>controller.abort();(rows[0]||picker.querySelector('[data-action=cancel-groups]')).focus({preventScroll:true});
+}
+function togglePickedGroup(group) {
+  if(!groupPicker?.choices.includes(group))return;
+  const selected=groupPicker.selected;selected.has(group)?selected.delete(group):selected.add(group);
+  $('group-picker').querySelector(`[data-pick-group=${group}]`).setAttribute('aria-checked',String(selected.has(group)));
+  const confirm=$('group-picker').querySelector('[data-action=confirm-groups]');confirm.disabled=!selected.size;
+  confirm.textContent=selected.size?`Confirmar (${selected.size})`:'Confirmar';
+}
+function confirmGroupPicker() {
+  if(!groupPicker||groupPicker.day!==state.day||!groupPicker.selected.size)return;
+  const {mode,selected}=groupPicker,plan=state.drafts[state.day],groups=routineGroups(plan);
+  if(mode==='add')plan.groups=[...new Set([...groups,...selected])];
+  else {plan.groups=groups.filter(group=>!selected.has(group));plan.items=plan.items.filter(item=>!selected.has(item.group));}
+  plan.name=plan.groups.map(group=>groupNames[group]).join(' y ')||'Descanso';plan.minutes=plan.groups.length?null:0;
+  state.group=mode==='add'?[...selected][0]:'all';
+  closeGroupPicker(false);showRoutine();
+  $('routine-content').querySelector(`[data-action=${mode==='add'?'add-groups':'remove-groups'}]`).focus({preventScroll:true});
+  toast('routine',mode==='add'?'Grupos agregados.':'Grupos eliminados.');
+}
+let galleryCleanup = null, rowsCleanup = null, nextExerciseId = 1, lastDeleted = null;
+let detailPlan=null, detailDay=null, routineSheetView=null;
+const currentPlan=()=>detailPlan||state.drafts[state.day];
+const frameLight = () => '<svg class="border-runner" aria-hidden="true"><line x1="0" x2="100%" y1="0" y2="0" pathLength="100"/></svg>';
+const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const state = {day:4,phase:'morning',group:'all',drafts:days.map(clone),chosen:clone(days[4]),source:4};
+const phases = {
+  morning:{time:'07:30',label:'MAÑANA',title:'Empieza a tu ritmo.',pose:'stretch',note:'Estírate.'},
+  commute:{time:'08:15',label:'EN CAMINO',title:'Ya estás en marcha.',pose:'commute',note:'Sacúdete.'},
+  work:{time:'11:20',label:'TRABAJO',title:'Haz una pausa.',pose:'work',note:'Muévete.'},
+  training:{time:'18:30',label:'HORA DE ENTRENAR',title:'Este momento es tuyo.',pose:'stretch',note:'Vamos.'},
+  night:{time:'22:30',label:'NOCHE',title:'Baja el ritmo.',pose:'sleep',note:'Descansa.'}
+};
+// Each pass has a new edge, direction, speed profile and quiet interval.
+const edgeAnimations=new Map(),edgeMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+function animateEdge(svg) {
+  if(!svg.isConnected||document.hidden||edgeMotion.matches)return;
+  const line=svg.querySelector('line'),direction=Math.random()>.5?1:-1;
+  const start=direction>0?-115:20,end=direction>0?20:-115;
+  svg.style.top=Math.random()>.5?'-1px':'calc(100% + 1px)';
+  line.style.strokeDasharray=`${9+Math.random()*12} 185`;
+  const glide=.28+Math.random()*.28;
+  const animation=line.animate([
+    {strokeDashoffset:start,opacity:0,offset:0},
+    {strokeDashoffset:start+(end-start)*.12,opacity:1,offset:.12},
+    {strokeDashoffset:start+(end-start)*(.48+Math.random()*.25),opacity:1,offset:glide},
+    {strokeDashoffset:end,opacity:0,offset:.82},
+    {strokeDashoffset:end,opacity:0,offset:1}
+  ],{duration:2800+Math.random()*4300,delay:Math.random()*1300,easing:'ease-in-out'});
+  edgeAnimations.set(svg,animation);
+  animation.onfinish=()=>{edgeAnimations.set(svg,null);if(svg.isConnected)animateEdge(svg);else edgeAnimations.delete(svg);};
+}
+function syncEdgeLights() {
+  edgeAnimations.forEach((animation,svg)=>{
+    if(!svg.isConnected||document.hidden||edgeMotion.matches){animation?.cancel();edgeAnimations.delete(svg);}
+  });
+  if(document.hidden||edgeMotion.matches)return;
+  document.querySelectorAll('.border-runner').forEach(svg=>{if(!edgeAnimations.has(svg))animateEdge(svg);});
+}
+document.addEventListener('visibilitychange',syncEdgeLights);
+edgeMotion.addEventListener('change',syncEdgeLights);
+function selectScreen(name) {
+  closeGroupPicker(false);
+  document.querySelectorAll('.scrim').forEach(el=>{if(!el.hidden)closeSheet(el.closest('.phone').id.replace('phone-',''),true);});
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('selected',p.id==='panel-'+name));
+  document.querySelectorAll('[data-screen]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.screen===name));
+}
+function nav(owner) { return [['today','Hoy'],['week','Semana'],['goal','Metas'],['settings','Ajustes']].map(([key,label])=>`<button class="${key==='today'?'active':''}" data-nav="${key}" data-owner="${owner}" ${key==='week'?'aria-label="Semana, vista pendiente de definir"':''}>${icon(key,20)}<span>${label}</span></button>`).join(''); }
+function showToday() {
+  const phase=phases[state.phase], plan=state.chosen;
+  $('phone-today').querySelector('.status>span').textContent=phase.time;
+  $('today-content').innerHTML=`<div class="row topbar"><h2 class="shiny-text">Viernes, 30 octubre</h2><button class="icon-button" data-action="settings" data-owner="today" aria-label="Ajustes">${icon('settings')}</button></div><div class="intro"><h3 class="shiny-text">${phase.title}</h3></div><button class="routine-link row shine-frame" data-action="open-routine">${frameLight()}<span><strong>Ver tu rutina</strong><small>${plan.name}${plan.minutes?' · '+plan.minutes+' min':''}</small></span><span class="link-arrow">${icon('arrow',17)}</span></button><div class="character-stage">${person(phase.pose)}</div><div class="phase-note"><strong>${phase.note}</strong></div>`;
+  syncEdgeLights();
+}
+function showRoutine() {
+  closeGroupPicker(false); galleryCleanup?.(); rowsCleanup?.();
+  const plan=state.drafts[state.day], groups=routineGroups(plan);
+  if(state.group!=='all'&&!groups.includes(state.group)) state.group='all';
+  const cards=['all',...groups];
+  $('routine-content').innerHTML=`<div class="row topbar"><button class="icon-button back" data-action="back" aria-label="Volver a Hoy">${icon('back')}</button><h2 class="shiny-text">Tu rutina</h2><button class="icon-button" data-action="settings" data-owner="routine" aria-label="Ajustes">${icon('settings')}</button></div><div class="day-strip shine-frame" id="day-strip" tabindex="-1" role="group" aria-label="Días de la semana. Desliza o elige un día.">${frameLight()}<div class="calendar-week">${days.map((day,index)=>`<button class="calendar-day ${index===4?'today':''}" data-calendar-day="${index}" aria-pressed="${index===state.day}" ${index===4?'aria-current="date"':''} tabindex="${index===state.day?0:-1}" aria-label="${day.day}, ${day.date.toLowerCase()}${index===4?', hoy':''}"><span class="day-initial" aria-hidden="true">${['L','M','M','J','V','S','D'][index]}</span><span class="day-number" aria-hidden="true">${Number(day.date.split(' ')[0])}</span></button>`).join('')}</div><div class="day-title"><strong>${plan.day}, ${plan.date.toLowerCase()}</strong><small>${plan.minutes?plan.minutes+' MIN':groups.length?'RUTINA LIBRE':'DESCANSO'}</small></div></div><div class="overview-stage"><div class="gallery-layout"><div class="group-tools"><button class="group-chip" data-action="add-groups" aria-label="Agregar grupos musculares" aria-expanded="false" aria-controls="group-picker">${icon('plus',18)}</button><button class="group-chip" data-action="remove-groups" aria-label="Quitar grupos musculares" aria-expanded="false" aria-controls="group-picker"><span aria-hidden="true">−</span></button></div><div class="muscle-stack" role="region" aria-label="Galería de grupos musculares">${cards.map(g=>`<button class="muscle-card ${g===state.group?'active':''}" data-gallery-group="${g}" aria-pressed="${g===state.group}" aria-label="${groupNames[g]}. Ver ejercicios."><span class="gallery-art">${icon(g,56)}</span><span>${groupNames[g]}</span></button>`).join('')}</div></div><div class="overview-summary"><h3 class="shiny-text">${plan.name}</h3><p>${groups.length} grupos · ${plan.items.length} ejercicios</p></div></div><div class="action-footer"><button class="save-button" id="routine-confirm" data-action="save-routine">Guardar</button></div>`;
+  galleryCleanup = bindMuscleGallery($('routine-content').querySelector('.muscle-stack'));
+  bindDaySwipe();
+  syncEdgeLights();
+}
+function showDone() {
+  $('done-content').innerHTML=`<div class="row topbar"><h2 class="shiny-text">Viernes, 30 octubre</h2><button class="icon-button" data-action="settings" data-owner="done" aria-label="Ajustes">${icon('settings')}</button></div><div class="intro"><h3 class="shiny-text">Hoy lo hiciste.</h3></div><div class="character-stage">${person('celebrate')}</div><div class="stats"><div class="stat"><strong>42<span style="font-size:15px"> min</span></strong><small>Tu tiempo</small></div><div class="stat"><strong>12</strong><small>Series registradas</small></div></div><div class="action-footer"><button class="secondary shine-frame" data-action="goals" data-owner="done">${frameLight()}Ver mis metas ${icon('arrow',17)}</button></div>`;
+}
+let suppressCalendarClickUntil=0;
+function selectDay(index,focus=false) { state.day=Math.max(0,Math.min(days.length-1,index));state.group='all';showRoutine();if(focus)$('day-strip').querySelector('[aria-pressed=true]').focus({preventScroll:true}); }
+function changeDay(delta) { selectDay(state.day+delta); }
+// The gallery and exercise rows own their gestures; neither navigates the calendar.
+function bindMuscleGallery(gallery) {
+  const controller=new AbortController(), options={signal:controller.signal};
+  const cards=[...gallery.querySelectorAll('.muscle-card')], count=cards.length;
+  let selected=Math.max(0,cards.findIndex(c=>c.dataset.galleryGroup===state.group)), position=selected;
+  let drag=null, suppressClick=false, wheelTotal=0, lastWheel=0, lastWheelInput=0;
+  const wrap=n=>((n%count)+count)%count;
+  const step=()=>Math.min(70,gallery.clientWidth*.22);
+  const paint=()=>cards.forEach((card,i)=>{
+    let offset=wrap(i-position+count/2)-count/2;
+    const distance=Math.abs(offset);
+    card.style.transform=`translateX(calc(-50% + ${offset*step()}px)) translateY(${distance*distance*12}px) rotate(${offset*10}deg) scale(${Math.max(.72,1-distance*.09)})`;
+    card.style.opacity=Math.max(.15,1-Math.max(0,distance-1)*.65);
+    card.style.zIndex=String(10-Math.round(distance*2));
+    card.classList.toggle('active',i===selected);
+    card.setAttribute('aria-pressed',String(i===selected));
+  });
+  const choose=index=>{
+    selected=wrap(index);position=selected;paint();
+    const group=cards[selected].dataset.galleryGroup;
+    state.group=group;
+  };
+  gallery.addEventListener('pointerdown',e=>{
+    if(!e.isPrimary||e.button!==0)return;
+    suppressClick=false;drag={id:e.pointerId,x:e.clientX,y:e.clientY,position,locked:false};
+  },options);
+  gallery.addEventListener('pointermove',e=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const scale=gallery.getBoundingClientRect().width/gallery.clientWidth||1;
+    const dx=(e.clientX-drag.x)/scale,dy=(e.clientY-drag.y)/scale;
+    if(!drag.locked){
+      if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){drag=null;return;}
+      if(Math.abs(dx)<7)return;
+      drag.locked=true;gallery.setPointerCapture(e.pointerId);gallery.classList.add('dragging');
+    }
+    position=drag.position-dx/step();paint();e.preventDefault();
+  },options);
+  const finish=(e,cancel=false)=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const previous=drag;drag=null;
+    suppressClick=previous.locked;gallery.classList.remove('dragging');
+    choose(cancel?selected:Math.round(position));
+    if(gallery.hasPointerCapture(e.pointerId))gallery.releasePointerCapture(e.pointerId);
+  };
+  gallery.addEventListener('pointerup',e=>finish(e),options);
+  gallery.addEventListener('pointercancel',e=>finish(e,true),options);
+  gallery.addEventListener('lostpointercapture',e=>finish(e,true),options);
+  gallery.addEventListener('wheel',e=>{
+    if(count<2)return;
+    e.preventDefault();
+    const now=Date.now();if(now-lastWheelInput>200)wheelTotal=0;lastWheelInput=now;
+    wheelTotal+=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*(e.deltaMode===1?16:e.deltaMode===2?gallery.clientWidth:1);
+    if(Math.abs(wheelTotal)>=35&&now-lastWheel>160){choose(selected+Math.sign(wheelTotal));wheelTotal=0;lastWheel=now;}
+  },{...options,passive:false});
+  gallery.addEventListener('keydown',e=>{
+    if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+    e.preventDefault();choose(selected+(e.key==='ArrowRight'?1:-1));cards[selected].focus({preventScroll:true});
+  },options);
+  gallery.addEventListener('focusin',e=>{
+    const index=cards.indexOf(e.target.closest('.muscle-card'));
+    if(index>=0&&!drag)choose(index);
+  },options);
+  gallery.addEventListener('click',e=>{
+    if(suppressClick&&e.detail!==0){suppressClick=false;e.preventDefault();return;}
+    const index=cards.indexOf(e.target.closest('.muscle-card'));if(index<0)return;
+    choose(index);const group=cards[index].dataset.galleryGroup;
+    openGroupSheet(group);
+  },options);
+  window.addEventListener('resize',paint,options);paint();
+  return ()=>controller.abort();
+}
+function openGroupSheet(group) {
+  detailDay=state.day;detailPlan=clone(state.drafts[detailDay]);state.group=group;lastDeleted=null;
+  renderGroupSheet();
+}
+function renderGroupSheet() {
+  rowsCleanup?.();
+  const groups=['all',...routineGroups(currentPlan())];
+  if(!groups.includes(state.group))state.group='all';
+  const scrim=$('phone-routine').querySelector('.scrim');
+  if(scrim.hidden)focusBefore.set('routine',document.activeElement);
+  routineSheetView='groups';scrim.hidden=false;setModalIsolation('routine',true);
+  scrim.innerHTML=`<section class="sheet group-sheet" role="dialog" aria-modal="true" aria-label="Ejercicios de la rutina"><div class="handle"></div><div class="group-header"><button class="group-toggle" data-action="toggle-groups" aria-expanded="false" aria-controls="group-options">${icon(state.group,26)}<span class="shiny-text">${groupNames[state.group]}</span><span class="chevron" aria-hidden="true">⌄</span></button><button class="icon-button" data-close="routine" aria-label="Cerrar sin guardar">${icon('close',20)}</button><div class="group-options" id="group-options" hidden>${groups.map(group=>`<button data-detail-group="${group}" aria-pressed="${state.group===group}">${icon(group,22)}${groupNames[group]}</button>`).join('')}</div></div><div class="exercise-list" id="exercise-list" role="region" aria-label="Ejercicios. Usa las flechas arriba y abajo."></div>${lastDeleted?.plan===detailPlan?'<button class="text-action" data-action="undo-delete">Deshacer eliminación</button>':''}<button class="primary save-button" data-action="save-group">Guardar</button></section>`;
+  renderExerciseList();scrim.querySelector('.group-toggle').focus({preventScroll:true});
+  const menu=$('group-options');
+  menu.addEventListener('keydown',e=>{
+    const buttons=[...menu.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();toggleGroups();}
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();buttons[(index+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
+    }
+  });
+}
+function toggleGroups() {
+  const menu=$('group-options'),toggle=$('phone-routine').querySelector('.group-toggle');
+  menu.hidden=!menu.hidden;toggle.setAttribute('aria-expanded',String(!menu.hidden));
+  if(!menu.hidden)menu.querySelector('[aria-pressed=true]').focus();else toggle.focus();
+}
+function saveGroupSheet() {
+  if(!detailPlan)return;
+  state.drafts[detailDay]=clone(detailPlan);
+  closeSheet('routine',true);showRoutine();$('day-strip').focus();toast('routine','Rutina guardada.');
+}
+function refreshRoutine() { if(detailPlan)renderGroupSheet();else showRoutine(); }
+function renderExerciseList() {
+  rowsCleanup?.();
+  const visible=currentPlan().items.filter(item=>state.group==='all'||item.group===state.group);
+  $('exercise-list').innerHTML=visible.map(item=>`<div class="exercise-item"><div class="exercise-actions"><button data-edit="${item.id}" aria-label="Editar ${escapeHtml(item.name)}" disabled>${icon('edit',18)}<span>Editar</span></button><button class="delete" data-delete="${item.id}" aria-label="Borrar ${escapeHtml(item.name)}" disabled>${icon('trash',18)}<span>Borrar</span></button></div><div class="exercise-row" role="button" tabindex="0" aria-expanded="false" aria-label="${escapeHtml(item.name)}. Desliza a la izquierda o pulsa Enter para ver acciones."><span class="exercise-symbol">${icon(item.group,22)}</span><div class="exercise-copy"><strong>${escapeHtml(item.name)}</strong><small>${item.sets} series · ${item.reps} ${item.group==='heart'?'min':'reps'}${item.kg?' · '+item.kg+' kg':''}</small></div></div></div>`).join('')||'<div class="empty">Sin ejercicios.</div>';
+  $('exercise-list').insertAdjacentHTML('beforeend',`<button class="add-exercise" data-action="add-exercise" aria-label="Agregar ejercicio">${icon('plus',24)}</button>`);
+  const stopSwipes=bindExerciseSwipes($('exercise-list')),stopMotion=bindListMotion($('exercise-list'));
+  rowsCleanup=()=>{stopSwipes();stopMotion();};
+}
+function bindListMotion(list) {
+  const controller=new AbortController(),options={signal:controller.signal};
+  const rows=[...list.querySelectorAll('.exercise-row')],reduce=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const highlight=document.createElement('div');highlight.className='list-highlight';highlight.setAttribute('aria-hidden','true');list.prepend(highlight);
+  let selected=null;
+  const select=(row,focus=false)=>{
+    selected=row;
+    rows.forEach(item=>{item.tabIndex=item===row?0:-1;item.setAttribute('aria-current',String(item===row));});
+    highlight.style.height=row.offsetHeight+'px';highlight.style.transform=`translateY(${row.closest('.exercise-item').offsetTop}px)`;highlight.style.opacity='1';
+    if(focus){
+      row.focus({preventScroll:true});
+      const top=row.closest('.exercise-item').offsetTop,bottom=top+row.offsetHeight;
+      if(top<list.scrollTop)list.scrollTo({top,behavior:reduce.matches?'instant':'smooth'});
+      else if(bottom>list.scrollTop+list.clientHeight)list.scrollTo({top:bottom-list.clientHeight,behavior:reduce.matches?'instant':'smooth'});
+    }
+  };
+  rows.forEach((row,i)=>row.tabIndex=i===0?0:-1);
+  list.addEventListener('focusin',e=>{const row=e.target.closest('.exercise-item')?.querySelector('.exercise-row');if(row)select(row);},options);
+  list.addEventListener('pointermove',e=>{if(e.buttons||e.pointerType==='touch')return;const row=e.target.closest('.exercise-row');if(row)select(row);},options);
+  list.addEventListener('click',e=>{const row=e.target.closest('.exercise-row');if(row)select(row);},options);
+  list.addEventListener('keydown',e=>{
+    const row=e.target.closest('.exercise-row');if(!row)return;
+    const index=rows.indexOf(row),next={ArrowDown:Math.min(rows.length-1,index+1),ArrowUp:Math.max(0,index-1),Home:0,End:rows.length-1}[e.key];
+    if(next!==undefined){e.preventDefault();select(rows[next],true);}
+  },options);
+  const animations=new Map();
+  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    animations.get(entry.target)?.cancel();animations.delete(entry.target);
+    if(entry.isIntersecting&&!reduce.matches){
+      const animation=entry.target.animate([{transform:'translateY(22px) scale(.97)',opacity:0},{transform:'translateY(-4px) scale(1)',opacity:1,offset:.6},{transform:'translateY(2px)',opacity:1,offset:.8},{transform:'translateY(0)',opacity:1}],{duration:520,easing:'cubic-bezier(.2,.65,.3,1)'});
+      animations.set(entry.target,animation);
+    }
+  }),{root:list,threshold:.12});
+  rows.forEach(row=>observer.observe(row.closest('.exercise-item')));
+  const resize=new ResizeObserver(()=>{if(selected)select(selected);});resize.observe(list);
+  reduce.addEventListener('change',()=>{if(reduce.matches)animations.forEach(animation=>animation.cancel());},options);
+  return ()=>{controller.abort();observer.disconnect();resize.disconnect();animations.forEach(animation=>animation.cancel());};
+}
+function bindExerciseSwipes(list) {
+  const controller=new AbortController(), options={signal:controller.signal};
+  let drag=null, suppressClick=false;
+  const setOpen=(row,open)=>{
+    const item=row.closest('.exercise-item');
+    item.classList.toggle('open',open);row.style.transform=`translateX(${open?-116:0}px)`;
+    row.setAttribute('aria-expanded',String(open));
+    item.querySelectorAll('.exercise-actions button').forEach(button=>button.disabled=!open);
+  };
+  const closeOthers=row=>list.querySelectorAll('.exercise-row').forEach(other=>{if(other!==row)setOpen(other,false);});
+  list.addEventListener('pointerdown',e=>{
+    const row=e.target.closest('.exercise-row');if(!row||!e.isPrimary||e.button!==0)return;
+    suppressClick=false;closeOthers(row);
+    drag={row,id:e.pointerId,x:e.clientX,y:e.clientY,initial:row.closest('.exercise-item').classList.contains('open')?-116:0,locked:false,offset:0};
+  },options);
+  list.addEventListener('pointermove',e=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const scale=drag.row.getBoundingClientRect().width/drag.row.clientWidth||1;
+    const dx=(e.clientX-drag.x)/scale,dy=(e.clientY-drag.y)/scale;
+    if(!drag.locked){
+      if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){drag=null;return;}
+      if(Math.abs(dx)<7)return;
+      drag.locked=true;drag.row.setPointerCapture(e.pointerId);drag.row.classList.add('dragging');
+      drag.row.closest('.exercise-item').classList.add('open');
+    }
+    drag.offset=Math.max(-116,Math.min(0,drag.initial+dx));drag.row.style.transform=`translateX(${drag.offset}px)`;e.preventDefault();
+  },options);
+  const finish=(e,cancel=false)=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const previous=drag;drag=null;suppressClick=previous.locked;
+    previous.row.classList.remove('dragging');
+    setOpen(previous.row,cancel||!previous.locked?previous.initial<0:previous.offset<-45);
+    if(previous.row.hasPointerCapture(e.pointerId))previous.row.releasePointerCapture(e.pointerId);
+  };
+  list.addEventListener('pointerup',e=>finish(e),options);
+  list.addEventListener('pointercancel',e=>finish(e,true),options);
+  list.addEventListener('lostpointercapture',e=>finish(e,true),options);
+  list.addEventListener('keydown',e=>{
+    const action=e.target.closest('.exercise-actions');
+    if(action&&(e.key==='Escape'||e.key==='ArrowRight')){
+      e.preventDefault();const row=action.closest('.exercise-item').querySelector('.exercise-row');setOpen(row,false);row.focus({preventScroll:true});return;
+    }
+    const row=e.target.closest('.exercise-row');if(!row)return;
+    if(['ArrowLeft','ArrowRight','Enter',' ','Escape'].includes(e.key)){
+      e.preventDefault();closeOthers(row);const open=!['ArrowRight','Escape'].includes(e.key);setOpen(row,open);
+      if(open)row.closest('.exercise-item').querySelector('.exercise-actions button').focus({preventScroll:true});
+    }
+  },options);
+  list.addEventListener('click',e=>{
+    if(suppressClick){suppressClick=false;e.preventDefault();return;}
+    const row=e.target.closest('.exercise-row');if(row){closeOthers(row);setOpen(row,row.getAttribute('aria-expanded')!=='true');}
+  },options);
+  return ()=>controller.abort();
+}
+function deleteExercise(id) {
+  const plan=currentPlan(),items=plan.items,index=items.findIndex(item=>item.id===id);if(index<0)return;
+  lastDeleted={plan,index,item:items.splice(index,1)[0]};
+  refreshRoutine();toast('routine','Ejercicio eliminado.');
+  if(detailPlan){$('phone-routine').querySelector('[data-action=undo-delete]').focus({preventScroll:true});return;}
+  const button=document.createElement('button');button.className='undo';button.dataset.action='undo-delete';button.textContent='Deshacer';
+  $('phone-routine').querySelector('.toast').append(button);button.focus({preventScroll:true});
+}
+function undoDelete() {
+  if(!lastDeleted)return;
+  const {plan,index,item}=lastDeleted;lastDeleted=null;
+  plan.items.splice(index,0,item);refreshRoutine();toast('routine','Ejercicio recuperado.');
+}
+function applyRoutine() { state.chosen=clone(state.drafts[state.day]); state.source=state.day; showToday(); closeSheet('routine'); showRoutine(); selectScreen('today'); toast('today',state.day===4?'Rutina guardada.':`Para hoy: ${state.chosen.name}.`); }
+function bindDaySwipe() {
+  const surface=$('day-strip');let origin=null;
+  surface.addEventListener('pointerdown',e=>{
+    if(e.isPrimary===false||e.button!==0)return;
+    origin={x:e.clientX,y:e.clientY,id:e.pointerId,locked:false};
+  });
+  surface.addEventListener('pointermove',e=>{
+    if(!origin||origin.id!==e.pointerId)return;
+    const dx=e.clientX-origin.x,dy=e.clientY-origin.y;
+    if(!origin.locked){
+      if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){origin=null;return;}
+      if(Math.abs(dx)<8)return;
+      origin.locked=true;surface.setPointerCapture(e.pointerId);
+    }
+    e.preventDefault();
+  });
+  const finish=(e,cancel=false)=>{
+    if(!origin||origin.id!==e.pointerId)return;
+    const start=origin;origin=null;
+    const scale=surface.getBoundingClientRect().width/surface.clientWidth||1;
+    const dx=(e.clientX-start.x)/scale,dy=(e.clientY-start.y)/scale;
+    if(start.locked)suppressCalendarClickUntil=Date.now()+350;
+    if(surface.hasPointerCapture(e.pointerId))surface.releasePointerCapture(e.pointerId);
+    if(!cancel&&Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.3){suppressCalendarClickUntil=Date.now()+350;selectDay(state.day+(dx<0?1:-1),true);}
+  };
+  surface.addEventListener('pointerup',e=>finish(e));
+  surface.addEventListener('pointercancel',e=>finish(e,true));
+  surface.addEventListener('lostpointercapture',e=>finish(e,true));
+  surface.addEventListener('keydown',e=>{
+    const index=Number(e.target.closest('[data-calendar-day]')?.dataset.calendarDay??state.day);
+    const next={ArrowLeft:index-1,ArrowRight:index+1,Home:0,End:days.length-1}[e.key];
+    if(next!==undefined){e.preventDefault();selectDay(next,true);}
+  });
+}
+const focusBefore = new Map();
+function setModalIsolation(owner,open) { $('phone-'+owner).querySelectorAll('.content,.bottom-nav').forEach(el=>el.inert=open); }
+function sheet(owner,title,body) { if(owner==='routine'){rowsCleanup?.();routineSheetView='editor';} const scrim=$('phone-'+owner).querySelector('.scrim');if(scrim.hidden)focusBefore.set(owner,document.activeElement);scrim.hidden=false;setModalIsolation(owner,true);scrim.innerHTML=`<section class="sheet" role="dialog" aria-modal="true" aria-label="${title}"><div class="handle"></div><div class="row"><h3 class="shiny-text">${title}</h3><button class="icon-button" data-close="${owner}" aria-label="Cerrar">${icon('close',20)}</button></div>${body}</section>`;scrim.querySelector('button').focus(); }
+function closeSheet(owner,force=false) {
+  if(owner==='routine'&&detailPlan){
+    if(!force&&routineSheetView!=='groups'){renderGroupSheet();return;}
+    detailPlan=null;detailDay=null;routineSheetView=null;lastDeleted=null;rowsCleanup?.();
+    $('phone-routine').querySelector('.toast').hidden=true;
+  }
+  $('phone-'+owner).querySelector('.scrim').hidden=true;setModalIsolation(owner,false);
+  const previous=focusBefore.get(owner);if(previous?.isConnected)previous.focus();else if(owner==='routine')$('day-strip').focus();
+}
+
+function toast(owner,text) { const el=$('phone-'+owner).querySelector('.toast');el.textContent=text;el.hidden=false;clearTimeout(el.timer);el.timer=setTimeout(()=>el.hidden=true,4200); }
+function editExercise(id) {
+  const item=currentPlan().items.find(x=>x.id===id);
+  if(!item)return;
+  sheet('routine','Ajusta tu ejercicio',`<p>${escapeHtml(item.name)}</p><form id="edit-form"><label class="field">Series<input name="sets" type="number" min="1" max="12" step="1" required value="${item.sets}"></label><label class="field">${item.group==='heart'?'Minutos':'Repeticiones'}<input name="reps" type="number" min="1" max="180" step="1" required value="${item.reps}"></label><label class="field">Peso · kg<input name="kg" type="number" min="0" max="500" step="0.5" required value="${item.kg}"></label><button class="text-action" type="button" data-replace="${id}">Cambiar por otro ejercicio</button><button type="submit" class="primary">Guardar ajuste ${icon('check',17)}</button></form>`);
+  $('edit-form').onsubmit=e=>{e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;const data=new FormData(form);Object.assign(item,{sets:Number(data.get('sets')),reps:Number(data.get('reps')),kg:Number(data.get('kg'))});refreshRoutine();toast('routine','Ajuste guardado.');};
+}
+function replaceExercise(id) {
+  const item=currentPlan().items.find(x=>x.id===id);if(!item)return;
+  const alternatives={chest:['Flexiones','Press inclinado','Press con mancuernas'],shoulder:['Press Arnold','Elevación frontal','Pájaros con mancuernas'],legs:['Zancadas estáticas','Sentadilla goblet','Puente de glúteos'],backMuscle:['Remo sentado','Remo con mancuerna','Jalón al pecho'],heart:['Caminata rápida','Bicicleta estática','Elíptica']}[item.group].filter(name=>name!==item.name);
+  sheet('routine','Cambiar ejercicio',`<p>${groupNames[item.group]}</p><div class="alternatives">${alternatives.map((name,i)=>`<button class="alternative" data-option="${i}">${icon(item.group,24)}<span><strong>${name}</strong></span></button>`).join('')}</div>`);
+  $('phone-routine').querySelectorAll('[data-option]').forEach(button=>button.onclick=()=>{item.name=alternatives[Number(button.dataset.option)];item.kg=0;editExercise(id);});
+}
+function appendExercise(item) {
+  const plan=currentPlan();
+  const added={...clone(item),id:'added-'+nextExerciseId++};
+  if(!plan.items.length){plan.name=[...new Set([...routineGroups(plan),item.group])].map(group=>groupNames[group]).join(' y ');plan.minutes=null;}
+  plan.items.push(added);state.group=added.group;refreshRoutine();return added;
+}
+function openAddExercise() {
+  const catalog=[...new Map(days.flatMap(day=>day.items).filter(item=>state.group==='all'||item.group===state.group).map(item=>[item.name,item])).values()];
+  sheet('routine','Agregar ejercicio',`<button class="secondary" data-action="create-exercise">${icon('plus',17)}Crear ejercicio</button><div class="alternatives">${catalog.map((item,i)=>`<button class="alternative" data-add-option="${i}">${icon(item.group,24)}<span><strong>${escapeHtml(item.name)}</strong><small>${groupNames[item.group]}</small></span></button>`).join('')}</div>`);
+  $('phone-routine').querySelectorAll('[data-add-option]').forEach(button=>button.onclick=()=>{
+    const added=appendExercise(catalog[Number(button.dataset.addOption)]);editExercise(added.id);
+  });
+}
+function createExerciseForm() {
+  sheet('routine','Nuevo ejercicio',`<form id="create-form"><label class="field">Nombre<input type="text" name="name" maxlength="80" required autocomplete="off"></label><label class="field">Grupo<select name="group">${Object.entries(groupNames).filter(([key])=>key!=='all').map(([key,name])=>`<option value="${key}">${name}</option>`).join('')}</select></label><label class="field">Series<input name="sets" type="number" min="1" max="12" step="1" value="3" required></label><label class="field"><span id="create-unit">Repeticiones</span><input name="reps" type="number" min="1" max="180" step="1" value="12" required></label><label class="field">Peso · kg<input name="kg" type="number" min="0" max="500" step="0.5" value="0" required></label><button class="primary" type="submit">Agregar ${icon('plus',17)}</button></form>`);
+  const form=$('create-form');
+  if(state.group!=='all')form.elements.group.value=state.group;
+  form.elements.group.onchange=()=>{$('create-unit').textContent=form.elements.group.value==='heart'?'Minutos':'Repeticiones';};
+  form.elements.name.oninput=()=>form.elements.name.setCustomValidity('');
+  form.onsubmit=e=>{
+    e.preventDefault();const name=form.elements.name.value.trim();
+    form.elements.name.setCustomValidity(name?'':'Escribe un nombre.');if(!form.reportValidity())return;
+    const data=new FormData(form);
+    appendExercise(exercise('',name,String(data.get('group')),Number(data.get('sets')),Number(data.get('reps')),Number(data.get('kg'))));
+    toast('routine','Ejercicio agregado.');
+  };
+}
+function openGoals(owner) { sheet(owner,'Tus metas',`<p>Metas · pendiente de definir.</p><button class="secondary" style="margin-top:20px" data-close="${owner}">Volver a Hoy</button>`); }
+function openSettings(owner) { sheet(owner,'Ajustes de ejercicio',`<p>Ajustes · pendiente de definir.</p><button class="secondary" style="margin-top:20px" data-close="${owner}">Volver</button>`); }
+document.addEventListener('click',e=>{
+  if(groupPicker&&!e.target.closest('.group-tools'))closeGroupPicker(false);
+  const button=e.target.closest('button');if(!button||button.disabled)return;
+  const d=button.dataset;
+  if(d.screen){selectScreen(d.screen);return;}
+  if(d.action==='add-groups'||d.action==='remove-groups'){openGroupPicker(d.action==='add-groups'?'add':'remove');return;}
+  if(d.pickGroup){togglePickedGroup(d.pickGroup);return;}
+  if(d.action==='confirm-groups'){confirmGroupPicker();return;}
+  if(d.action==='cancel-groups'){closeGroupPicker();return;}
+  if(d.action==='save-routine'){applyRoutine();return;}
+  if(d.action==='save-group'){saveGroupSheet();return;}
+  if(d.action==='toggle-groups'){toggleGroups();return;}
+  if(d.detailGroup){state.group=d.detailGroup;renderGroupSheet();return;}
+  if(d.close){closeSheet(d.close);return;}
+  if(d.calendarDay!==undefined){if(Date.now()>=suppressCalendarClickUntil)selectDay(Number(d.calendarDay),true);return;}
+  if(d.edit){editExercise(d.edit);return;}
+  if(d.delete){deleteExercise(d.delete);return;}
+  if(d.action==='undo-delete'){undoDelete();return;}
+  if(d.replace){replaceExercise(d.replace);return;}
+  if(d.nav==='week'){toast(d.owner,'Semana queda pendiente de definir.');return;}
+  if(d.nav==='today'){selectScreen(d.owner==='done'?'done':'today');return;}
+  if(d.nav==='goal'||d.action==='goals'){openGoals(d.owner);return;}
+  if(d.nav==='settings'||d.action==='settings'){openSettings(d.owner);return;}
+  if(d.action==='open-routine'){state.day=state.source;state.group='all';showRoutine();selectScreen('routine');$('day-strip').focus();}
+  if(d.action==='back')selectScreen('today');
+  if(d.action==='add-exercise')openAddExercise();
+  if(d.action==='create-exercise')createExerciseForm();
+});
+document.addEventListener('keydown',e=>{
+  const open=[...document.querySelectorAll('.scrim')].find(x=>!x.hidden);if(!open)return;
+  if(e.defaultPrevented)return;
+  if(e.key==='Escape'){closeSheet(open.closest('.phone').id.replace('phone-',''));return;}
+  if(e.key==='Tab'){const targets=[...open.querySelectorAll('button,input,select,[tabindex="0"]')].filter(el=>!el.disabled&&!el.closest('[hidden]')&&el.tabIndex>=0),first=targets[0],last=targets.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+});
+document.querySelectorAll('.scrim').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)closeSheet(el.closest('.phone').id.replace('phone-',''));}));
+$('phase').addEventListener('change',e=>{state.phase=e.target.value;showToday();selectScreen('today');});
+document.querySelectorAll('.bottom-nav').forEach(el=>el.innerHTML=nav(el.dataset.owner));
+showToday();showRoutine();showDone();syncEdgeLights();
+</script>
+</body>
+</html>

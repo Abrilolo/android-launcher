@@ -78,6 +78,12 @@ class PersonalRepository(private val db: LauncherDatabase) {
         if (done) dao.insertChecks(listOf(DayCheck(key, kind))) else dao.deleteCheck(key)
     }
 
+    /** Clears all routine action and routine reminder checks so the entire routine flow can be tested again. */
+    suspend fun clearRoutineChecks() {
+        dao.deleteChecksByKind(DayCheck.ROUTINE)
+        dao.deleteChecksByKind(DayCheck.REMINDER)
+    }
+
     /** One-time copy of the records that used to live in DataStore; ids are kept, so running it twice is harmless. */
     suspend fun importLegacy(records: PersonalRecords) = db.withTransaction {
         dao.insertNotes(records.notes)

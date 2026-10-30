@@ -46,10 +46,28 @@ function sessionCheckpoint() {
 }
 function leaveSession() { updateSessionClock(); if (sessionCheckpoint()) AndroidSession.exit(); }
 function general() { leaveSession(); }
+ICONS.reset = { main: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', red: 'M3 3v5h5' };
+function resetSession() {
+  HOST.logs = [];
+  HOST.saved = null;
+  S.warm = 0; S.warmChoice = null; S.exIdx = 0; S.next = 0;
+  S.startedAt = null; S.endedAt = null;
+  S.restLeft = library.restSeconds || 90; S.restOver = 0; S.warmLeft = 0;
+  S.restDeadline = null; S.warmDeadline = null; S.exerciseDeadline = null; S.timerKey = null;
+  S.selection = null;
+  S.openingPhrase = phrase('opening');
+  S.closingPhrase = phrase('closing');
+  freshSets();
+  lastCheckpoint = '';
+  try { AndroidSession.reset?.(); } catch (_) {}
+  go('start');
+  toast('Rutina reiniciada');
+}
 function topBar() {
   return `<div class="row"><button class="tool" onclick="leaveSession()" aria-label="Vista general">${icon('home', 22)}</button>
     <div class="groups">${GROUPS.map(([key, name]) => `<span>${icon(key, 18)}${htmlText(name)}</span>`).join('')}</div>
-    <button class="tool" onclick="openSessionSettings()" aria-label="Ajustes de la sesión">${icon('gear', 22)}</button></div>`;
+    <div class="row" style="gap:6px"><button class="tool" onclick="resetSession()" aria-label="Reiniciar rutina">${icon('reset', 22)}</button>
+    <button class="tool" onclick="openSessionSettings()" aria-label="Ajustes de la sesión">${icon('gear', 22)}</button></div></div>`;
 }
 function phrase(kind) {
   const values = library[kind], last = library['last' + kind];
@@ -64,7 +82,7 @@ function openSessionSettings() {
     <label>Frases de inicio · una por línea<textarea name="opening" maxlength="2000" required>${htmlText(library.opening.join('\n'))}</textarea></label>
     <label>Frases al terminar · una por línea<textarea name="closing" maxlength="2000" required>${htmlText(library.closing.join('\n'))}</textarea></label>
     <label>Descanso entre ejercicios · segundos<input name="rest" type="number" min="10" max="900" step="1" value="${library.restSeconds}" required></label>
-    <button class="btn" type="submit">GUARDAR</button></form>`;
+    <div class="row"><button class="btn on" type="button" onclick="closeSessionSettings();resetSession()">REINICIAR RUTINA</button><button class="btn" type="submit">GUARDAR</button></div></form>`;
   $('sessionPreferences').onsubmit = event => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -107,6 +125,7 @@ function updateSessionClock() {
   }
 }
 function sessionResume() { updateSessionClock(); sessionCheckpoint(); }
+function sessionPause() { $('track')?.dispatchEvent(new Event('sessionpause')); }
 
 let library = {
   opening: ['Un momento para ti.', 'Hoy también cuenta.', 'Vamos a tu ritmo.'],
@@ -131,7 +150,48 @@ OTHERS.forEach(item => delete item.avg);
 const prototypeStart = start;
 start = function() { prototypeStart(); document.querySelector('.intro h1').textContent = S.openingPhrase; };
 const prototypeEnd = end;
-end = function() { prototypeEnd(); document.querySelector('.intro h1').textContent = S.closingPhrase; };
+end = function() {
+  prototypeEnd();
+  document.querySelector('.intro h1').textContent = S.closingPhrase;
+  const backBtn = $('view').querySelector('button.btn[onclick="go(\'general\')"]');
+  if (backBtn && !backBtn.parentElement.classList.contains('endActions')) {
+    const wrap = document.createElement('div');
+    wrap.className = 'row endActions';
+    wrap.style.justifyContent = 'center';
+    wrap.style.gap = '12px';
+    wrap.innerHTML = `<button class="btn on" onclick="resetSession()">REINICIAR RUTINA</button><button class="btn" onclick="go('general')">VOLVER</button>`;
+    backBtn.replaceWith(wrap);
+  }
+};
+for (const stageFn of ['warmRun', 'ex', 'rest', 'end']) {
+  const prev = window[stageFn];
+  window[stageFn] = function(...args) {
+    const res = prev(...args);
+    const homeBtn = $('view')?.querySelector('button.tool[onclick="go(\'general\')"]');
+    if (homeBtn && !homeBtn.parentElement.classList.contains('topTools')) {
+      const wrap = document.createElement('div');
+      wrap.className = 'row topTools';
+      wrap.style.gap = '6px';
+      wrap.innerHTML = `<button class="tool" onclick="resetSession()" aria-label="Reiniciar rutina">${icon('reset', 22)}</button>`;
+      homeBtn.replaceWith(wrap);
+      wrap.append(homeBtn);
+    }
+    return res;
+  };
+}
+const prototypeOpenNext = openNext;
+openNext = function() {
+  prototypeOpenNext();
+  const p = $('pNext');
+  if (p && !p.querySelector('.resetNextBtn')) {
+    const btn = document.createElement('button');
+    btn.className = 'btn on resetNextBtn';
+    btn.style.alignSelf = 'center';
+    btn.textContent = 'REINICIAR RUTINA';
+    btn.onclick = () => resetSession();
+    p.insertBefore(btn, p.lastElementChild);
+  }
+};
 const prototypeGo = go;
 go = function(stage) {
   if (stage === 'general') { leaveSession(); return; }
@@ -154,9 +214,9 @@ go = function(stage) {
 };
 const prototypeArc = bindArc;
 bindArc = function(done) {
-  prototypeArc(() => {
-    if (S.stage === 'ex' && (!S.sets[S.exIdx].length || S.sets[S.exIdx].some(row => !row.done))) { toast('Marca tus series antes de continuar.'); return; }
-    done();
+  prototypeArc(done, () => {
+    if (S.stage === 'ex' && (!S.sets[S.exIdx].length || S.sets[S.exIdx].some(row => !row.done))) { toast('Marca tus series antes de continuar.'); return false; }
+    return true;
   });
 };
 const prototypeRenderSets = renderSets;

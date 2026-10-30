@@ -115,6 +115,7 @@ fun ExerciseScreen(
     onLogSet: (PlanExercise, Float, Int) -> Unit,
     onUndoSet: (PlanExercise, Int) -> Unit,
     onSetCompleted: (Boolean) -> Unit,
+    onResetRoutine: () -> Unit = {},
     onAddBodyMetric: (String, Float) -> Unit,
     onSaveSettings: (ModuleSettings) -> Unit,
     onSaveStackExercise: (StackExercise) -> Unit,
@@ -159,6 +160,8 @@ fun ExerciseScreen(
                 TabIcon("semana", "Semana", tab == ExerciseTab.WEEK) { tab = ExerciseTab.WEEK }
                 TabIcon("bascula", "Cuerpo", tab == ExerciseTab.BODY) { tab = ExerciseTab.BODY }
             }
+            IconButton("reiniciar", StrokeState.NOW, 22.dp, "Reiniciar rutina", onClick = onResetRoutine)
+            Spacer(Modifier.width(8.dp))
             SettingsGear({ showSettings = true })
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -167,6 +170,15 @@ fun ExerciseScreen(
                     Row(Modifier.fillMaxWidth().clickable(role = Role.Button) { guided = true }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Abrir sesión guiada", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                         Text("▷", color = LauncherRed, style = MaterialTheme.typography.headlineMedium)
+                    }
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF222222)))
+                    Row(
+                        Modifier.fillMaxWidth().clickable(role = Role.Button) { onResetRoutine(); restLeft = 0 }.padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        StrokeIcon("reiniciar", StrokeState.NOW, 18.dp)
+                        Text("Reiniciar rutina", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = LauncherRed)
                     }
                 }
             }
@@ -294,7 +306,7 @@ private fun SetsBar(done: Int, total: Int) {
 
 @Composable
 private fun WarmupRow(day: ExerciseDay) {
-    var done by rememberSaveable(day.date) { mutableStateOf(false) }
+    var done by rememberSaveable(day.date, day.doneSets == 0 && !day.completed) { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         IconButton("calentar", if (done) StrokeState.DONE else StrokeState.NOW, 28.dp, "Calentamiento", playKey = done) { done = !done }
         Num("5-7'")

@@ -25,6 +25,8 @@ interface GuidedExerciseDao {
     @Query("SELECT * FROM guided_exercise_records")
     suspend fun all(): List<GuidedExerciseRecord>
     @Upsert suspend fun put(record: GuidedExerciseRecord)
+    @Query("DELETE FROM guided_exercise_records WHERE id = :id")
+    suspend fun delete(id: String)
 }
 
 internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
@@ -94,8 +96,15 @@ internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
             }
             records.put(GuidedExerciseRecord("session:$date", text, System.currentTimeMillis()))
             root.optJSONObject("library")?.let { records.put(GuidedExerciseRecord("library", it.toString(), System.currentTimeMillis())) }
-            if (state.optString("stage") == "end") PersonalRepository(db).setCheck(date.toString(), DayCheck.WORKOUT, true)
+            PersonalRepository(db).setCheck(date.toString(), DayCheck.WORKOUT, state.optString("stage") == "end")
         }
         true
     }.getOrDefault(false)
+
+    /** Clears today's guided draft, logged sets, and workout check so the session flow can be tested again from the start. */
+    suspend fun reset(date: LocalDate) = db.withTransaction {
+        records.delete("session:$date")
+        db.exercise().deleteAllOn(date.toString())
+        PersonalRepository(db).setCheck(date.toString(), DayCheck.WORKOUT, false)
+    }
 }

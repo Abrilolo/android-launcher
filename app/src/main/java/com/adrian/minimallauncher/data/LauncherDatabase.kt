@@ -148,6 +148,7 @@ interface PersonalDao {
     @Query("DELETE FROM meals WHERE id = :id") suspend fun deleteMeal(id: String)
     @Query("DELETE FROM body_metrics WHERE id = :id") suspend fun deleteBodyMetric(id: String)
     @Query("DELETE FROM day_checks WHERE `key` = :key") suspend fun deleteCheck(key: String)
+    @Query("DELETE FROM day_checks WHERE kind = :kind") suspend fun deleteChecksByKind(kind: String)
     @Query("SELECT COUNT(*) FROM day_checks WHERE `key` = :key") suspend fun hasCheck(key: String): Int
 
     // One-shot reads for the backup file.

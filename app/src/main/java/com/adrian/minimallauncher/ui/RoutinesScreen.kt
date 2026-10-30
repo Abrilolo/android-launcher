@@ -125,7 +125,14 @@ fun RoutinesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onClose
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), Arrangement.End) { SettingsGear(onSettings) }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RestartButton(onRestart = viewModel::resetRoutine)
+                SettingsGear(onSettings)
+            }
 
             Column {
                 PhaseStrip(phases, currentIndex, selected.id, editing, onPick = { selectedId = it }, onAdd = {
@@ -297,6 +304,8 @@ private fun PhaseCard(
                 Spacer(Modifier.width(12.dp))
                 TriggerMark(phase, if (state == StrokeState.NOW) White else Muted)
                 Spacer(Modifier.weight(1f))
+                IconButton("reiniciar", "Reiniciar rutina", viewModel::resetRoutine)
+                Spacer(Modifier.width(4.dp))
                 IconButton("lapiz", "Editar fase", { name = phase.name; onEdit(true) })
             }
         }
@@ -549,5 +558,22 @@ private fun DashedBox(sizeDp: Int) {
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()),
             style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))),
         )
+    }
+}
+
+@Composable
+private fun RestartButton(onRestart: () -> Unit) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF1C1C1C))
+            .border(1.dp, LauncherRed, RoundedCornerShape(10.dp))
+            .clickable(role = Role.Button, onClick = onRestart)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StrokeIcon("reiniciar", StrokeState.NOW, 16.dp)
+        Text("REINICIAR RUTINA", style = MaterialTheme.typography.labelSmall, color = LauncherRed)
     }
 }

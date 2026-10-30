@@ -530,6 +530,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return true
     }
 
+    /** Resets the routine: clears completed marks, place event overrides, and entered phase state to test the whole flow again. */
+    fun resetRoutine() {
+        viewModelScope.launch {
+            personal.clearRoutineChecks()
+            routine.clearLastEvent()
+            routine.clearLastEntered()
+        }
+    }
+
     private fun <T> List<T>.moved(match: (T) -> Boolean, delta: Int): List<T> {
         val from = indexOfFirst(match)
         val to = from + delta
