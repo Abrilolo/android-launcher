@@ -46,6 +46,7 @@ object StrokeIcons {
         "descanso" to StrokeGlyph("M6 3h12M17 3c0 6-10 8-10 18M7 3c0 6 10 8 10 18M6 21h12", "M10 18h4"),
         "gimnasio" to StrokeGlyph("M3 10v4M6 7v10M18 7v10M21 10v4", "M6 12h12"),
         "dormir" to StrokeGlyph("M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z", "M17 3v3M15.5 4.5h3"),
+        "gear" to StrokeGlyph("M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"),
         "apps" to StrokeGlyph("M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"),
         "candado" to StrokeGlyph("M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z", "M12 15v2"),
         "pin" to StrokeGlyph("M12 21s-6-5.7-6-11a6 6 0 0 1 12 0c0 5.3-6 11-6 11z", "M12 10h.01"),

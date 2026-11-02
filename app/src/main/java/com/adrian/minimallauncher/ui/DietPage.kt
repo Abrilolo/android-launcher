@@ -53,7 +53,11 @@ import com.adrian.minimallauncher.data.MealRecord
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecordActions
 import com.adrian.minimallauncher.data.PersonalRecords
+import com.adrian.minimallauncher.feature.DockItem
 import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.ModuleDock
+import com.adrian.minimallauncher.feature.ModuleTitle
+import com.adrian.minimallauncher.feature.ShineLink
 import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.food.CheckButton
@@ -83,8 +87,11 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
+private val spanish = Locale.forLanguageTag("es")
 private val White = Color(0xFFF5F5F5)
 private val Muted = Color(0xFFB0B0B0)
 
@@ -95,8 +102,17 @@ fun mealActivation(icon: String) = when (icon) {
     else -> DotActivation.Sweep
 }
 
+/** "Sábado, 31 octubre". */
+private fun dayTitle(date: LocalDate): String {
+    val day = date.dayOfWeek.getDisplayName(TextStyle.FULL, spanish).replaceFirstChar { it.uppercase(spanish) }
+    return "$day, ${date.dayOfMonth} ${date.month.getDisplayName(TextStyle.FULL, spanish)}"
+}
+
 /** Stroke icon of each daily habit in [DIET_HABITS]. */
 private val HABIT_STROKES = mapOf("walk" to "caminar", "no_extras" to "sinazucar", "protein" to "huevo", "sleep" to "dormir")
+
+/** Short names of the same habits, under their icons. */
+private val HABIT_NAMES = mapOf("walk" to "Caminar", "no_extras" to "Sin azúcar", "protein" to "Proteína", "sleep" to "Dormir")
 
 /** Water containers per row; a bigger goal wraps to another row. */
 private const val GLASSES_PER_ROW = 8
@@ -105,7 +121,7 @@ private const val GLASSES_PER_ROW = 8
  * Comida, following docs/design/concept/ComidaVisual.html. Two views behind icon tabs: Hoy (the kcal ring against the
  * goal, protein and fiber, the day's meals with their hour, recipe photo and kcal, water and habits) and Semana
  * (weight, BMI and the week's kcal). The book opens the recipes, the gear the settings and + logs food from a recipe
- * or from ingredients. No labels while using it; what comes next has its hour in red.
+ * or from ingredients. Short labels name what each thing is; what comes next has its hour in red.
  */
 @Composable
 fun DietPage(
@@ -150,41 +166,38 @@ fun DietPage(
 
     val todayMeals = records.meals.filter { it.createdAt.toLocalDate() == date }.sortedBy { it.createdAt }
 
+    val mealsLeft = settings.meals.count { mealKey(date, it.id) !in records.completedHabits }
     Box(modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-            Row(Modifier.fillMaxWidth().padding(top = 16.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Row {
-                    IconButton("Hoy", { tab = "hoy" }) { StrokeIcon("hoy", if (tab == "hoy") StrokeState.DONE else StrokeState.OFF, 22.dp) }
-                    IconButton("Semana", { tab = "semana" }) { StrokeIcon("semana", if (tab == "semana") StrokeState.DONE else StrokeState.OFF, 22.dp) }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton("Recetas", { libraryOpen = true }) { StrokeIcon("escuela", StrokeState.DONE, 22.dp, color = Muted) }
-                    SettingsGear(onSettings)
-                }
-            }
-            Column(
-                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(22.dp),
-            ) {
-                if (tab == "hoy") {
-                    TodayView(date, settings, records, todayMeals, recipes, onSetHabit, actions) { slot -> logSlot = slot; logOpen = true }
-                } else {
-                    FoodWeek(date, records.meals, records.bodyMetrics, settings, food.addWeight)
+        Column(Modifier.fillMaxSize()) {
+            Column(Modifier.weight(1f).padding(horizontal = 24.dp)) {
+                ModuleTitle(if (tab == "hoy") dayTitle(date) else "Semana", onSettings)
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(22.dp),
+                ) {
+                    if (tab == "hoy") {
+                        TodayView(date, settings, records, todayMeals, recipes, onSetHabit, actions) { slot -> logSlot = slot; logOpen = true }
+                    } else {
+                        FoodWeek(date, records.meals, records.bodyMetrics, settings, food.addWeight)
+                    }
                 }
             }
-        }
-        if (tab == "hoy") {
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 24.dp, bottom = 28.dp)
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(White)
-                    .clickable(role = Role.Button) { logSlot = null; logOpen = true }
-                    .semantics { contentDescription = "Registrar comida" },
-                contentAlignment = Alignment.Center,
-            ) { Text("+", style = MaterialTheme.typography.headlineSmall, color = Color.Black) }
+            ModuleDock(
+                listOf(
+                    DockItem("hoy", "Hoy", "hoy", badge = mealsLeft.takeIf { it > 0 }?.toString()),
+                    DockItem("semana", "Semana", "semana"),
+                    DockItem("recetas", "Recetas", "escuela", menu = listOf("Nueva receta" to { openRecipe = "new" })),
+                    DockItem("ajustes", "Ajustes", "gear", apart = true),
+                ),
+                tab,
+                onOpen = { key ->
+                    when (key) {
+                        "recetas" -> libraryOpen = true
+                        "ajustes" -> onSettings()
+                        else -> tab = key
+                    }
+                },
+            )
         }
 
         if (logOpen) {
@@ -249,10 +262,11 @@ private fun TodayView(
     val eaten = todayMeals.fold(Nutrition()) { acc, m -> acc + Nutrition(m.kcal, m.proteinG, m.carbsG, m.fatG, m.fiberG) }
     KcalRing(eaten.kcal, settings.kcalGoal)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-        MacroBar("huevo", eaten.proteinG, settings.proteinGoalG, Modifier.weight(1f))
-        MacroBar("hoja", eaten.fiberG, settings.fiberGoalG, Modifier.weight(1f))
+        MacroBar("huevo", "Proteína", eaten.proteinG, settings.proteinGoalG, Modifier.weight(1f))
+        MacroBar("hoja", "Fibra", eaten.fiberG, settings.fiberGoalG, Modifier.weight(1f))
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF222222)))
+    val upcoming = settings.meals.firstOrNull { mealKey(date, it.id) !in records.completedHabits }
+    ShineLink("Registrar comida", upcoming?.let { "${it.name} · ${it.time.format(hhmm)}" }, { onOpenSlot(null) })
 
     // The plan: each meal slot with what was logged near its hour; meals with no slot at all show on their own.
     val photoOf = recipes.associate { it.id to it.photoUri }
@@ -266,6 +280,8 @@ private fun TodayView(
             val time = slot.time.format(hhmm)
             var play by remember { mutableIntStateOf(0) }
             PlanRow(
+                name = slot.name,
+                detail = logged.joinToString(", ") { it.description }.takeIf { it.isNotEmpty() },
                 time = time,
                 timeColor = when { done[i] -> White; i == next -> LauncherRed; else -> Muted },
                 icon = { StrokeIcon(mealStrokeIcon(slot.icon), if (done[i]) StrokeState.NOW else StrokeState.OFF, if (slot.kind == MealKind.MAIN) 34.dp else 28.dp, playKey = play) },
@@ -285,7 +301,7 @@ private fun TodayView(
         }
         bySlot[null].orEmpty().forEach { m ->
             val time = Instant.ofEpochMilli(m.createdAt).atZone(ZoneId.systemDefault()).format(hhmm)
-            PlanRow(time, White, { StrokeIcon("plato", StrokeState.DONE, 26.dp) }, m.recipeId?.let { photoOf[it] }, true, false, m.kcal, "${m.description} $time", { onOpenSlot(null) }, null)
+            PlanRow(m.description, null, time, White, { StrokeIcon("plato", StrokeState.DONE, 26.dp) }, m.recipeId?.let { photoOf[it] }, true, false, m.kcal, "${m.description} $time", { onOpenSlot(null) }, null)
         }
     }
 
@@ -304,7 +320,12 @@ private fun TodayView(
                     .semantics { contentDescription = label }
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center,
-            ) { StrokeIcon(HABIT_STROKES.getValue(id), if (isDone) StrokeState.NOW else StrokeState.OFF, 30.dp, playKey = play) }
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    StrokeIcon(HABIT_STROKES.getValue(id), if (isDone) StrokeState.NOW else StrokeState.OFF, 30.dp, playKey = play)
+                    SmallLabel(HABIT_NAMES.getValue(id), color = if (isDone) White else Muted, maxLines = 1)
+                }
+            }
         }
     }
 }
@@ -342,30 +363,36 @@ private fun KcalRing(eaten: Float, goal: Int) {
                 over -> "+" + (eaten - goal).whole()
                 else -> (goal - eaten).whole()
             }
+            SmallLabel(if (goal <= 0) "Comidas" else if (over) "De más" else "Quedan")
             DotMatrixText(number, cell = 5.dp, color = if (over) LauncherRed else White, reveal = number)
-            if (goal > 0) SmallLabel(goal.toString())
+            SmallLabel(if (goal > 0) "de $goal kcal" else "kcal")
         }
     }
 }
 
 /** A nutrient against its goal: icon (with its red detail once met), a thin bar and the grams. */
 @Composable
-private fun MacroBar(icon: String, value: Float, goal: Int, modifier: Modifier = Modifier) {
+private fun MacroBar(icon: String, label: String, value: Float, goal: Int, modifier: Modifier = Modifier) {
     val met = goal > 0 && value >= goal
     val width = remember { Animatable(0f) }
     LaunchedEffect(value, goal) { width.animateTo(if (goal > 0) (value / goal).coerceIn(0f, 1f) else 0f, tween(700)) }
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        StrokeIcon(icon, if (met) StrokeState.NOW else StrokeState.DONE, 22.dp)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            StrokeIcon(icon, if (met) StrokeState.NOW else StrokeState.DONE, 20.dp)
+            SmallLabel(label, Modifier.weight(1f), maxLines = 1)
+            SmallLabel("${value.whole()} g", color = if (met) White else Muted)
+        }
         Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF1F1F1F))) {
             Box(Modifier.fillMaxWidth(width.value).height(3.dp).clip(RoundedCornerShape(2.dp)).background(White))
         }
-        SmallLabel(value.whole(), color = if (met) White else Muted)
     }
 }
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun PlanRow(
+    name: String,
+    detail: String?,
     time: String,
     timeColor: Color,
     icon: @Composable () -> Unit,
@@ -387,9 +414,12 @@ private fun PlanRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(time, Modifier.width(52.dp), style = MaterialTheme.typography.labelLarge, color = timeColor)
-        Box(Modifier.width(44.dp), contentAlignment = Alignment.Center) { icon() }
-        if (hasMeal || photo != null) RecipePhoto(photo, 40.dp, dim = dim) else Spacer(Modifier.size(40.dp))
-        Spacer(Modifier.weight(1f))
+        Box(Modifier.width(36.dp), contentAlignment = Alignment.Center) { icon() }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium, color = if (dim) Muted else White, maxLines = 1)
+            detail?.let { SmallLabel(it, maxLines = 1) }
+        }
+        if (hasMeal || photo != null) RecipePhoto(photo, 40.dp, dim = dim)
         Text(kcal?.whole() ?: "", style = MaterialTheme.typography.labelLarge, color = if (dim) Muted else White)
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF141414)))
@@ -443,7 +473,7 @@ private fun WaterRow(date: LocalDate, settings: ModuleSettings, habits: Set<Stri
             }
         }
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-            SmallLabel(formatMl(ml))
+            SmallLabel("Agua · ${formatMl(ml)}")
             SmallLabel(formatMl(count * ml), color = if (count > 0) White else Muted)
         }
     }

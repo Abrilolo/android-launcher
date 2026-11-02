@@ -5,7 +5,6 @@ import com.adrian.minimallauncher.data.NoteCategory
 import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.feature.exercise.Session
 import com.adrian.minimallauncher.feature.exercise.SessionKind
-import com.adrian.minimallauncher.feature.exercise.TokyoGuide
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -38,6 +37,8 @@ data class WidgetInputs(
     /** The phase's timed actions and linked reminders, sorted by hour. */
     val phaseReminders: List<PhaseReminder> = emptyList(),
     val pendingNotes: Map<NoteCategory, Int> = emptyMap(),
+    /** Today's routine as edited in Tu rutina. */
+    val session: Session? = null,
 )
 
 object WidgetSelector {
@@ -68,8 +69,8 @@ object WidgetSelector {
             .minByOrNull { it.second }
             ?.let { (meal, left) -> picks += WidgetPick.MealSoon(meal, left) }
 
-        val session = TokyoGuide.sessionFor(date)
-        if (session.kind != SessionKind.REST && date.toString() !in inputs.workouts) {
+        val session = inputs.session
+        if (session != null && session.kind != SessionKind.REST && date.toString() !in inputs.workouts) {
             val left = Duration.between(time, inputs.exerciseStart).toMinutes()
             // Shown from half an hour before; once late, only in a phase that has a gimnasio action.
             if (left <= SOON.toMinutes() && (left >= 0 || phase.actions.any { it.type == "gimnasio" })) {

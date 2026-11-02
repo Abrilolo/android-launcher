@@ -1,8 +1,8 @@
-# Backlog
+﻿# Backlog
 
 Lo que falta por hacer y cómo lo trabajamos. `ROADMAP.md` dice qué fases ya se hicieron; este archivo es para lo que sigue.
 
-Last updated: 2026-10-21
+Last updated: 2026-11-02
 
 ## Cómo trabajamos una mejora
 
@@ -87,10 +87,54 @@ Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
 - [ ] Hoy: los grupos musculares del día, la hora de inicio (en rojo si no has empezado) y los minutos. Cada ejercicio muestra el ícono de su grupo, kg × reps y un punto por serie; el siguiente punto tiene borde rojo. El ícono abre los pasos de kg y reps, y la "i" muestra el nombre y cómo se hace. **Por validar.**
 - [ ] Descanso como anillo que se vacía (rojo en los últimos 10 s, vibra al terminar), con 60, 90 o 120. Palomita de sesión hecha. **Por validar.**
 - [ ] Exceso de kcal: si la comida del día pasa la meta, una tarjeta con la llama y el excedente propone un ejercicio del stack del mismo grupo de hoy, con minutos y kcal; ⟳ cambia de opción. **Por validar.**
-- [ ] Semana: los 7 días como íconos (hecho en blanco, hoy con detalle rojo), la llama con los días entrenados y el plan del día tocado en números. **Por validar.**
+- [ ] Ver tu rutina: letra más grande con brillo rojo en Hoy, Semana y el menú del Dock. Reiniciar rutina al terminar: píldora gris sin marco que se llena de rojo oscuro al mantener. **Por validar.**
+- [ ] Metas: ahora en la escena. Series de los últimos 20 días o 12 semanas, apiladas por grupo en grises; en rojo bajo la línea, los récords. Tocar una barra muestra su detalle. Abajo, el mejor registro de cada ejercicio. Peso y medidas sigue nativo y se abre desde aquí. Swipe a la izquierda durante el ejercicio: la misma gráfica, por sesión, con su lista de registros. **Por validar.**
+- [ ] Barra de abajo: ahora es un Dock. Transparente, marco negro con brillo rojo muy sutil en las esquinas. Un toque abre con un rebote corto. Punto rojo bajo la vista abierta. Hoy con punto si hay sesión en curso; Semana con los días que faltan. Mantener presionado abre un menú (Hoy: rutina y hora; Semana: Hoy y Mañana; Ajustes: reiniciar, también mantenido). **Por validar.**
+- [ ] Semana: ahora en la misma escena que Hoy. Siete columnas con la personita: festeja lo hecho, espera hoy, duerme lo que falta, se sienta en descanso y mira al piso si no se hizo. Tocar un día (o swipe sobre el detalle) lo abre abajo con sus ejercicios; los puntos son las series. De hoy en adelante, Ver rutina lleva a editar ese día; Guardar desde ahí no cambia la rutina de hoy. **Por validar.**
 - [ ] Cuerpo: peso con línea de inicio a meta y tres puntos de mañanas, IMC en una regla (rango sano, tú y tu meta), cintura (meta: la mitad de la altura), pecho, brazo y muslo con flecha de tendencia. Tocar abre la captura. **Por validar.**
 - [ ] Ajustes: el stack por grupo (nombre, intensidad suave/media/fuerte, minutos, ✕ y +) y "Borrar ejemplos" mientras haya ejemplos; altura y peso meta (los mismos de Comida); hora de inicio y descanso. **Por validar.**
 - [ ] Falta: guardar el ejercicio extra como hecho (hoy se olvida al cerrar la app) y restar sus kcal; elegir qué medidas seguir; teclado de números propio en lugar del del sistema; racha real entre semanas; widget de Ejercicio con íconos de trazo; el calentamiento tampoco se guarda.
+
+#### Ejercicio · Hoy primero y rutina sin guía (2026-11-02)
+
+Pedido: "no me gustó mucho que el ejercicio guiado sea como la función principal... que sin estar pasando de pantalla en pantalla pueda ver mi progreso y que en cualquier momento pueda pasar a esta vista guiada". Reemplaza lo anterior que abría en el inicio a la hora de entrenar y el botón que solo salía a esa hora. Sin boceto: lo describió el usuario. Recorrido completo en el navegador con datos de prueba, sin errores. **Por validar en el S24+.**
+
+- [ ] Hoy: siempre abre aquí, con Ver tu rutina, Iniciar tu rutina y Rutina guiada (Seguir… si hay sesión a medias). Abajo, una marca por ejercicio con sus series en puntos: blanco hecho, rojo el actual, gris lo que sigue. **Por validar.**
+- [ ] Rutina sin guía: en una sola pantalla, marcas arriba, la personita y un cuadro con el ejercicio y sus series (tocar reps o kg los ajusta). El botón dice Descanso, Continuar o Terminar según lo que sigue; solo cambia el cuadro. El descanso va en el mismo cuadro, con Seguir. Tocar una marca salta a ese ejercicio. Las series por tiempo usan el mismo cronómetro. Al final, la vista de Terminaste. **Por validar.**
+- [ ] Rutina guiada: "Rutina guiada" abajo del cuadro pasa a la guía en el mismo ejercicio o descanso; desde Hoy se regresa a cualquiera de las dos. Sigue con el inicio de mantener y arrastrar y con calentamiento. **Por validar.**
+- [ ] Plan editado: el widget, la página Semana y la sugerencia por exceso de kcal ya leen Tu rutina, no la guía Tokio. **Por validar.**
+- [ ] Falta: la rutina sin guía no tiene calentamiento (sigue solo en la guiada).
+
+#### Ejercicio · Hoy y barra de abajo acomodados (2026-11-02)
+
+Pedido: "mira el acomodo de la foto, pero conserva ya nuestros diseños... la barra de abajo sí hazla así, pero conservando nuestros menús". **Por validar en el S24+.**
+
+- [ ] Hoy: fecha y frase; tarjetas con el formato de la foto. La hora de entrenar con lo que falta; marco gris y fondo transparente; los cuadros del reloj y de la personita con marco negro y sin fondo. La hora va en ámbar y lo hecho en verde (el rojo queda para actuar). La tarjeta de la rutina: el nombre con Ver rutina en rojo, tiempo, ejercicios y las marcas con un play redondo rojo al lado para iniciar; Rutina guiada con la personita, toda la tarjeta entra a la guía. **Por validar.**
+- [ ] Ningún texto de la app lleva brillo: la sesión de ejercicio, Dieta y Finanzas. **Por validar.**
+- [ ] Barra de abajo: una sola, de lado a lado, con ícono y nombre (Hoy, Semana, Metas, Ajustes); la activa en rojo. Mantener apretado sigue abriendo sus menús. **Por validar.**
+
+#### Ejercicio · rutina sin guía con los gestos de la guiada (2026-11-02)
+
+Pedido: "estirar la tarjeta donde se ven las repeticiones... mejor algo como de cambiar ejercicio... que los swipes también estén en esta forma... respeta ya también ese diseño". Recorrido en el navegador con datos de prueba, sin errores. **Por validar en el S24+.**
+
+- [ ] Tarjeta: la misma de la guiada, abajo; tiene manija y el botón de seguir es el deslizador (Descanso, Continuar, Terminar, Saltar descanso). **Por validar.**
+- [ ] Estirar la tarjeta hacia arriba abre postura y tips bajo las series, que siguen a la vista; la personita sube con el borde. Reemplaza el botón de i. **Por validar.**
+- [ ] Cambiar ejercicio: el botón de flechas muestra otro del mismo grupo; se pasa con swipe o con ›, y la última tarjeta (Otros) deja cambiar de grupo y de ejercicio. **Por validar.**
+- [ ] Descanso: la misma tarjeta para elegir lo que sigue, con el reloj arriba. **Por validar.**
+- [ ] Swipes: a la derecha, tiempo y rutina (con Reiniciar y Terminar); a la izquierda, metas del ejercicio. Sobre la personita o el nombre del ejercicio. **Por validar.**
+- [ ] Series: agregar con + y borrar deslizando la fila, como en la guiada. **Por validar.**
+
+#### Ejercicio · flujo completo (2026-10-31)
+
+Pedido: "pule todo los detalles de flujo... que paso cuando te sales y regresas, prepara como se retoma la rutina". Íconos aún sin tocar (pendiente aparte). **Por validar en el teléfono.**
+
+- [ ] **Salir y regresar.** Bloquear, cambiar de app o cerrar el módulo: al volver abre exacto donde estaba. Los cronómetros siguen en tiempo real; lo pausado sigue pausado. Más de 20 min fuera cuenta como pausa y no suma a tu tiempo.
+- [ ] **Retomar.** Home y Atrás en la sesión van a Hoy. Hoy muestra lo que quedó con su reloj en vivo y un toque en el botón retoma (empezar sigue siendo mantener apretado). Atrás en Hoy sale del módulo.
+- [ ] **Gestos.** Pausar un calentamiento sube la píldora Seguir para cortarlo. Swipe a la derecha también en el descanso abre la rutina. Terminar antes: deslizar Terminar en ese panel. Sin series en un ejercicio, se salta. El siguiente es el primero con series pendientes.
+- [ ] **Reiniciar** borra el día: se mantiene apretado (0.9 s) y se llena de rojo; un toque ya no borra nada.
+- [ ] **Vibraciones.** Toque, presión, confirmar, serie completa y alerta. Fin de descanso o de serie por tiempo vibra también con la pantalla apagada (puede llegar unos segundos tarde; es alarma inexacta, sin permiso extra).
+- [ ] **Latencia.** Semana, Metas y Ajustes van encima de la escena viva, sin recargar. WebView precalentado. La pantalla no se apaga durante la sesión.
+- [ ] **Barra inferior** a todo el ancho. Quitados avisos y textos obvios.
 
 #### Ejercicio · sesión guiada (bocetos 2026-10-29)
 
@@ -109,13 +153,15 @@ Bocetos del usuario en `docs/design/sketches/ejercicio/` (1 a 6, en orden). Pedi
 - [ ] **Iniciar.** Botón ▷: se mantiene apretado (se llena como agua) y luego se arrastra y suelta en un punto. Las dos cosas juntas, para no iniciar por error.
 - [ ] **Calentamiento.** Abajo, una tarjeta con dibujo vectorial y el nombre del calentamiento, con 3 opciones para la rutina. Swipe horizontal cambia de opción; al final, si sigues jalando, aparece "otros" con la cuadrícula completa de calentamientos.
 - [~] **Detalle.** Swipe hacia arriba en la tarjeta: la personita "espía" desde arriba y abajo van insights del calentamiento, tu progreso y tips. **HTML prototype implemented:** hands arrive before the head; the character looks down, glances, blinks and follows the pointer. The main figure pauses while details are open. Close button, Escape and downward swipe restore it; repeated opening replaces gesture listeners. Reduced-motion support included. Android integration and visual acceptance remain pending.
+- [ ] **Tarjeta inferior.** Selección y descanso usan la misma tarjeta a todo el ancho, con todos sus controles adentro. Jalar arriba abre el detalle con el fondo difuminado y el botón siempre dice Seguir. **Por validar.**
 - [ ] **Elegir.** Swipe a la derecha sobre la animación (o junto a ella) inicia ese calentamiento o ejercicio.
 - [ ] **Durante el ejercicio.** Arriba, la personita chica junto al tiempo. Te motiva todo el tiempo (pedido: "durante el ejercicio animaciones como motivando") y reacciona al completar una serie (salta), al mover el peso (saca músculo) y al terminar las series (festeja).
 - [ ] **Músculo.** Dibujo minimalista del grupo que se trabaja; su zona se pone más roja conforme avanzan las series. Mantener apretado muestra la info del ejercicio: calorías, tips y postura.
 - [ ] **Series.** Una fila por serie con su número, reps y kg propios y un círculo para marcarla terminada; "+" agrega otra serie y swipe a la izquierda la borra (fondo rojo con papelera). El número de serie es una etiqueta de fila, no un contador N/M.
 - [ ] **Swipes laterales.** Izquierda → derecha: el siguiente ejercicio (elegirlo o verlo) con el tiempo de la rutina. Derecha → izquierda: dashboard de ese ejercicio (aún sin diseñar: registros anteriores de reps, peso y tiempo, mejor marca y consulta de registros previos).
-- [ ] **Terminar ejercicio.** Arco de "continuar" abajo: swipe hacia arriba y mantener para confirmar.
-- [ ] **Descanso.** Contador (5:00) con la personita descansando; abajo, la siguiente rutina en rojo y un botón para saltar. Mientras menos tiempo queda, más se prepara la personita. Si llega a 0 y no avanzas, el contador cambia de color y cuenta hacia arriba lo que tardes, con la animación de "te estoy esperando". Así hasta terminar la rutina.
+- [ ] **Cronómetro.** Calentamiento y series por tiempo en min:seg, con regresar (vuelve al tiempo completo) y pausar debajo. **Por validar.**
+- [ ] **Terminar ejercicio.** Regresa el semicírculo Continuar: se jala hacia arriba, con su sombreado rojo a negro. Seguir, Saltar descanso y Terminar sin marco: fondo gris oscuro que se llena de rojo oscuro al seleccionar. **Por validar.**
+- [ ] **Descanso.** Contador (5:00) con la personita descansando; abajo, la siguiente rutina y un botón para saltar. Ejercicio y saltar comparten una tarjeta abajo con asa: swipe arriba da la información y a los lados cambia el ejercicio ahí mismo, sin abrir otra vista; al final está "Otros". La información sube y baja al ritmo del dedo. Saltar se desliza, con flechas, de blanco a rojo, y entra directo al que quedó elegido. **Por validar.** Mientras menos tiempo queda, más se prepara la personita. Si llega a 0 y no avanzas, el contador cambia de color y cuenta hacia arriba lo que tardes, con la animación de "te estoy esperando". Así hasta terminar la rutina.
 
 Prototype verification: `node --test docs/design/tests/exercise-session.test.cjs` checks mood exclusions, weighted memory, all behavior lifecycles, finite joints/SVG transforms, floor/chair interruptions, depth ordering, small stages, reduced motion, gesture rebinding and peek animation state. Browser visual review is pending: the browser URL policy rejected the local `file://` preview. These offline checks do not establish visual quality or Android behavior.
 
@@ -129,6 +175,22 @@ Others includes a small custom-item form for warm-ups and exercises. Entries cur
 
 **Start-control sketch revision (HTML prototype, 2026-10-29):** supersedes the circular liquid-container design above. Use an irregular red-outlined ink blot with a readable play glyph and a small destination dot, without a dashed track or visible instructions. At rest the blot gently changes its silhouette; pressing squashes it, holding extends a pulsing lobe toward the destination, and the glyph nudges right once armed. Drag velocity stretches a trailing tail. Releasing over the destination gathers the blot with a settling bounce and confirms; an early release returns it. The hold/release gate, cancellation cleanup and reduced-motion support remain. Offline checks now also verify forward extension and drag-dependent outline changes. Browser visual acceptance and Android integration remain pending.
 
+#### Ejercicio · Hoy, Tu rutina y personita (2026-10-31)
+
+Boceto: `docs/design/concept/EjercicioHoyRutinaVisual.html`. Programado en la misma escena web de la sesión (`app/src/main/session/home.js` y `home.css`), para que todas las pantallas compartan a la personita. Peso y medidas (Cuerpo) y Ajustes siguen nativos. Compilado; sin instalar porque el teléfono no estaba conectado. **Por validar en el S24+.**
+
+- [ ] Hoy: frase por fase (mañana, en camino, trabajo, en casa, hora de entrenar, noche; sale de la fase de Rutinas), Ver tu rutina, Empezar o Seguir y barra inferior. El exceso de kcal pasó aquí; tocarlo cambia de opción. **Por validar.**
+- [ ] Tu rutina: calendario, galería con tarjetas más chicas, + y − transparentes que solo toman color al tocarlos, lista con swipe, editar, cambiar, agregar y crear. El plan se guarda en `guided_exercise_records` (`plan:week`, `plan:today:<fecha>`), sin migración y dentro del respaldo. **Por validar.**
+- [ ] Terminaste: minutos, series y metas en un solo apartado. **Por validar.**
+- [ ] Personita: perfil con un ojo; de espaldas sin cara ni pelo; zancada calculada con el piso recorrido (no resbala); punto de fuga real con horizonte y piso tenue; se levanta apoyando la rodilla. **Por validar.**
+- [ ] Fases nuevas: café y bostezo; camión con agarradera y frenón; mochila, celular y llamada; escritorio con laptop; lavarse los dientes, leer y cama con cobija. Entrenamiento: dominadas en barra, dominadas de balón, cuerda, flexiones, sentadillas, curl, press, parada de manos, rueda y mortal. La toalla seca cuello, cara, cabeza y brazos. **Por validar.**
+- [ ] Interfaz: señala botones, se sube a ellos, se sienta con las piernas colgando, se acuesta, zapatea, se cuelga y hace dominadas de una tarjeta, escala el borde hasta el engrane, a veces resbala y se soba. Se puede agarrar con el dedo y soltarla. **Por validar.**
+- [ ] Reacciones: se emociona al mantener Iniciar y sale volando con el brillo; sigue el dedo con la mirada; responde a series, peso, agregar, borrar, días y tarjetas. **Por validar.**
+- [ ] Continuar: solo aparece al acabar el tiempo o las series, con la meta más abajo; la personita sube por el semicírculo y se monta en él. **Por validar.**
+- [ ] Espía: la misma personita sale en cada hoja de abajo; también se sube, se sienta, se acuesta o camina sobre la orilla de la tarjeta. **Por validar.**
+- [ ] Ajustes pedidos (2026-10-31): sin líneas de punto de fuga; sin textos de cómo usarlo; hora de entrenar junto a la frase de Hoy, editable al tocarla; sin botón Seguir (el botón de inicio solo sale a la hora de entrenar o con una sesión a medias, con borde blanco y rojo al presionar); Otros con la lista de Tu rutina; nombre del grupo solo en la tarjeta centrada; una sola tarjeta para cambiar ejercicio, flecha y Continuar chico; una sola personita en pantalla, nunca sobre información (bordes y esquinas); al tocar Continuar se lanza y el semicírculo la atrapa según su posición; espía arreglado. **Por validar.**
+- [ ] Falta: el calentamiento ya no se puede saltar, solo salir con casa; en la app nativa de Semana y Cuerpo no se aplicó el estilo nuevo.
+
 ### Registro obligatorio
 
 Boceto aprobado (aprobación general, 2026-10-29): `docs/design/concept/RegistroVisual.html`. Programado en `ui/ForcedEntryScreen.kt`, con 5 íconos de trazo nuevos (bolsa, transferencia, regalo, servicio, borrar). Se prueba con el mosaico "Pago de prueba".
@@ -141,6 +203,13 @@ Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
 - [ ] Toque 2 (comida): recetas en círculos con foto (inicial si no tiene), las más usadas primero; la hoja abre ingredientes (buscar, tocar, los gramos suben de 50 en 50); ✓ la marca como comida sin detalle. **Por validar.**
 - [ ] Salida: las comidas que ya pasaron con su hora (la siguiente en rojo); tocarlas las marca y ✓ termina. **Por validar.**
 - [ ] Falta: la lectura real de notificaciones del banco (hoy solo el mosaico); transferencia, regalo y servicio se guardan como gasto extra con su categoría (la app los cuenta como ingreso cuando son entradas); la bolsa usa la categoría "antojo"; receta siempre 1 porción; los gramos solo de 50 a 300; sin cuenta compartida ni "paga otro"; sin deshacer después de guardar.
+
+### Comida y Finanzas · estilo de Ejercicio (2026-10-31)
+
+Componentes nativos en `feature/ModuleStyle.kt`: Dock, título con brillo, enlace rojo, filas de registro, selector de rango y gráfica apilada.
+
+- [ ] Comida: Dock (Hoy con las comidas que faltan, Semana, Recetas, Ajustes); mantener Recetas: Nueva receta. Registrar comida reemplaza al botón +. Etiquetas cortas en kcal, macros, comidas, agua y hábitos. Semana: kcal por día o semana (rojo: lo que pasó la meta), peso, IMC y registros. **Por validar.**
+- [ ] Finanzas: separada en Hoy, Semana y Mes con Dock (Hoy con las cuentas por cobrar). Registrar reemplaza al botón +. Semana: columnas de puntos y movimientos. Mes: ingreso, gasto por día o semana (rojo: lo que pasó lo permitido) y movimientos. **Por validar.**
 
 ### Comida (recetas y metas)
 

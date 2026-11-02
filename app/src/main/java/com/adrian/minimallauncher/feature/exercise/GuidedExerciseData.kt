@@ -10,6 +10,7 @@ import com.adrian.minimallauncher.data.DayCheck
 import com.adrian.minimallauncher.data.LauncherDatabase
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRepository
+import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -24,6 +25,11 @@ interface GuidedExerciseDao {
     suspend fun get(id: String): GuidedExerciseRecord?
     @Query("SELECT * FROM guided_exercise_records")
     suspend fun all(): List<GuidedExerciseRecord>
+    /** The edited week and each day's chosen routine. */
+    @Query("SELECT * FROM guided_exercise_records WHERE id LIKE 'plan:%'")
+    fun plans(): kotlinx.coroutines.flow.Flow<List<GuidedExerciseRecord>>
+    @Query("SELECT * FROM guided_exercise_records WHERE id LIKE 'plan:%'")
+    suspend fun allPlans(): List<GuidedExerciseRecord>
     @Upsert suspend fun put(record: GuidedExerciseRecord)
     @Query("DELETE FROM guided_exercise_records WHERE id = :id")
     suspend fun delete(id: String)
@@ -32,14 +38,15 @@ interface GuidedExerciseDao {
 internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
     private val records = db.guidedExercise()
 
-    suspend fun load(date: LocalDate, settings: ModuleSettings): String {
-        val session = TokyoGuide.sessionFor(date)
+    suspend fun load(date: LocalDate, settings: ModuleSettings, scene: SceneInputs): String {
+        val plans = records.allPlans().associate { it.id to it.payload }
+        val session = RoutinePlans.sessionFor(date, plans)
         val logs = db.exercise().allSets()
         val today = logs.filter { it.date == date.toString() }
         fun planItem(ex: PlanExercise): JSONObject {
             val last = logs.filter { it.exerciseId == ex.id && it.date < date.toString() }.maxByOrNull { it.createdAt }
             return JSONObject().put("id", ex.id).put("name", ex.name).put("zone", ex.group())
-                .put("sets", JSONArray(List(ex.sets) { JSONArray(listOf(ex.minTarget, last?.weightKg ?: 0f)) }))
+                .put("sets", JSONArray(List(ex.sets) { JSONArray(listOf(ex.minTarget, last?.weightKg ?: ex.startKg ?: 0f)) }))
                 .put("timed", ex.timed).put("posture", ex.how).put("tips", ex.care)
                 .put("hist", JSONArray()).put("kcal", JSONObject.NULL)
         }
@@ -56,7 +63,16 @@ internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
                 .put("sets", JSONArray().put(JSONArray().put(it.minutes * 60).put(0)))
                 .put("posture", "").put("tips", "").put("hist", JSONArray()).put("kcal", JSONObject.NULL)
         }
+        val lastKg = { id: String -> logs.filter { it.exerciseId == id && it.date < date.toString() }.maxByOrNull { it.createdAt }?.weightKg }
+        val weekDates = (0L..6L).map { date.minusDays(date.dayOfWeek.value - 1L).plusDays(it).toString() }
+        val trained = PersonalRepository(db).completedWorkouts.first() + logs.map { it.date }
         return JSONObject().put("version", 1).put("date", date.toString())
+            .put("dateLabel", RoutinePlans.dateLabel(date)).put("startTime", settings.exerciseStart.toString()).put("phase", scene.phase).put("trainingNow", scene.trainingNow)
+            .put("completed", scene.completed).put("excess", JSONArray(scene.excess)).put("boot", scene.boot ?: JSONObject.NULL)
+            .put("muscles", JSONArray(MuscleGroups.map { (key, name) -> JSONArray(listOf(key, name)) }))
+            .put("todayIndex", date.dayOfWeek.value - 1)
+            .put("weekDates", JSONArray(weekDates)).put("weekDone", JSONArray(weekDates.map { it in trained }))
+            .put("week", RoutinePlans.week(date, plans, lastKg)).put("chosen", RoutinePlans.planOf(session, date, lastKg))
             .put("title", session.title).put("restSeconds", settings.exerciseRestSeconds)
             .put("groups", JSONArray(exercises.map { it.getString("zone") }.distinct().map { JSONArray(listOf(it, MuscleGroups[it] ?: it)) }))
             .put("exercises", JSONArray(exercises)).put("catalog", JSONArray(catalog))
@@ -96,10 +112,24 @@ internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
             }
             records.put(GuidedExerciseRecord("session:$date", text, System.currentTimeMillis()))
             root.optJSONObject("library")?.let { records.put(GuidedExerciseRecord("library", it.toString(), System.currentTimeMillis())) }
-            PersonalRepository(db).setCheck(date.toString(), DayCheck.WORKOUT, state.optString("stage") == "end")
+            PersonalRepository(db).setCheck(date.toString(), DayCheck.WORKOUT, state.optString("stage") == "end" || state.optBoolean("finished"))
         }
         true
     }.getOrDefault(false)
+
+    /** Stores the edited week and, from Guardar in Tu rutina, the routine chosen for [date]. */
+    suspend fun savePlans(date: LocalDate, text: String) {
+        require(text.length <= 2_000_000)
+        val root = JSONObject(text)
+        val days = root.getJSONArray("days")
+        require(days.length() == 7)
+        records.put(GuidedExerciseRecord(RoutinePlans.WEEK, JSONObject().put("days", days).toString(), System.currentTimeMillis()))
+        val chosen = root.optJSONObject("chosen") ?: return
+        records.put(GuidedExerciseRecord(RoutinePlans.todayId(date), chosen.toString(), System.currentTimeMillis()))
+        // A session not yet started restarts from the new plan; one under way keeps what it recorded.
+        val draft = records.get("session:$date")?.let { JSONObject(it.payload).optJSONObject("state") }
+        if (draft != null && draft.isNull("startedAt")) records.delete("session:$date")
+    }
 
     /** Clears today's guided draft, logged sets, and workout check so the session flow can be tested again from the start. */
     suspend fun reset(date: LocalDate) = db.withTransaction {

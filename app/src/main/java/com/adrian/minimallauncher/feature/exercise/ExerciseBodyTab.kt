@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -47,61 +46,6 @@ import com.adrian.minimallauncher.ui.components.StrokeState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-
-/** The week as session icons: done white, today with its red detail, the rest gray. Tap a day to see its plan. */
-@Composable
-internal fun WeekTab(day: ExerciseDay) {
-    val monday = day.date.minusDays(day.date.dayOfWeek.value - 1L)
-    var picked by rememberSaveable(day.date) { mutableIntStateOf(day.date.dayOfWeek.value - 1) }
-
-    Row(Modifier.fillMaxWidth()) {
-        TokyoGuide.week.forEachIndexed { index, session ->
-            val date = monday.plusDays(index.toLong())
-            val done = date in day.weekDone
-            val isToday = date == day.date
-            Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(role = Role.Tab) { picked = index }
-                    .semantics { contentDescription = session.title }.padding(vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                val icon = if (session.kind == SessionKind.STRENGTH) "gimnasio" else session.icons().first()
-                StrokeIcon(icon, when { done -> StrokeState.DONE; isToday -> StrokeState.NOW; else -> StrokeState.OFF }, 30.dp)
-                Dot(
-                    when {
-                        index == picked -> MaterialTheme.colorScheme.onSurface
-                        isToday -> LauncherRed
-                        else -> Color.Transparent
-                    },
-                )
-            }
-        }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.semantics { contentDescription = "Días entrenados esta semana" }) {
-        StrokeIcon("fuego", if (day.weekDone.isEmpty()) StrokeState.OFF else StrokeState.NOW, 20.dp)
-        Num(day.weekDone.size.toString(), MaterialTheme.colorScheme.onSurface)
-    }
-
-    val session = TokyoGuide.week[picked]
-    ModuleCard {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            session.icons().forEach { StrokeIcon(it, StrokeState.DONE, 30.dp) }
-            Spacer(Modifier.weight(1f))
-            session.minutes()?.let { Num("$it'") }
-        }
-        session.exercises.forEach { ex ->
-            Row(
-                Modifier.fillMaxWidth().semantics { contentDescription = ex.name },
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                StrokeIcon(groupIcon(ex.group()), StrokeState.OFF, 22.dp)
-                Num(ex.numbers(), modifier = Modifier.weight(1f))
-                day.lastLogs[ex.id]?.takeIf { it.weightKg > 0f }?.let { Num("%.0f kg".format(it.weightKg)) }
-            }
-        }
-        if (session.kind == SessionKind.INTERVALS) IntervalBars()
-    }
-}
 
 /** The measurements the body tab follows: type stored in body metrics, icon, and what screen readers say. */
 private val Measurements = listOf(

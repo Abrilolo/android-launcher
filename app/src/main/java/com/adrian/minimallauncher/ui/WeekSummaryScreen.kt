@@ -33,8 +33,6 @@ import com.adrian.minimallauncher.feature.ModuleCard
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.StatusDot
 import com.adrian.minimallauncher.feature.exercise.ExerciseDay
-import com.adrian.minimallauncher.feature.exercise.SessionKind
-import com.adrian.minimallauncher.feature.exercise.TokyoGuide
 import com.adrian.minimallauncher.feature.finance.formatPesos
 import com.adrian.minimallauncher.ui.components.DotMatrixText
 import java.time.DayOfWeek
@@ -121,10 +119,9 @@ private fun SummaryCard(title: String, onClick: () -> Unit, content: @Composable
 
 @Composable
 private fun ExerciseCard(week: List<LocalDate>, today: LocalDate, exercise: ExerciseDay, onClick: () -> Unit) {
-    val training = week.filter { TokyoGuide.sessionFor(it).kind != SessionKind.REST }
     SummaryCard("EJERCICIO · SESIONES", onClick) {
         DayColumns(week, today) { day ->
-            if (TokyoGuide.sessionFor(day).kind == SessionKind.REST) {
+            if (day in exercise.weekRest) {
                 // Same height as the dots so the weekday letters stay on one line.
                 Box(Modifier.size(12.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.size(width = 10.dp, height = 2.dp).background(Color(0xFF333333)))

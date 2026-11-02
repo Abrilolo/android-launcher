@@ -330,16 +330,14 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
             val exerciseStack by viewModel.exerciseStack.collectAsState()
             val exerciseFood by viewModel.foodDay.collectAsState()
+            val exercisePhase by viewModel.currentPhase.collectAsState()
             ExerciseScreen(
                 day = exerciseDay,
                 settings = exerciseSettings,
                 bodyMetrics = exerciseMetrics,
                 stack = exerciseStack,
                 kcalOver = exerciseFood.over,
-                onLogSet = exerciseViewModel::logSet,
-                onUndoSet = exerciseViewModel::undoSet,
-                onSetCompleted = exerciseViewModel::setCompleted,
-                onResetRoutine = exerciseViewModel::resetRoutine,
+                phaseId = exercisePhase.id,
                 onAddBodyMetric = exerciseViewModel::addBodyMetric,
                 onSaveSettings = exerciseViewModel::saveSettings,
                 onSaveStackExercise = viewModel::saveStackExercise,

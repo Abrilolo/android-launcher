@@ -24,9 +24,9 @@ import com.adrian.minimallauncher.data.ReminderRecord
 import com.adrian.minimallauncher.data.FinanceRecord
 import com.adrian.minimallauncher.data.MoneyKind
 import com.adrian.minimallauncher.feature.exercise.ExerciseBurn
+import com.adrian.minimallauncher.feature.exercise.RoutinePlans
 import com.adrian.minimallauncher.feature.exercise.StackChoice
 import com.adrian.minimallauncher.feature.exercise.StackExercise
-import com.adrian.minimallauncher.feature.exercise.TokyoGuide
 import com.adrian.minimallauncher.feature.food.FoodDay
 import com.adrian.minimallauncher.feature.food.FoodMath
 import com.adrian.minimallauncher.feature.food.FoodRepository
@@ -191,9 +191,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }.stateIn(viewModelScope, SharingStarted.Eagerly, FoodDay())
     /** The exercise stack by muscle group (placeholder rows until the user fills it). */
     val exerciseStack: StateFlow<List<StackExercise>> = stackDao.stack().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    /** The routine as edited in Tu rutina, for whatever needs to know what today trains. */
+    private val exercisePlans = LauncherDatabase.get(application).guidedExercise().plans().map { rows -> rows.associate { it.id to it.payload } }.distinctUntilChanged()
     /** When today's kcal pass the goal: the exercise of today's muscle group that burns the excess; null otherwise. */
-    val exerciseAdjustment: StateFlow<StackChoice?> = combine(foodDay, exerciseStack) { day, stack ->
-        ExerciseBurn.pick(stack, ExerciseBurn.groupOf(TokyoGuide.sessionFor(day.date)), day.over, day.weightKg ?: ExerciseBurn.DEFAULT_WEIGHT_KG)
+    val exerciseAdjustment: StateFlow<StackChoice?> = combine(foodDay, exerciseStack, exercisePlans) { day, stack, plans ->
+        ExerciseBurn.pick(stack, ExerciseBurn.groupOf(RoutinePlans.sessionFor(day.date, plans)), day.over, day.weightKg ?: ExerciseBurn.DEFAULT_WEIGHT_KG)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Today's meals whose time already passed and are not marked: what salida asks to register. */
@@ -223,8 +225,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     ) { base, checks, pendingByAspect, timed -> base.copy(phaseChecks = checks, pendingNotes = pendingByAspect, phaseReminders = timed) }
 
     /** What the widgets should show now for the current phase, most urgent first (pending payment, meal soon, training…). */
-    val widgetPicks: StateFlow<List<WidgetPick>> = combine(currentPhase, currentTime, widgetInputs) { phase, now, inputs -> WidgetSelector.pick(phase, now, inputs) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val widgetPicks: StateFlow<List<WidgetPick>> = combine(currentPhase, currentTime, widgetInputs, exercisePlans) { phase, now, inputs, plans ->
+        WidgetSelector.pick(phase, now, inputs.copy(session = RoutinePlans.sessionFor(now.toLocalDate(), plans)))
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** Budget, savings, extras bag, today's allowance (lowered by overspending this week), limits per topic and shared bills. */
     val financeSummary: StateFlow<FinanceSummary> = combine(money, budgets, moduleSettings, currentTime.map { it.toLocalDate() }.distinctUntilChanged()) { rows, limits, s, date ->

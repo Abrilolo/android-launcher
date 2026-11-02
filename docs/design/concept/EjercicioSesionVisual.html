@@ -37,19 +37,28 @@
   .rig .prop.on { opacity: 1; }
   .rig .mat { fill: #151515; stroke: #484848; }
   .rig .eyes { fill: #F5F5F5; }
+  .rig .hair { fill: none; stroke: #AAA; stroke-width: 1.3; stroke-linecap: round; }
+  .rig .mouth { fill: #F5F5F5; }
+  .rig .spine { fill: none; stroke: #F5F5F5; stroke-width: 1.2; stroke-linecap: round; }
+  .rig .ball { fill: #F5F5F5; stroke: #000; stroke-width: 1; }
+  .rig .ballMark { fill: none; stroke: #000; stroke-width: 1.1; }
+  .rig .rope { fill: none; stroke: #B0B0B0; stroke-width: 1.2; stroke-linecap: round; opacity: 0; }
+  .rig .towelBand { fill: none; stroke: #B0B0B0; stroke-width: 5; stroke-linecap: round; opacity: 0; }
+  .rig .red { stroke: var(--red); }
   .rig .sweat { fill: none; stroke: #B0B0B0; stroke-width: 1.3; }
   .rig .zzz { opacity: 0; transition: opacity .5s; }
   .rig .zzz.on { opacity: 1; }
   .rig .zzz path { fill: none; stroke: #F5F5F5; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform-box: fill-box; transform-origin: center; animation: zz 2.4s linear infinite; }
   @keyframes zz { 0% { opacity: 0; transform: translate(0, 0) scale(.6) } 20% { opacity: 1 } 100% { opacity: 0; transform: translate(12px, -26px) scale(1.2) } }
-  .peekSvg { color: var(--white); overflow: hidden; }
-  .peekSvg circle, .peekSvg ellipse { fill: #000; stroke: currentColor; stroke-width: 2; }
-  .peekSvg .eye { fill: currentColor; stroke: none; }
-  .peekHead { transform-origin: 50px 51px; }
-  .peekHand { transform-origin: center; transform-box: fill-box; }
-  .peekSvg .peekArm { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  .peekSvg .peekBody { fill: var(--red); stroke: currentColor; stroke-width: 2; }
   .detail-open #stage > .rig { opacity: 0; pointer-events: none; }
+  .phone:has(.sheet.open) .rig:not(.peek .rig), .phone:has(.scrim:not([hidden])) .rig:not(.peek .rig) { opacity: 0; }
+  .stage.stunt { z-index: 7; }
+  .stage.blast { z-index: 9; }
+  .stage.stunt > .rig { pointer-events: none; }
+  /* The spy lives over the sheet's top edge; until it climbs, the edge hides everything below it. */
+  .peek { position: absolute; left: 0; right: 0; bottom: 100%; height: 150px; overflow: hidden; pointer-events: none; z-index: 2; }
+  .peek .rig { pointer-events: none; }
+  .sheet:not(.open) .peek { visibility: hidden; }
   #stage > .rig { transition: opacity .25s; }
   @media (prefers-reduced-motion: reduce) {
     .sheet, .rig .prop, #stage > .rig { transition: none; }
@@ -66,7 +75,8 @@
   .startTrack:disabled { cursor: default; }
 
   .startTrack svg.startGoo { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-  .startTrack .mass { fill: url(#startMassFill); }
+  .startTrack .mass { fill: transparent; stroke: #F5F5F5; stroke-width: 1.6; vector-effect: non-scaling-stroke; transition: fill .12s; }
+  .startTrack.pressing .mass { fill: url(#startMassFill); stroke: transparent; }
   .startTrack:focus-visible { outline: 1px solid #FF6754; outline-offset: 4px; border-radius: 24px; }
   .startBloom { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% var(--start-origin-y, calc(100% - 88px)), #FFF1DC 0%, #FFB38E 12%, #F34B38 32%, #B71922 57%, transparent 76%); }
 
@@ -82,8 +92,6 @@
 
   .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #0B0B0B; border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 22px 24px 32px; transform: translateY(105%); transition: transform .3s ease; z-index: 5; touch-action: none; max-height: 78%; box-sizing: border-box; overflow: visible; }
   .sheet.open { transform: none; }
-  .peek { position: absolute; top: -82px; left: 50%; margin-left: -50px; height: 88px; pointer-events: none; }
-  .peekSvg { pointer-events: auto; cursor: pointer; }
   .sheet h3 { margin: 0 0 6px; font-weight: 500; font-size: 20px; }
   .sec { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--red); margin: 16px 0 6px; }
   .sheet p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
@@ -98,7 +106,8 @@
   .muscle path, .muscle circle { fill: none; stroke: var(--gray); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .muscle .zone { stroke: #2E2E2E; fill: transparent; transition: fill .6s, stroke .6s; }
   .muscle .zone.on { stroke: var(--red); }
-  .sets { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; flex: 1; padding-bottom: calc(var(--arc-radius, 80px) + 16px); }
+  .sets { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; flex: 1; padding-bottom: 16px; }
+  .phone:has(.arc.ready) .sets { padding-bottom: calc(var(--arc-radius, 80px) + 16px); }
   .setwrap { flex: none; }
   .swipeRow { position: relative; border-radius: 18px; overflow: hidden; }
   .trash { position: absolute; inset: 0; background: var(--red); display: flex; justify-content: flex-end; align-items: center; padding-right: 22px; cursor: pointer; }
@@ -125,7 +134,8 @@
   .arc .massBody { pointer-events: auto; touch-action: none; cursor: grab; }
   .arc .lbl { font: 11px 'Space Mono', monospace; letter-spacing: 3px; fill: var(--gray); text-anchor: middle; dominant-baseline: central; pointer-events: none; transition: fill .3s; }
   .arc.ready .lbl { fill: var(--white); fill-opacity: .8; }
-  .arcSpace { flex: none; height: var(--arc-radius, 70px); }
+  .arcSpace { flex: none; height: 0; }
+  .phone:has(.arc.ready) .arcSpace { height: var(--arc-radius, 70px); }
 
   .panel { position: absolute; inset: 0; background: #000; z-index: 6; padding: 56px 24px 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; transition: transform .3s ease; touch-action: none; }
   .panel.left { transform: translateX(-105%); } .panel.right { transform: translateX(105%); }
@@ -218,7 +228,7 @@
 // you, 1 = side view). Every joint follows its target on a spring, so limbs lag and settle, the head floats and
 // the lines boil like a drawing. A small "mind" picks what to do next at random, weighted by the moment.
 const BONE = { T: 25, ua: 16, fa: 15, th: 21, sh: 20 };
-const BASE_POSE = { t: 0, hx: 0, sq: 1, x: 0, z: 0, lift: 0, face: 1, turn: 0, spin: 0, fL: 1, fR: 1, aL: [-10, -2], aR: [10, 2], lL: [-4, -2], lR: [4, 2] };
+const BASE_POSE = { t: 0, hx: 0, sq: 1, x: 0, z: 0, lift: 0, face: 1, turn: 0, back: 0, mo: 0, shut: 0, nod: 0, spin: 0, fL: 1, fR: 1, aL: [-10, -2], aR: [10, 2], lL: [-4, -2], lR: [4, 2] };
 const HIPS_HANDS = { aL: [-45, 28], aR: [45, -28] };
 const GUARD = { turn: 1, t: 10, aL: [30, 165], aR: [20, 170], lL: [-18, -6], lR: [22, 8] };
 const SIT_HUG = { turn: 1, t: 22, aL: [22, 55], aR: [15, 45], lL: [112, 44], lR: [118, 48] };
@@ -337,6 +347,115 @@ const POSES = {
   lungeUp: { ...HIPS_HANDS, turn: 1, t: 2, lR: [30, 10], lL: [-14, -30] },
   legsUp: { turn: 1, t: -90, aL: [90, 90], aR: [92, 92], lL: [180, 180], lR: [176, 176] },
   legsLow: { turn: 1, t: -90, aL: [90, 90], aR: [92, 92], lL: [118, 116], lR: [114, 112] },
+  // Getting up the way a person does: onto a knee, a hand on the thigh, then the push.
+  kneel: { turn: .7, t: 16, sq: .96, aL: [20, 40], aR: [50, 30], lL: [78, -8], lR: [-12, -96] },
+  kneelUp: { turn: .6, t: 26, aL: [34, 16], aR: [60, 20], lL: [60, -6], lR: [-22, -70] },
+  // Small human habits between actions.
+  scratch: { hx: 2, t: 3, aR: [100, 176], aL: [-12, 6] },
+  scratchB: { hx: 2.5, t: 2, aR: [106, 170], aL: [-12, 6] },
+  weightL: { t: 3, hx: -1.5, x: -2, aL: [-8, 2], aR: [12, 8], lL: [-2, -1], lR: [10, -10] },
+  weightR: { t: -3, hx: 1.5, x: 2, aL: [-12, -8], aR: [8, -2], lL: [-10, 10], lR: [2, 1] },
+  lookUp: { t: -3, nod: -1, hx: -1, aL: [-10, 6], aR: [10, -6] },
+  lookDown: { t: 5, nod: 1, hx: 1.5 },
+  shakeOut: { aL: [-34, -20], aR: [34, 20], lL: [-6, -4], lR: [6, 4], lift: 1 },
+  // Morning
+  yawn: { t: -7, hx: -2, sq: 1.05, mo: 1, shut: 1, aL: [-160, -176], aR: [160, 176], lift: 1 },
+  yawnHand: { t: -2, sq: 1.01, mo: .7, shut: .8, aL: [-10, 4], aR: [34, 172] },
+  rubEyes: { t: 3, nod: .5, shut: 1, aL: [-34, -172], aR: [34, 172] },
+  neckL: { hx: -6, t: -3, shut: .6, aL: [-14, 8], aR: [14, -8] },
+  neckR: { hx: 6, t: 3, shut: .6, aL: [-14, 8], aR: [14, -8] },
+  mugHold: { turn: .55, t: 1, aR: [38, 118], aL: [-12, 8] },
+  mugSip: { turn: .55, t: -7, hx: -1.5, nod: -.6, shut: .7, aR: [56, 164], aL: [-12, 8] },
+  // Commute: strap in the hand, the body takes the bus's sway.
+  strapA: { turn: .2, t: -3, x: -2, aR: [176, 178], aL: [-8, 10], lL: [-9, -5], lR: [9, 5] },
+  strapB: { turn: .2, t: 3, x: 2, aR: [172, 176], aL: [-14, 4], lL: [-9, -5], lR: [9, 5] },
+  strapJolt: { turn: .2, t: -15, hx: -4, x: -6, mo: .5, aR: [160, 170], aL: [-54, -40], lL: [-14, -4], lR: [16, 8] },
+  phoneLook: { turn: .3, t: 7, nod: 1, aR: [14, 142], aL: [-8, 4] },
+  phoneThumb: { turn: .3, t: 7, nod: 1, aR: [16, 150], aL: [-8, 4] },
+  phoneEar: { turn: .35, t: -1, aR: [32, 172], aL: [-14, 10] },
+  phoneEarB: { turn: .35, t: 2, hx: 2, aR: [34, 170], aL: [-30, 40] },
+  // Desk (side, seated): typing, reading the screen, thinking.
+  deskA: { turn: 1, t: 4, aL: [46, 84], aR: [42, 92], lL: [90, 0], lR: [86, 4] },
+  deskB: { turn: 1, t: 5, aL: [44, 94], aR: [44, 82], lL: [90, 0], lR: [86, 4] },
+  deskRead: { turn: 1, t: 7, nod: .4, aL: [40, 80], aR: [36, 76], lL: [90, 0], lR: [86, 4] },
+  deskThink: { turn: 1, t: -8, hx: -1, nod: -.5, aL: [38, 76], aR: [28, 168], lL: [90, 0], lR: [86, 4] },
+  deskStretch: { turn: 1, t: -14, sq: 1.05, shut: .8, mo: .5, aL: [165, 176], aR: [160, 176], lL: [84, 8], lR: [80, 10] },
+  deskSip: { turn: 1, t: -6, nod: -.5, aL: [40, 76], aR: [52, 160], lL: [90, 0], lR: [86, 4] },
+  // Night
+  brushA: { turn: .4, t: 2, nod: .3, aR: [52, 158], aL: [-12, 8] },
+  brushB: { turn: .4, t: 2, nod: .3, aR: [60, 170], aL: [-12, 8] },
+  read: { ...SIT_CROSS, t: 5, nod: 1, aL: [-34, 62], aR: [34, -62] },
+  readB: { ...SIT_CROSS, t: 6, hx: 1, nod: .8, aL: [-34, 64], aR: [34, -64] },
+  bedFlat: { turn: 1, t: -90, shut: 1, aL: [100, 40], aR: [96, 34], lL: [88, 86], lR: [84, 88] },
+  bedFlatB: { turn: 1, t: -90, sq: 1.03, shut: 1, aL: [100, 40], aR: [96, 34], lL: [88, 86], lR: [84, 88] },
+  // Training
+  pushUp: { turn: 1, t: 68, aL: [-4, -2], aR: [-6, -4], lL: [-69, -69], lR: [-67, -67] },
+  pushDown: { turn: 1, t: 80, sq: .98, aL: [24, -62], aR: [20, -64], lL: [-79, -79], lR: [-77, -77] },
+  squatUp: { turn: 1, t: 4, aL: [70, 74], aR: [66, 72], lL: [8, -4], lR: [10, -2] },
+  squatDown: { turn: 1, t: 30, sq: .97, aL: [82, 86], aR: [78, 82], lL: [74, -22], lR: [70, -18] },
+  curlDown: { aL: [-7, -2], aR: [7, 2] },
+  curlUp: { sq: 1.02, t: -2, aL: [-7, -150], aR: [7, 2] },
+  curlUpB: { sq: 1.02, t: -2, aL: [-7, -2], aR: [7, 150] },
+  pressLow: { aL: [-96, -172], aR: [96, 172], lL: [-8, -3], lR: [8, 3] },
+  pressHigh: { sq: 1.04, aL: [-158, -176], aR: [158, 176], lL: [-8, -3], lR: [8, 3] },
+  handsDown: { turn: 1, t: 112, shut: .3, aL: [100, 112], aR: [96, 108], lL: [-10, -6], lR: [12, 4] },
+  handstand: { spin: 180, sq: 1.02, aL: [-12, -4], aR: [12, 4], lL: [-3, -1], lR: [3, 1] },
+  handstandB: { spin: 176, sq: 1, aL: [-14, -6], aR: [14, 6], lL: [-12, -16], lR: [10, 14] },
+  jumpFall: { aL: [-122, -160], aR: [122, 160], lL: [-10, -22], lR: [12, -16], lift: 2, mo: .3 },
+  jumpTuck: { sq: .96, aL: [-150, -170], aR: [150, 170], lL: [48, -30], lR: [54, -26] },
+  bar: { aL: [-172, -178], aR: [172, 178], lL: [-3, -6], lR: [3, -3] },
+  barUp: { sq: .98, nod: -.5, aL: [-114, -176], aR: [114, 176], lL: [-4, -12], lR: [4, -8] },
+  barKnees: { sq: .96, aL: [-168, -176], aR: [168, 176], lL: [70, -12], lR: [74, -8] },
+  barOver: { sq: 1.02, t: 2, aL: [-36, -174], aR: [36, 174], lL: [-4, -8], lR: [4, -4] },
+  barSwingA: { t: -8, aL: [-176, -178], aR: [176, 178], lL: [-18, -30], lR: [-14, -26] },
+  barSwingB: { t: 8, aL: [-168, -176], aR: [168, 176], lL: [26, 8], lR: [30, 12] },
+  ropeUp: { lift: 7, aL: [-34, -66], aR: [34, 66], lL: [-3, -14], lR: [3, -14] },
+  ropeDn: { sq: .97, aL: [-34, -60], aR: [34, 60], lL: [-5, -2], lR: [5, 2] },
+  jSet: { turn: .7, t: 3, sq: .98, aL: [-22, 22], aR: [24, 34], lL: [-8, -4], lR: [8, 2] },
+  jKickR: { turn: .7, t: -8, nod: .7, aL: [-30, 10], aR: [30, 42], lL: [-4, -2], lR: [66, 50] },
+  jKickL: { turn: .7, t: -8, nod: .7, aL: [-30, 10], aR: [30, 42], lL: [66, 50], lR: [4, 2] },
+  jKneeR: { turn: .7, t: -4, nod: .8, aL: [-26, 10], aR: [28, 40], lL: [-3, -2], lR: [96, -18] },
+  jKneeL: { turn: .7, t: -4, nod: .8, aL: [-26, 10], aR: [28, 40], lL: [96, -18], lR: [3, 2] },
+  jHead: { turn: .7, t: -11, nod: -1, lift: 3, aL: [-34, 20], aR: [34, 30], lL: [-6, -10], lR: [6, -10] },
+  jShoot: { turn: .9, t: -12, aL: [-40, 20], aR: [40, 50], lL: [-6, -2], lR: [86, 74] },
+  shirtPull: { t: 3, nod: .4, aL: [-24, 112], aR: [24, -112] },
+  // Towel: head, neck and arms, each with both hands.
+  towelHead: { t: 8, nod: .8, shut: 1, aL: [-52, -172], aR: [52, 172] },
+  towelHeadB: { t: 11, hx: 2, nod: 1, shut: 1, aL: [-44, -164], aR: [60, 176] },
+  towelFace: { t: 6, nod: .7, shut: 1, aL: [-22, 168], aR: [22, -168] },
+  towelFaceB: { t: 8, hx: -2, nod: .9, shut: 1, aL: [-26, 174], aR: [18, -160] },
+  towelNeck: { t: -4, nod: -.5, shut: .5, aL: [-62, -150], aR: [62, 158] },
+  towelNeckB: { t: -4, nod: -.5, shut: .5, aL: [-70, -160], aR: [52, 148] },
+  towelArm: { turn: .3, t: 8, nod: .8, aL: [-56, 70], aR: [40, -80] },
+  towelArmB: { turn: .3, t: 8, nod: .8, aL: [-56, 70], aR: [30, -108] },
+  // Reactions
+  excited: { sq: .94, t: 8, nod: .8, mo: .5, aL: [-46, -112], aR: [46, 112], lL: [-20, 16], lR: [20, -16] },
+  excitedUp: { lift: 7, sq: 1.03, nod: .6, mo: .9, aL: [-130, -168], aR: [130, 168], lL: [-10, -14], lR: [10, -14] },
+  shock: { t: -8, lift: 1, mo: 1, aL: [-152, -96], aR: [152, 96], lL: [-10, -4], lR: [10, 4] },
+  thumb: { turn: .35, hx: 1.5, aR: [68, 170], aL: [-14, 12] },
+  ouch: { turn: .6, t: -12, mo: .7, aL: [-42, 8], aR: [46, -8], lL: [70, 26], lR: [80, 18] },
+  ouchRub: { turn: .4, t: -5, hx: 2, shut: 1, aL: [-42, 8], aR: [100, 174], lL: [70, 26], lR: [80, 18] },
+  blasted: { mo: 1, aL: [-128, -98], aR: [128, 98], lL: [-34, -70], lR: [38, -50] },
+  dangle: { sq: 1.04, t: 3, mo: .3, aL: [-168, -176], aR: [24, 8], lL: [-5, -14], lR: [6, -6] },
+  dangleB: { sq: 1.04, t: -3, mo: .3, aL: [-168, -176], aR: [32, 18], lL: [-12, -22], lR: [12, 6] },
+  // On the interface: a hanging hoist, climbing an edge, sitting on a card, riding the arc.
+  hoist: { sq: .95, t: 10, nod: -.5, aL: [-88, -176], aR: [88, 176], lL: [-4, -24], lR: [18, -46] },
+  climbA: { turn: 1, t: 8, nod: -1, aL: [168, 176], aR: [112, 160], lL: [74, -16], lR: [18, -38] },
+  climbB: { turn: 1, t: 8, nod: -1, aL: [112, 160], aR: [168, 176], lL: [18, -38], lR: [74, -16] },
+  slide: { turn: 1, t: 6, nod: .7, mo: .3, aL: [140, 152], aR: [132, 148], lL: [52, -16], lR: [34, -28] },
+  sitEdge: { t: 3, nod: .4, aL: [-30, -8], aR: [30, 8], lL: [-9, -4], lR: [9, 4], fL: .72, fR: .72 },
+  sitEdgeA: { t: 3, nod: .4, aL: [-30, -8], aR: [30, 8], lL: [-9, 6], lR: [9, -14], fL: .72, fR: .72 },
+  sitEdgeB: { t: 3, nod: .4, aL: [-30, -8], aR: [30, 8], lL: [-9, -14], lR: [9, 6], fL: .72, fR: .72 },
+  prone: { turn: 1, t: 90, nod: .4, aL: [136, 36], aR: [132, 30], lL: [-90, -74], lR: [-88, -102] },
+  proneB: { turn: 1, t: 90, nod: .4, aL: [136, 36], aR: [132, 30], lL: [-90, -102], lR: [-88, -74] },
+  surf: { sq: .95, turn: .5, t: 6, aL: [-98, -92], aR: [98, 104], lL: [-26, 14], lR: [24, -14] },
+  surfB: { sq: .93, turn: .5, t: 9, aL: [-110, -86], aR: [86, 96], lL: [-30, 16], lR: [28, -16] },
+  spyHold: { t: 2, nod: .5, aL: [-110, -176], aR: [110, 176] },
+  spyL: { t: -2, hx: -4, nod: .6, aL: [-110, -176], aR: [110, 176] },
+  spyR: { t: 3, hx: 4, nod: .6, aL: [-110, -176], aR: [110, 176] },
+  spyPress: { t: 3, nod: .6, aL: [-118, -24], aR: [118, 24] },
+  spyWave: { t: 1, nod: .2, aL: [-110, -176], aR: [124, 172] },
+  spyWaveB: { t: 1, nod: .2, aL: [-110, -176], aR: [104, 148] },
 };
 const poseOf = p => ({ ...BASE_POSE, ...(typeof p === 'string' ? POSES[p] : p) });
 
@@ -356,6 +475,13 @@ const ANIMS = {
   nod: { once: true, f: [['stand', 160], ['nod', 220], ['stand', 10]] },
   flexOnce: { once: true, f: [['stand', 200], ['flex', 600], ['flex', 200], ['stand', 10]] },
   clapOnce: { once: true, f: [['clapOpen', 150], ['clapShut', 140], ['clapOpen', 150], ['clapShut', 200], ['stand', 10]] },
+  thumbOnce: { once: true, f: [['stand', 120], ['thumb', 760], ['stand', 240]] },
+  shockOnce: { once: true, f: [['shock', 240], ['shock', 420], ['lookDown', 300], ['stand', 240]] },
+  lookOnce: { once: true, f: [['lookDown', 500], ['nod', 240], ['stand', 200]] },
+  // Holding the start button: eager, on the toes, faster and higher until the light breaks.
+  excited: { once: true, f: [['excited', 200], ['excitedUp', 170], ['excited', 150], ['excitedUp', 150], ['excited', 120], ['excitedUp', 130], ['excited', 100], ['excitedUp', 110], ['excited', 90]] },
+  calm: { once: true, f: [['lookDown', 220], ['stand', 260]] },
+  blast: { once: true, f: [['blasted', 900]] },
 };
 
 // ---------- Behaviors: each returns segments. {loop, reps|dur} repeats frames; {seq} plays once; {walk:[x,z]} moves; {roll:x} rolls. ----------
@@ -370,7 +496,51 @@ function boxCombo() {
   return out;
 }
 const STAND_LOOP = [['stand', 900], ['standB', 900]];
-const MOVERS = new Set(['walk', 'walkSlow', 'stroll', 'wander', 'lunges', 'roll']);
+const GET_UP = [['kneel', 520], ['kneelUp', 420], ['stand', 460]];
+const SIT_DOWN = [['kneelUp', 380], ['kneel', 420]];
+const MOVERS = new Set(['walk', 'walkSlow', 'stroll', 'wander', 'lunges', 'roll', 'sprint', 'phoneWalk', 'backpackRun', 'cartwheel', 'phoneCall']);
+// Hands off the floor: where a pose's hands or hips sit above its feet, to hang it from a real edge.
+const handsY = pose => { const j = solve(poseOf(pose)); return Math.min(j.hL[1], j.hR[1]); };
+const hipY = pose => solve(poseOf(pose)).hip[1];
+const withHandsAt = (name, y) => ({ ...POSES[name], lift: -y + handsY(name) });
+const BAR_Y = -118;
+const STRIDE = 60, RUN_STRIDE = 96;
+const drop = (f, x, z = .93, h = 22) => {
+  const [lx, ly] = f.project(x, z), from = f.free ? f.free.y : ly, dur = clamp(300 + Math.sqrt(Math.max(1, ly - from)) * 26, 380, 900);
+  return [{ go: { to: [lx, ly], land: { x, z }, h, dur }, seq: [['jumpFall', dur]], prop: '' }, { seq: [['crouch', 170], ['stand', 280]] }];
+};
+const hop = (to, h = 30, dur = 520, s) => [{ seq: [['crouch', 190]] }, { go: { to, h, dur, s }, seq: [['jumpUp', dur * .5], ['jumpTuck', dur * .5]] }, { seq: [['crouch', 130]] }];
+/** Pointing is a real angle from the shoulder to the thing, from a body turned toward it. */
+function pointPose(f, T, from = [0, 0]) {
+  const dx = T.cx - from[0], dy = T.cy - (from[1] - 72), a = angDown([Math.abs(dx), dy]);
+  return { ...HIPS_HANDS, turn: .45, t: -3, hx: 2, nod: dy < -60 ? -1 : dy > 40 ? 1 : 0, aR: [a, a], lL: [-5, -2], lR: [6, 3] };
+}
+function pickTarget(f, kind) { const all = f.stuntTargets(kind); return all.length ? pick(all) : null; }
+/** Near one end of a card, where it covers nothing that matters. */
+const corner = T => { const l = T.l + 16, r = T.r - 16; return r - l < 110 ? T.cx : pick([l, r]); };
+/** How the person gets onto the top edge of T from wherever it stands, by reach. */
+function mount(f, T, x = clamp(T.cx + rnd(-.25, .25) * (T.r - T.l), T.l + 12, T.r - 12)) {
+  const H = -T.t;
+  if (H < 46) return [{ walk: [x, .95], speed: 58 }, ...hop([x, T.t], Math.max(24, H + 22))];
+  if (H < 158) {
+    const grab = T.t - handsY('bar');
+    return [{ walk: [x, .95], speed: 58 }, { seq: [['lookUp', 420], ['crouch', 260]] },
+      { go: { to: [x, grab], h: 8, dur: 380 }, seq: [['jumpUp', 380]], call: g => poke(T.el) },
+      { seq: [['bar', 260], ['hoist', 480]] }, { go: { to: [x, T.t], h: 6, dur: 420 }, seq: [['hoist', 240], ['crouch', 180]] }];
+  }
+  // Too high to reach: along the edge of the screen, hand over hand.
+  const side = x >= 0 ? 1 : -1, ex = side * (f.vb.w / 2 - 12);
+  return [{ walk: [ex, .95], speed: 62 }, { call: g => { g.face = side; }, seq: [['lookUp', 380], ['crouch', 180]] },
+    { go: { to: [ex, T.t], dur: H / 74 * 1000, ease: 'line' }, loop: [['climbA', 300], ['climbB', 300]] }, ...hop([x, T.t], 16, 420)];
+}
+const CLIMB_FINISH = {
+  sit: (f, T, x) => [{ go: { to: [x, T.t - hipY('sitEdge') + 2], dur: 300 }, seq: [['sitEdge', 300]] }, { loop: [['sitEdgeA', 460], ['sitEdgeB', 460]], dur: rnd(2600, 5200) }, { seq: [['sitEdge', 240], ['crouch', 220]] }],
+  stomp: (f, T, x) => [...Array.from({ length: ri(2, 3) }, () => [{ seq: [['crouch', 180]] }, { go: { to: [x, T.t], h: 14, dur: 300 }, seq: [['jumpUp', 300]], call: g => poke(T.el, 'stomp') }]).flat(), { seq: [['crouch', 170], ['clapOpen', 180], ['stand', 240]] }],
+  lie: (f, T, x) => [{ seq: [['crouch', 280]] }, { go: { to: [x, T.t - 2], dur: 300 }, seq: [['prone', 300]] }, { loop: [['prone', 520], ['proneB', 520]], dur: rnd(2400, 4400) }, { seq: [['crouch', 320]] }],
+  dance: (f, T, x) => [{ loop: [['hipA', 340], ['hipB', 340]], reps: ri(3, 6) }, { seq: [['thumb', 500], ['stand', 200]] }],
+  lookOver: (f, T, x) => [{ seq: [['lookDown', 800], ['shock', 300], ['lookDown', 500], ['stand', 280]] }],
+};
+const SPY_LOOK = [['spyL', 1100], ['spyHold', 700], ['spyR', 1100], ['spyHold', 700]];
 const B = {
   wander: (f, n = ri(1, 3)) => {
     const out = [];
@@ -380,7 +550,13 @@ const B = {
     }
     return out;
   },
-  idle: f => [{ loop: ANIMS.idle.f, dur: rnd(2500, 5000) }],
+  idle: f => [{ loop: ANIMS.idle.f, dur: rnd(1600, 3200) }, { seq: pick([
+    [['weightL', 900], ['weightR', 1000], ['stand', 500]],
+    [['stand', 200], ['scratch', 340], ['scratchB', 220], ['scratch', 220], ['scratchB', 220], ['stand', 400]],
+    [['lookUp', 900], ['lookDown', 800], ['stand', 400]],
+    [['shakeOut', 180], ['stand', 150], ['shakeOut', 180], ['stand', 300]],
+    [['yawnHand', 900], ['stand', 500]],
+  ]) }],
   look: f => [{ loop: ANIMS.look.f, dur: rnd(2500, 4000) }],
   wave: f => [{ seq: ANIMS.wave.f }, { loop: STAND_LOOP, dur: rnd(800, 1600) }],
   walk: f => [{ walk: f.rpoint() }, { loop: STAND_LOOP, dur: rnd(500, 1800) }],
@@ -392,7 +568,7 @@ const B = {
       { seq: [['tuck', 200], ['lieSide', 400]] }, { loop: [['lieSide', 1800], ['lieSideB', 1800]], dur: rnd(3000, 6500) },
       { seq: [['lieSide', 300], ['sitHug', 500], ['crouch', 400], ['stand', 300]] }];
   },
-  sitCross: f => [{ seq: [['crouch', 400], ['sitCross', 500]] }, { loop: [['sitCross', 1600], ['sitCrossB', 1600]], dur: rnd(4000, 7000) }, { seq: [['crouch', 450], ['stand', 300]] }],
+  sitCross: f => [{ seq: [...SIT_DOWN, ['sitCross', 560]] }, { loop: [['sitCross', 1600], ['sitCrossB', 1600]], dur: rnd(4000, 7000) }, { seq: GET_UP }],
   box: f => [{ seq: [['gokuA', 220], ['guard', 300]] }, { seq: boxCombo(), effort: true }, { seq: boxCombo(), effort: true }, { seq: [['guard', 400], ['standB', 450]] }],
   goku: f => [{ loop: [['gokuA', 180], ['gokuB', 210], ['gokuA', 110]], reps: ri(6, 12) }],
   ankles: f => [{ loop: [['stand', 350], ['ankleTouch', 700], ['ankleTouchB', 500]], reps: ri(2, 4) }],
@@ -412,26 +588,31 @@ const B = {
     { seq: [['sitChair', 600]], prop: 'chair' },
     { loop: [['sitChair', 1600], ['sitChairB', 1600]], dur: rnd(2500, 5000), prop: 'chair' },
     ...(Math.random() < .7 ? [{ loop: [['sleepChair', 2000], ['sleepChairB', 2000]], dur: rnd(5000, 10000), prop: 'chair', zzz: true }, { seq: [['nod', 300], ['sitChair', 500]], prop: 'chair' }] : []),
-    { seq: [['stand', 500]] }],
+    { seq: [['kneelUp', 420], ['stand', 460]], prop: 'chair' }],
   floorNap: f => [
     { seq: [['crouch', 400], ['sitHug', 600], ['sleepBack', 700]] },
     { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(6000, 11000), zzz: true },
-    { seq: [['sitHug', 700], ['crouch', 450], ['stand', 300]] }],
+    { seq: [['sitHug', 700], ...GET_UP] }],
   crossNap: f => [
     { seq: [['crouch', 550], ['sitCross', 650]] },
     { loop: [['sitCross', 1600], ['sleepyCross', 2200]], reps: 2 },
     { loop: [['sleepyCross', 2000], ['sleepyCrossB', 2400]], dur: rnd(5000, 9000), zzz: true },
-    { seq: [['sitCross', 800], ['crouch', 650], ['stand', 500]] }],
+    { seq: [['sitCross', 800], ...GET_UP] }],
   drink: f => [
     { seq: [['reach', 650], ['drinkLift', 650]], prop: 'bottle' },
     { loop: [['drinkLift', 650], ['drinkSip', 950]], reps: ri(2, 3), prop: 'bottle' },
     { seq: [['drinkLift', 450], ['reach', 700], ['stand', 500]], prop: 'bottle' }],
   towel: f => [
-    { seq: [['stand', 350], ['wipe', 650]], prop: 'towel' },
-    { loop: [['wipe', 650], ['wipeB', 750]], reps: ri(2, 3), prop: 'towel' },
-    { seq: [['wipe', 450], ['stand', 650]], prop: 'towel' }],
-  restSit: f => [{ seq: [['crouch', 400], ['sitHug', 500]] }, { loop: [['sitHug', 1700], ['sitHugB', 1700]], dur: rnd(4000, 8000) }, { seq: [['crouch', 450], ['stand', 300]] }],
-  restLie: f => [{ seq: [['crouch', 400], ['sitHug', 500], ['sleepBack', 600]] }, { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(4000, 7000) }, { seq: [['sitHug', 600], ['crouch', 400], ['stand', 300]] }],
+    { seq: [['lookDown', 300], ['towelNeck', 520]], prop: 'towel2' },
+    { loop: [['towelNeck', 300], ['towelNeckB', 300]], reps: ri(2, 3), prop: 'towel2' },
+    { seq: [['towelFace', 420]], prop: 'towel2' },
+    { loop: [['towelFace', 360], ['towelFaceB', 360]], reps: ri(2, 3), prop: 'towel2' },
+    { seq: [['towelHead', 420]], prop: 'towel2' },
+    { loop: [['towelHead', 240], ['towelHeadB', 240]], reps: ri(4, 7), prop: 'towel2' },
+    ...(Math.random() < .5 ? [{ seq: [['towelArm', 420]], prop: 'towel2' }, { loop: [['towelArm', 260], ['towelArmB', 260]], reps: 3, prop: 'towel2' }] : []),
+    { seq: [['towelNeck', 460], ['stand', 620]], prop: 'towel' }],
+  restSit: f => [{ seq: [...SIT_DOWN, ['sitHug', 560]] }, { loop: [['sitHug', 1700], ['sitHugB', 1700]], dur: rnd(4000, 8000) }, { seq: GET_UP }],
+  restLie: f => [{ seq: [...SIT_DOWN, ['sitHug', 560], ['sleepBack', 700]] }, { loop: [['sleepBack', 2000], ['sleepBackB', 2000]], dur: rnd(4000, 7000) }, { seq: [['sitHug', 700], ...GET_UP] }],
   seatedReach: f => [{ seq: [['crouch', 400], ['sitReachB', 500]] }, { loop: [['sitReachB', 900], ['sitReach', 1500]], reps: ri(2, 4) }, { seq: [['crouch', 450], ['stand', 300]] }],
   bounce: f => [{ loop: [['stand', 260], ['bounce', 260]], reps: ri(4, 10) }],
   clap: f => [{ loop: [['clapOpen', 180], ['clapShut', 160]], reps: ri(3, 6) }],
@@ -444,24 +625,133 @@ const B = {
   salsa: f => [{ loop: [['salsaA', 330], ['stand', 220], ['salsaB', 330], ['stand', 220]], reps: ri(2, 4) }, { seq: [['salsaSpin', 250], [{ ...POSES.salsaSpin, face: -1 }, 250], ['stand', 300]] }, { loop: [['salsaA', 330], ['salsaB', 330]], reps: ri(1, 3) }],
   freeDance: f => [{ loop: ANIMS.dance.f, reps: ri(2, 4) }],
   hips: f => [{ loop: ANIMS.hips.f, reps: ri(2, 4) }],
+  sprint: f => [{ walk: f.rpoint(), speed: 118, run: 1 }, { seq: [['crouch', 160], ['stand', 240]] }, { loop: STAND_LOOP, dur: rnd(500, 1100) }],
+  // Morning
+  wakeStretch: f => [{ seq: [['rubEyes', 700], ['stand', 240], ['yawn', 1600], ['neckL', 520], ['neckR', 620], ['stand', 400]] }],
+  coffee: f => [{ seq: [['mugHold', 620]], prop: 'mug' }, { loop: [['mugHold', 900], ['mugSip', 1100]], reps: ri(2, 3), prop: 'mug' }, { seq: [['mugHold', 400], ['stand', 460]], prop: 'mug' }],
+  neckRoll: f => [{ loop: [['neckL', 700], ['lookUp', 500], ['neckR', 700], ['lookDown', 500]], reps: 2 }, { seq: [['stand', 300]] }],
+  toeTouch: f => [{ seq: [['up', 800], ['ankleTouch', 1100], ['ankleTouchB', 1200], ['crouch', 350], ['stand', 420]] }],
+  // Commute
+  busRide: f => [{ seq: [['strapA', 520]], prop: 'strap' },
+    { loop: [['strapA', 1100], ['strapB', 1100]], reps: ri(1, 2), prop: 'strap' },
+    { seq: [['strapJolt', 180], ['strapB', 460], ['strapA', 600]], prop: 'strap' },
+    { loop: [['strapA', 1100], ['strapB', 1100]], reps: ri(1, 2), prop: 'strap' }, { seq: [['stand', 520]], prop: 'strap' }],
+  phoneWalk: f => [{ seq: [['phoneLook', 420]], prop: 'phone' }, { walk: f.rpoint(), speed: 30, prop: 'phone', arms: 'phone' }, { loop: [['phoneLook', 500], ['phoneThumb', 180]], reps: ri(3, 5), prop: 'phone' }, { seq: [['stand', 400]], prop: 'phone' }],
+  phoneCall: f => [{ seq: [['phoneEar', 500]], prop: 'phone' }, { walk: f.rpoint(), speed: 26, prop: 'phone', arms: 'ear' }, { loop: [['phoneEar', 900], ['phoneEarB', 900]], reps: ri(1, 2), prop: 'phone' }, { walk: f.rpoint(), speed: 26, prop: 'phone', arms: 'ear' }, { seq: [['stand', 440]], prop: 'phone' }],
+  backpackRun: f => [{ loop: [['watch', 500], ['watchTap', 200]], reps: 2, prop: 'watch backpack' }, { seq: [['shock', 240]], prop: 'backpack' }, { walk: f.rpoint(), speed: 112, run: 1, prop: 'backpack' }, { seq: [['crouch', 200], ['stand', 280]], prop: 'backpack' }],
+  backpackWalk: f => [{ walk: f.rpoint(), speed: 40, prop: 'backpack' }, { loop: STAND_LOOP, dur: rnd(600, 1500), prop: 'backpack' }],
+  // Work
+  deskWork: f => [{ seq: [['kneelUp', 420], ['sitChair', 460], ['deskRead', 420]], prop: 'chair desk' },
+    { loop: [['deskA', 110], ['deskB', 110]], reps: ri(14, 26), prop: 'chair desk' }, { seq: [['deskRead', 1100], ['deskThink', 1300], ['deskRead', 500]], prop: 'chair desk' },
+    { loop: [['deskA', 110], ['deskB', 110]], reps: ri(10, 20), prop: 'chair desk' }, { seq: [['sitChair', 420], ['kneelUp', 420], ['stand', 460]], prop: 'chair desk' }],
+  deskBreak: f => [{ seq: [['kneelUp', 420], ['sitChair', 460], ['deskRead', 500]], prop: 'chair desk' }, { seq: [['deskStretch', 1500], ['deskRead', 500], ['deskSip', 800], ['deskRead', 500], ['deskSip', 900], ['deskRead', 400]], prop: 'chair desk mug' }, { seq: [['sitChair', 420], ['kneelUp', 420], ['stand', 460]], prop: 'chair desk' }],
+  // Night
+  brushTeeth: f => [{ seq: [['brushA', 560]], prop: 'brush' }, { loop: [['brushA', 130], ['brushB', 130]], reps: ri(12, 22), prop: 'brush' }, { seq: [['stand', 460]], prop: 'brush' }],
+  readBook: f => [{ seq: [...SIT_DOWN, ['sitCross', 500], ['read', 520]], prop: 'mat book' }, { loop: [['read', 1500], ['readB', 1500]], dur: rnd(4500, 9000), prop: 'mat book' }, { seq: [['sitCross', 500], ...GET_UP], prop: 'mat book' }],
+  goBed: f => [{ seq: [['yawnHand', 900], ...SIT_DOWN, ['sitHug', 540], ['bedFlat', 760]], prop: 'bed' }, { loop: [['bedFlat', 2300], ['bedFlatB', 2300]], dur: rnd(8000, 15000), prop: 'bed blanket', zzz: true }, { seq: [['sitHug', 900], ['rubEyes', 700], ...GET_UP], prop: 'bed' }],
+  // Training
+  pushUps: f => [{ seq: [...SIT_DOWN, ['pushUp', 620]], prop: 'mat' }, { loop: [['pushUp', 420], ['pushDown', 520]], reps: ri(5, 10), effort: true, prop: 'mat' }, { seq: [['pushUp', 320], ['kneel', 620], ['kneelUp', 420], ['stand', 460]], prop: 'mat' }],
+  squats: f => [{ seq: [['squatUp', 420]] }, { loop: [['squatUp', 460], ['squatDown', 640]], reps: ri(5, 9), effort: true }, { seq: [['stand', 420]] }],
+  curls: f => [{ seq: [['lookDown', 380], ['curlDown', 320]], prop: 'dumbbells' }, { loop: [['curlUp', 520], ['curlDown', 460], ['curlUpB', 520], ['curlDown', 460]], reps: ri(3, 5), effort: true, prop: 'dumbbells' }, { seq: [['lookDown', 420], ['stand', 400]], prop: 'dumbbells' }],
+  overhead: f => [{ seq: [['crouch', 460], ['pressLow', 500]], prop: 'barbell' }, { loop: [['pressHigh', 640], ['pressLow', 540]], reps: ri(3, 6), effort: true, prop: 'barbell' }, { seq: [['crouch', 460], ['stand', 460]], prop: 'barbell' }],
+  rope: f => [{ seq: [['ropeDn', 420]], prop: 'rope' }, { loop: [['ropeUp', 170], ['ropeDn', 150]], reps: ri(14, 30), effort: true, prop: 'rope', rope: 320 }, { seq: [['stand', 420]] }],
+  // Calisthenics: the bar draws itself, a jump to it, then reps of different difficulty.
+  pullUps: f => {
+    const hang = withHandsAt('bar', BAR_Y), top = withHandsAt('barUp', BAR_Y), knees = withHandsAt('barKnees', BAR_Y), over = withHandsAt('barOver', BAR_Y), a = withHandsAt('barSwingA', BAR_Y), b = withHandsAt('barSwingB', BAR_Y);
+    const set = pick([
+      [{ loop: [[hang, 520], [top, 620]], reps: ri(4, 8), effort: true, prop: 'bar' }],
+      [{ loop: [[hang, 520], [knees, 620]], reps: ri(4, 7), effort: true, prop: 'bar' }],
+      [{ loop: [[a, 560], [b, 560]], reps: ri(2, 3), prop: 'bar' }, { seq: [[hang, 340], [top, 420], [over, 460]], prop: 'bar', effort: true }, { loop: [[over, 640], [top, 460]], reps: ri(1, 3), effort: true, prop: 'bar' }, { seq: [[hang, 480]], prop: 'bar' }],
+    ]);
+    return [{ seq: [['lookUp', 820], ['shakeOut', 180], ['crouch', 300]], prop: 'bar' }, { seq: [[hang, 340]], prop: 'bar', snap: 260 }, ...set,
+      { seq: [[{ ...hang, lift: hang.lift * .4 }, 240], ['crouch', 220], ['stand', 360], ['shakeOut', 180], ['stand', 300]], prop: 'bar' }];
+  },
+  juggle: f => {
+    const beats = [];
+    for (let i = ri(10, 20); i > 0; i--) beats.push(pick(['fR', 'fR', 'fL', 'fL', 'kR', 'kL', 'head']));
+    const frame = { fR: 'jKickR', fL: 'jKickL', kR: 'jKneeR', kL: 'jKneeL', head: 'jHead' }, beat = 430;
+    const loop = beats.flatMap(b => [[frame[b], beat * .42], ['jSet', beat * .58]]);
+    return [{ seq: [['lookDown', 420], ['jSet', 280]], ball: { rest: 'fR' } }, { seq: [['jKickR', 260]], ball: { rest: 'fR', pop: 1 } },
+      { seq: loop, ball: { beats, beat } }, { seq: [['jSet', 180], ['jShoot', 220], ['jShoot', 300], ['thumb', 500], ['stand', 300]], ball: { away: 1 } }];
+  },
+  handstand: f => [{ seq: [['crouch', 240], ['handsDown', 420]] }, { seq: [['handstand', 620], ['handstandB', 620], ['handstand', 620], ['handstandB', 520], ['handsDown', 500], ['crouch', 300], ['stand', 340]], effort: true }],
+  cartwheel: f => { const dir = f.pos.x > 0 ? -1 : 1; return [{ seq: [['up', 460]] }, { roll: f.pos.x + dir * rnd(70, 120), cyc: 'star' }, { seq: [['up', 300], ['stand', 360]] }]; },
+  backflip: f => [{ seq: [['crouch', 340]] }, { go: { to: f.project(f.pos.x, f.pos.z), h: 46, dur: 680, flip: f.face * -360, land: { ...f.pos } }, seq: [['jumpUp', 180], ['tuck', 360], ['jumpFall', 140]] }, { seq: [['crouch', 220], ['clapOpen', 200], ['stand', 280]] }],
+  // On the interface. Each falls back to something plain when the screen offers nothing to use.
+  stuntPoint: f => {
+    const T = pickTarget(f, 'point'); if (!T) return B.look(f);
+    const x = clamp(T.cx + (T.cx > 0 ? -60 : 60), -f.vb.xMax, f.vb.xMax), z = .95, pose = pointPose(f, T, f.project(x, z)), up = { ...pose, aR: [pose.aR[0] + 8, pose.aR[1] + 8] };
+    return [{ walk: [x, z], speed: 56 }, { call: g => { g.face = T.cx >= x ? 1 : -1; g.gazeAt(T); poke(T.el, 'glow'); }, seq: [['stand', 160], [pose, 620], [up, 180], [pose, 180], [up, 180], [pose, 620], ['stand', 280]] }];
+  },
+  stuntClimb: f => {
+    const T = pickTarget(f, 'climb'); if (!T) return B.idle(f);
+    const x = corner(T);
+    const finish = CLIMB_FINISH[pick(['sit', 'sit', 'stomp', 'dance', 'lookOver'])](f, T, x);
+    return [...mount(f, T, x), ...finish, ...drop(f, clamp(x * .8, -f.vb.xMax, f.vb.xMax))];
+  },
+  stuntSlip: f => {
+    const T = f.stuntTargets('hang').find(t => -t.t >= 46 && -t.t < 158); if (!T) return B.idle(f);
+    const x = corner(T), grab = T.t - handsY('bar');
+    return [{ walk: [x, .95], speed: 58 }, { seq: [['lookUp', 500], ['crouch', 280]] }, { go: { to: [x, grab], h: 8, dur: 380 }, seq: [['jumpUp', 380]], call: g => poke(T.el) },
+      { seq: [['bar', 420], ['hoist', 400], ['bar', 240]] }, { go: { to: f.project(x, .95), land: { x, z: .95 }, dur: 420 }, seq: [['jumpFall', 420]] },
+      { seq: [['ouch', 360], ['ouchRub', 900], ...GET_UP] }];
+  },
+  stuntPull: f => {
+    const T = pickTarget(f, 'hang'); if (!T) return B.squats(f);
+    const high = -T.b >= 150, side = pick([-1, 1]), x = high ? side * (f.vb.w / 2 - 34) : corner(T), y = T.b - handsY('bar'), up = T.b - handsY('barUp');
+    if (!high && -T.b < 60) return B.squats(f);
+    const reps = Array.from({ length: ri(3, 6) }, () => [{ go: { to: [x, up], dur: 480 }, seq: [['barUp', 480]], effort: true, call: g => poke(T.el) }, { go: { to: [x, y], dur: 420 }, seq: [['bar', 420]] }]).flat();
+    const reach = high
+      ? [{ walk: [side * f.vb.xMax, .95], speed: 62 }, { call: g => { g.face = side; }, seq: [['lookUp', 400], ['crouch', 200]] }, { go: { to: [x, y], dur: -y / 74 * 1000, ease: 'line' }, loop: [['climbA', 300], ['climbB', 300]] }, { seq: [['bar', 260]] }]
+      : [{ walk: [x, .95], speed: 58 }, { seq: [['lookUp', 420], ['crouch', 260]] }, { go: { to: [x, y], h: 6, dur: 360 }, seq: [['jumpUp', 360]], call: g => poke(T.el) }];
+    return [...reach, ...reps, ...drop(f, clamp(x, -f.vb.xMax, f.vb.xMax), .95, 0)];
+  },
+  stuntWall: f => {
+    const T = pickTarget(f, 'top'); if (!T) return B.look(f);
+    const side = T.cx >= 0 ? 1 : -1, ex = side * (f.vb.w / 2 - 6), y = T.cy - handsY('climbA') * .62 - 4, H = Math.max(40, -y), lx = side * f.vb.xMax;
+    return [{ walk: [ex, .95], speed: 62 }, { call: g => { g.face = side; }, seq: [['lookUp', 420], ['crouch', 200]] },
+      { go: { to: [ex, y], s: .62, dur: H / 74 * 1000, ease: 'line' }, loop: [['climbA', 300], ['climbB', 300]] },
+      { seq: [['climbA', 300], [{ ...POSES.climbA, aR: [150, 150] }, 280], ['climbA', 240]], call: g => poke(T.el, 'spin') },
+      { seq: [['climbB', 500]], call: g => g.gazeAt({ cx: 0, cy: 0 }) },
+      { go: { to: f.project(lx, .95), land: { x: lx, z: .95 }, dur: H / 300 * 1000, ease: 'in' }, seq: [['slide', 500]] }, { seq: [['crouch', 220], ['stand', 280]] }];
+  },
+  // The spy over a sheet's edge. The person keeps its own body and goes from hiding to using the card.
+  spyRise: f => { const x = f.spot(); return [{ go: { to: [x, 150], dur: 10 }, seq: [['spyHold', 10]] }, { go: { to: [x, 104], dur: 560 }, seq: [['spyHold', 560]] }, { seq: [['spyHold', 420]] }, { go: { to: [x, 80], dur: 640 }, seq: [['spyHold', 640]] }, { loop: SPY_LOOK, dur: rnd(2800, 4600) }]; },
+  spyLook: f => [{ loop: SPY_LOOK, dur: rnd(3000, 5500) }],
+  spyDuck: f => { const x = f.spot(); return [{ go: { to: [f.free?.x ?? 0, 146], dur: 260 }, seq: [['spyHold', 260]] }, { seq: [['spyHold', rnd(500, 1300)]] }, { go: { to: [x, 148], dur: 10 }, seq: [['spyHold', 10]] }, { go: { to: [x, 80], dur: 560 }, seq: [['spyHold', 560]] }]; },
+  spyWave: f => [{ loop: [['spyWave', 220], ['spyWaveB', 220]], reps: ri(3, 5) }, { seq: [['spyHold', 300]] }],
+  spySit: f => { const x = f.free?.x ?? 0; return [{ go: { to: [x, 56], dur: 420 }, seq: [['spyPress', 420]] }, { go: { to: [x, -hipY('sitEdge')], h: 6, dur: 380 }, seq: [['sitEdge', 380]] }, { loop: [['sitEdgeA', 460], ['sitEdgeB', 460]], dur: rnd(3500, 7000) }, { go: { to: [x, 80], dur: 460 }, seq: [['spyPress', 460]] }, { seq: [['spyHold', 200]] }]; },
+  spyLie: f => { const x = f.free?.x ?? 0; return [{ go: { to: [x, 56], dur: 420 }, seq: [['spyPress', 420]] }, { go: { to: [x, 0], dur: 360 }, seq: [['prone', 360]] }, { loop: [['prone', 520], ['proneB', 520]], dur: rnd(3000, 6000) }, { go: { to: [x, 80], dur: 420 }, seq: [['spyPress', 420]] }, { seq: [['spyHold', 200]] }]; },
+  spyStroll: f => { const x = f.free?.x ?? 0, to = clamp(-x + rnd(-40, 40), -f.vb.xMax, f.vb.xMax), walk = Math.abs(to - x) / 40 * 1000; return [{ go: { to: [x, 56], dur: 420 }, seq: [['spyPress', 420]] }, { call: g => { g.face = to >= x ? 1 : -1; }, go: { to: [x, 0], dur: 320 }, seq: [['stand', 320]] }, { go: { to: [to, 0], dur: Math.max(500, walk), ease: 'line' }, cycle: k => gait(k * Math.max(1, Math.abs(to - x) / STRIDE), 1, 0) }, { seq: [['lookDown', 800]] }, { go: { to: [to, 80], dur: 420 }, seq: [['spyPress', 420]] }, { seq: [['spyHold', 200]] }]; },
 };
 // What the person tends to do in each moment. A weight can depend on how long the moment has lasted (ms).
 const MOODS = {
   greet: [['idle', 3], ['wave', 2], ['walk', 4], ['stroll', 2.5], ['roll', 1.5], ['sitCross', 1.5], ['look', 1]],
-  prep: [['box', 4], ['goku', 3], ['ankles', 1.5], ['quad', 1.5], ['hamstring', 1.2], ['legSwing', 1.2], ['lunges', 1.5], ['jog', 1.5], ['walk', 2], ['stroll', 1], ['stretch', 1], ['idle', .6], ['restLie', .7], ['drink', .8], ['towel', .6],
+  prep: [['box', 4], ['goku', 3], ['ankles', 1.5], ['quad', 1.5], ['hamstring', 1.2], ['legSwing', 1.2], ['lunges', 1.5], ['jog', 1.5], ['walk', 2], ['stroll', 1], ['stretch', 1], ['idle', .6], ['restLie', .7], ['drink', .8], ['towel', .6], ['juggle', 1.5], ['pullUps', 1.2], ['rope', 1.2], ['squats', 1], ['stuntPoint', 1], ['stuntClimb', .8], ['stuntWall', .4],
     ['impatient', t => t > 15000 ? 4 : 0]],
-  rest: [['restSit', 4], ['restLie', 2], ['seatedReach', 2], ['walkSlow', 1.5], ['idle', 1], ['drink', 2], ['towel', 1.5]],
+  rest: [['restSit', 4], ['restLie', 2], ['seatedReach', 2], ['walkSlow', 1.5], ['idle', 1], ['drink', 2.5], ['towel', 2.5], ['stuntPoint', .5], ['stuntClimb', .4]],
   stretch: [['stretch', 3], ['quad', 2], ['hamstring', 2], ['ankles', 2], ['circles', 2], ['legSwing', 1.5], ['walkSlow', 1]],
-  ready: [['goku', 4], ['box', 4], ['jog', 2], ['legSwing', 1], ['walk', .8]],
+  ready: [['goku', 4], ['box', 4], ['jog', 2], ['legSwing', 1], ['walk', .8], ['squats', 1.5], ['rope', 1.5], ['stuntPoint', 1.2]],
   waiting: [['walk', 3], ['impatient', 3], ['chair', t => t > 6000 ? 3 : 1], ['floorNap', t => t > 10000 ? 3 : .5], ['crossNap', t => t > 15000 ? 2 : 0], ['drink', 1], ['idle', 1]],
   coach: [['bounce', 4], ['clap', 2.5], ['pump', 2], ['goku', 1.5], ['point', 1.5], ['jog', 1], ['flex', .8], ['idle', 1.5]],
-  party: [['defaultDance', 3], ['passinho', 3], ['salsa', 3], ['freeDance', 2], ['hips', 1], ['clap', 1], ['jumps', 1.5], ['walk', 1]],
+  party: [['defaultDance', 3], ['passinho', 3], ['salsa', 3], ['freeDance', 2], ['hips', 1], ['clap', 1], ['jumps', 1.5], ['walk', 1], ['towel', 1], ['backflip', 1], ['juggle', 1], ['stuntPoint', .8], ['stuntClimb', .8]],
+  // The day's phases: what a person does at that hour, with the same random mind.
+  morning: [['wakeStretch', 3], ['coffee', 3], ['neckRoll', 2], ['stretch', 2.5], ['toeTouch', 1.5], ['circles', 1.5], ['walkSlow', 2], ['wave', 1.2], ['look', 1], ['idle', 1.5], ['brushTeeth', 1.2], ['stuntPoint', .5], ['stuntClimb', .35]],
+  commute: [['busRide', 4], ['phoneWalk', 3], ['backpackWalk', 3], ['backpackRun', 1.5], ['phoneCall', 2], ['impatient', 1], ['look', 1], ['idle', 1], ['stuntPoint', .4], ['stuntWall', .3]],
+  work: [['deskWork', 5], ['deskBreak', 3], ['neckRoll', 1.5], ['phoneCall', 2], ['circles', 1], ['walkSlow', 1.5], ['coffee', 1.5], ['stuntPoint', .4], ['stuntClimb', .3]],
+  training: [['box', 3], ['goku', 2], ['pullUps', 3], ['juggle', 3], ['rope', 2.5], ['pushUps', 2], ['squats', 2], ['curls', 1.5], ['overhead', 1.5], ['handstand', 1], ['cartwheel', 1], ['sprint', 1], ['jog', 1.5], ['legSwing', 1], ['drink', 1], ['towel', 1.2], ['stuntPoint', 1.1], ['stuntClimb', .9], ['stuntPull', .8], ['stuntWall', .5], ['stuntSlip', .4]],
+  home: [['walkSlow', 2.5], ['coffee', 2], ['sitCross', 2], ['readBook', 2], ['juggle', 2], ['pullUps', 1], ['idle', 2], ['stretch', 1.5], ['phoneCall', 1.2], ['stuntPoint', .7], ['stuntClimb', .6], ['stuntWall', .3]],
+  night: [['brushTeeth', 2.5], ['readBook', 3], ['goBed', 4], ['crossNap', 2], ['wakeStretch', 1], ['walkSlow', 1.5], ['neckRoll', 1], ['idle', 1]],
+  plan: [['idle', 2], ['look', 2.5], ['walk', 3], ['stuntPoint', 2], ['stuntClimb', 1], ['sitCross', 1.5], ['phoneWalk', 1], ['walkSlow', 1.5]],
+  spy: [['spyLook', 4], ['spyDuck', .8], ['spyWave', 1.5], ['spySit', 3], ['spyLie', 2], ['spyStroll', 2]],
 };
+const MOOD_ENTRY = { spy: 'spyRise' };
 
-const ACTIVE_BEHAVIORS = new Set(['box', 'goku', 'jog', 'jumps', 'defaultDance', 'passinho', 'salsa', 'freeDance']);
+const ACTIVE_BEHAVIORS = new Set(['box', 'goku', 'jog', 'jumps', 'defaultDance', 'passinho', 'salsa', 'freeDance', 'rope', 'pullUps', 'pushUps', 'squats', 'curls', 'overhead', 'juggle', 'sprint', 'backpackRun', 'handstand', 'cartwheel', 'backflip']);
 const RECOVERY_BEHAVIORS = new Set(['drink', 'towel', 'walk', 'walkSlow', 'stretch', 'restLie', 'restSit', 'ankles']);
-const CLOSE_BEHAVIORS = new Set(['wave', 'impatient', 'drink', 'towel', 'look']);
-const FLOOR_BEHAVIORS = new Set(['floorNap', 'crossNap', 'restSit', 'restLie', 'sitCross', 'seatedReach']);
+const CLOSE_BEHAVIORS = new Set(['wave', 'impatient', 'drink', 'towel', 'look', 'coffee', 'wakeStretch', 'brushTeeth', 'juggle', 'rope', 'curls', 'overhead', 'pullUps', 'deskWork', 'deskBreak', 'busRide', 'goBed', 'readBook']);
+const STUNTS = new Set(['stuntPoint', 'stuntClimb', 'stuntSlip', 'stuntPull', 'stuntWall']);
+const FLOOR_BEHAVIORS = new Set(['floorNap', 'crossNap', 'restSit', 'restLie', 'sitCross', 'seatedReach', 'handstand']);
 // Recent memory and exertion bias the next choice without imposing a scripted sequence.
 function behaviorPool(mood, elapsed, history = [], energy = 0) {
   return MOODS[mood].map(([name, weight]) => {
@@ -495,6 +785,27 @@ function framesAt(f, e, cyclic) {
 }
 
 const R = Math.PI / 180;
+/**
+ * One stride, phase ph (whole numbers are the right heel striking). turn says how much of the stride is seen from
+ * the side; head-on it foreshortens instead. Knees bend through the swing, arms go against their leg.
+ */
+function gait(ph, turn = 1, back = 0, run = 0, arms = '') {
+  const T = Math.PI * 2, swing = 23 + run * 22, bend = 48 + run * 50, armSwing = 17 + run * 28, side = 1 - turn;
+  const leg = phi => {
+    const thigh = swing * Math.cos(T * phi) + 4, lift = Math.max(0, Math.sin(T * (phi - .5))) ** 1.3, stance = Math.max(0, Math.sin(T * phi)) * 7;
+    return { thigh: thigh * turn, shin: (thigh - bend * lift - stance) * turn, f: 1 - side * lift * (.3 + run * .12) };
+  };
+  const r = leg(ph), l = leg(ph + .5), c = Math.cos(T * ph), s = Math.sin(T * ph), S = 1 - run * .03 + Math.cos(T * ph * 2) * .012;
+  const armR = [10 * side - armSwing * c * turn, 10 * side - armSwing * c * turn + (20 + run * 62) * (turn + side * .3)];
+  const armL = [-10 * side + armSwing * c * turn, -10 * side + armSwing * c * turn + (20 + run * 62) * turn - side * 8];
+  const pose = {
+    ...BASE_POSE, turn, back, sq: S, t: (5 + run * 11) * turn + 3.4 * s * side, hx: (1 + run * 2) * turn - 1.6 * s * side, x: 2.2 * s * side,
+    lift: run * 5 * Math.abs(s), fL: l.f, fR: r.f, lL: [l.thigh - 4 * side, l.shin - 2 * side], lR: [r.thigh + 4 * side, r.shin + 2 * side], aL: armL, aR: armR,
+  };
+  if (arms === 'phone') { pose.aR = [14 * (1 - back) + 6, 142]; pose.nod = 1; pose.t += 2; }
+  if (arms === 'ear') pose.aR = [32, 172];
+  return pose;
+}
 const vec = (a, l) => [Math.sin(a * R) * l, Math.cos(a * R) * l];
 const add = (p, d) => [p[0] + d[0], p[1] + d[1]];
 const sub = (p, q) => [p[0] - q[0], p[1] - q[1]];
@@ -530,9 +841,9 @@ const angDown = d => Math.atan2(d[0], d[1]) / R;
 const ZPATH = 'M0 0h6l-6 7h6';
 // Perspective: z = 1 is at the front of the stage, z = -1 at the back. Farther means smaller, higher (toward the
 // horizon) and closer to the center, where the vanishing point is.
-const PERSP = 1.05, DEPTH_WORLD = 180;
+const PERSP = 1.65, DEPTH_WORLD = 300;
 const depthScale = z => 1 / (1 + (1 - z) / 2 * PERSP);
-const WALK_CYCLE = [['w1', 190], ['w2', 190], ['w3', 190], ['w4', 190]], STEP_CYCLE = [['s1', 300], ['s2', 300]], LUNGE_CYCLE = [['lungeA', 650], ['lungeUp', 350], ['lungeB', 650], ['lungeUp', 350]];
+const LUNGE_CYCLE = [['lungeA', 650], ['lungeUp', 350], ['lungeB', 650], ['lungeUp', 350]];
 
 const FIGS = new Set();
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
@@ -543,21 +854,38 @@ class Figure {
     this.h = +svg.dataset.h || 150;
     svg.innerHTML = `<ellipse class="sh" cx="0" cy="0" rx="16" ry="2.6"/><g class="root" filter="url(#sketchy)">
       <path class="prop mat" d="M-65 3Q-70 0-61-3L57-3Q70 0 64 4L-65 3Z"/>
+      <g class="prop bed"><path d="M-78 2V-20M-78-12H76V2"/><path d="M-76-13Q-74-22-58-20Q-48-19-50-12"/></g>
+      <g class="prop bar"><path d="M-37 3V-118M37 3V-118M-44-118H44"/></g>
+      <g class="prop strap"><path d="M-70-126H70"/><path d="M6-126V-108M1-108a5 5 0 1 0 10 0a5 5 0 1 0-10 0"/></g>
       <g class="chair"><path pathLength="1" d="M-15 -48L-12 -19"/><path pathLength="1" d="M-14 -19H10"/><path pathLength="1" d="M-11 -19L-12 0"/><path pathLength="1" d="M7 -19L8 0"/></g>
+      <g class="prop desk"><path d="M18-40H74M26-40V2M68-40V2"/><path d="M38-41H62L68-60"/></g>
       <path class="lb lL"/><ellipse class="ft fL"/><path class="lb lR"/><ellipse class="ft fR"/>
       <g class="back"></g>
-      <path class="tfill"/><path class="tline"/><circle class="head" r="9.5"/>
-      <g class="eyes"><ellipse cx="-3" cy="0" rx=".9" ry="1.4"/><ellipse cx="3" cy="0" rx=".9" ry="1.4"/></g>
+      <path class="prop backpack" d="M-6-14Q-6 2 4 2L4-14Q0-16-6-14Z"/>
+      <path class="tfill"/><path class="tline"/><path class="spine"/><circle class="head" r="9.5"/><path class="hair"/>
+      <g class="eyes"><ellipse class="eyeF" rx=".9" ry="1.4"/><ellipse class="eyeN" rx=".9" ry="1.4"/></g><ellipse class="mouth" rx="1" ry="1"/>
+      <path class="prop blanket" d="M-60-9Q0-22 58-9L60 0H-62Z"/>
       <g class="front"><path class="lb aL"/><ellipse class="hn hL" rx="3" ry="4.3"/><path class="lb aR"/><ellipse class="hn hR" rx="3" ry="4.3"/></g>
       <g class="prop bottle"><path d="M-3-13H3V-10L5-7V4Q0 7-5 4V-7L-3-10Z"/><path d="M-4 0Q0-2 4 0M-3-15H3"/></g>
       <path class="prop towel" d="M-8-3Q0 0 7-3L9 15Q0 12-7 15ZM-5 11L6 11"/>
       <g class="prop watch"><path d="M-5 0H5"/><circle r="3.5"/><path d="M0-2V0L2 1"/></g>
+      <path class="prop mug" d="M-4-4H5V5Q0 7-4 5ZM5-2Q9-2 9 1Q9 4 5 3"/>
+      <path class="prop phone" d="M-3-7H3Q4-7 4-6V6Q4 7 3 7H-3Q-4 7-4 6V-6Q-4-7-3-7Z"/>
+      <path class="prop brush" d="M0 2L0-12M-1-12H2V-16H-1Z"/>
+      <path class="prop book" d="M-13-4Q-6-7 0-3Q6-7 13-4V6Q6 3 0 7Q-6 3-13 6Z M0-3V7"/>
+      <g class="prop dbL"><path d="M-7 0H7M-7-3V3M7-3V3"/></g><g class="prop dbR"><path d="M-7 0H7M-7-3V3M7-3V3"/></g>
+      <g class="prop barbell"><path d="M-46 0H46M-40-9V9M40-9V9M-44-6V6M44-6V6"/></g>
+      <path class="rope"/><path class="towelBand"/>
+      <g class="prop ballG"><circle class="ball" r="5.2"/><path class="ballMark" d="M-3-2L0-4L3-2L2 2H-2Z"/></g>
       <g class="sweat"><path d="M0 0q4 4 1 7q-4 0-1-7M-7-2l-2 4"/></g></g>
       <g class="zzz"><path d="${ZPATH}"/><path d="${ZPATH}" style="animation-delay:.8s"/><path d="${ZPATH}" style="animation-delay:1.6s"/></g>`;
+    this.flat = 'flat' in svg.dataset;
     this.q = n => svg.querySelector('.' + n);
     this.phase = Math.random() * 10;
+    this.free = null; this.gaze = null; this.eye = [0, 0]; this.drag = null;
+    this.bindDrag();
     this.history = []; this.energy = 0;
-    this.pos = { x: 0, z: this.roam ? .4 : 0 };
+    this.pos = { x: 0, z: this.roam ? (this.flat ? 1 : .4) : 0 };
     this.face = 1;
     this.pose = poseOf('stand');
     this.J = null; this.V = {};
@@ -569,7 +897,56 @@ class Figure {
   }
   // Bounds of the stage, in drawing units (the figure is 128 units tall at the front).
   rx() { return rnd(-this.vb.xMax, this.vb.xMax); }
-  rz() { return this.vb.h > 220 ? rnd(-1, 1) : this.pos.z; }
+  rz() { return this.vb.h > 220 && !this.flat ? rnd(-1, 1) : this.pos.z; }
+  /** Where this depth lands on the drawing: the floor rises and closes toward the vanishing point. */
+  project(x, z) { const s = depthScale(z); return [x * s, this.vb.horizon * (1 - s)]; }
+  enterFree() { if (this.free) return; const s = depthScale(this.pos.z), [x, y] = this.project(this.pos.x, this.pos.z); this.free = { x, y, s, rot: 0 }; }
+  /** A random place along the top of a sheet for the spy. */
+  spot() { return pick([-1, 1]) * rnd(.6, 1) * this.vb.xMax; }
+  rectOf(el) {
+    const r = el.getBoundingClientRect(), o = this.svg.getBoundingClientRect(), k = 128 / this.h;
+    const X = px => (px - o.left) * k - this.vb.w / 2, Y = py => (py - o.top) * k - this.vb.h + 6;
+    return { el, l: X(r.left), r: X(r.right), t: Y(r.top), b: Y(r.bottom), cx: X((r.left + r.right) / 2), cy: Y((r.top + r.bottom) / 2) };
+  }
+  /** The elements of this screen open to a stunt of [kind], in drawing units. */
+  stuntTargets(kind) {
+    const host = this.svg.closest?.('.phone');
+    if (!host || !this.roam) return [];
+    return [...host.querySelectorAll(`[data-stunt~="${kind}"]`)].filter(el => el.isConnected && el.offsetParent !== null && !el.closest('.sheet:not(.open)')).map(el => this.rectOf(el));
+  }
+  gazeAt(T, ms = 2200) { this.gaze = { x: T.cx, y: T.cy, until: performance.now() + ms }; }
+  /** Eyes (and a little of the head) follow a point on the screen, like a finger on the glass. */
+  lookAtClient(x, y, ms = 1400) {
+    if (!this.svg.getBoundingClientRect) return;
+    const o = this.svg.getBoundingClientRect(), k = (this.roam ? 128 / this.h : (this.svg.viewBox?.baseVal?.height || 128) / (o.height || 1));
+    if (!this.roam) { this.gaze = { x: (x - o.left - o.width / 2) * k, y: (y - o.top) * k - 122, until: performance.now() + ms }; return; }
+    this.gaze = { x: (x - o.left) * k - this.vb.w / 2, y: (y - o.top) * k - this.vb.h + 6, until: performance.now() + ms };
+  }
+  /** Picked up by a finger: the body hangs from it, swings with the drag and falls when let go. */
+  bindDrag() {
+    if (!this.roam || !this.svg.addEventListener) return;
+    const svg = this.svg;
+    svg.addEventListener('pointerdown', e => {
+      if (e.target === svg || this.paused || motionPreference.matches || this.mood === 'spy') return;
+      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, held: false };
+    });
+    window.addEventListener('pointermove', e => {
+      const d = this.drag; if (!d || d.id !== e.pointerId || !svg.isConnected) return;
+      if (!d.held && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 9) return;
+      const o = svg.getBoundingClientRect(), k = 128 / this.h, x = (e.clientX - o.left) * k - this.vb.w / 2, y = (e.clientY - o.top) * k - this.vb.h + 6;
+      if (!d.held) { d.held = true; this.enterFree(); this.free.s = 1; this.free.rot = 0; svg.parentElement?.classList.add('stunt'); this.queue = []; this.begin({ loop: [['dangle', 420], ['dangleB', 420]], dur: Infinity, snap: 120 }); svg.dataset.behavior = 'held'; }
+      const armY = handsY('dangle');
+      this.free.x = clamp(x, -this.vb.w / 2 + 10, this.vb.w / 2 - 10); this.free.y = clamp(y - armY, -this.vb.h, 6);
+    });
+    const end = e => {
+      const d = this.drag; if (!d || d.id !== e.pointerId) return; this.drag = null;
+      if (!d.held) return;
+      svg._suppressClick = true;
+      const x = clamp(this.free.x, -this.vb.xMax, this.vb.xMax), z = this.flat ? this.pos.z : .9, fall = drop(this, x, z, 0);
+      this.queue = [{ seq: [['ouch', 340], ['ouchRub', 760], ...GET_UP] }]; this.begin(fall[0]);
+    };
+    window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+  }
   /** A random spot on the floor, far enough from here that the walk is worth it. */
   rpoint() {
     let best = null;
@@ -585,7 +962,8 @@ class Figure {
     const W = this.svg.clientWidth, H = this.svg.clientHeight;
     if (!W || !H || (W === this.vb.pw && H === this.vb.ph)) return;
     const k = 128 / this.h, w = W * k, h = H * k;
-    this.vb = { pw: W, ph: H, w, h, xMax: Math.max(0, w / 2 - 68), horizon: -h * .78 };
+    // The horizon sits at eye level of someone a little taller than the person, so depth reads from the floor up.
+    this.vb = { pw: W, ph: H, w, h, xMax: Math.max(0, w / 2 - 68), horizon: -Math.min(h * .72, Math.max(158, h * .5)) };
     this.svg.setAttribute('viewBox', `${(-w / 2).toFixed(1)} ${(-h + 6).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
     this.pos.x = clamp(this.pos.x, -this.vb.xMax, this.vb.xMax);
   }
@@ -596,7 +974,8 @@ class Figure {
     this.mode = name; this.svg.dataset.anim = name; this.queue = [];
     if (MOODS[name]) {
       this.mood = name; this.moodT0 = performance.now(); this.history = [];
-      if (recovery.length) { this.queue = recovery; this.begin(this.queue.shift()); }
+      if (MOOD_ENTRY[name]) { this.free = { x: 0, y: 150, s: 1, rot: 0 }; this.queue = B[MOOD_ENTRY[name]](this); this.begin(this.queue.shift(), true); }
+      else if (recovery.length) { this.queue = recovery; this.begin(this.queue.shift()); }
       else this.nextBehavior(instant);
       return;
     }
@@ -608,13 +987,22 @@ class Figure {
   play(name) { if (name !== this.mode) this.setMode(name); }
   /** A one-shot reaction; afterwards the person goes on with the moment. */
   react(name = 'cheer') {
+    if (name === 'blast' && this.roam && !motionPreference.matches) return this.blast();
     this.queue = [...this.recovery(), { seq: ANIMS[name].f }, ...(this.mood ? [] : [{ ...this.loopSeg }])];
     this.begin(this.queue.shift());
   }
+  /** Thrown off by the start button's light: away from it, spinning, until the screen changes. */
+  blast() {
+    this.enterFree(); this.queue = [];
+    const dir = this.free.x >= 0 ? 1 : -1;
+    this.svg.parentElement?.classList.add('blast');
+    this.begin({ fly: { v: [dir * rnd(180, 300), -rnd(420, 560)], spin: dir * rnd(640, 900), g: 760 }, loop: [['blasted', 500]], dur: 1600, snap: 70 });
+  }
   recovery() {
-    if (this.seg?.prop === 'chair') return [{ seq: [['sitChair', 450], ['stand', 700]], prop: 'chair' }];
+    if (this.free) { const x = clamp(this.free.x / (this.free.s || 1), -this.vb.xMax, this.vb.xMax); return drop(this, x, Math.max(.6, this.pos.z)); }
+    if (this.seg?.prop?.includes?.('chair')) return [{ seq: [['sitChair', 450], ['stand', 700]], prop: 'chair' }];
     if (this.pose.t > 50 || this.pose.t < -45 || Math.abs(this.pose.lL[0]) > 65) {
-      return [{ seq: [['sitHug', 550], ['crouch', 650], ['stand', 500]], prop: 'mat' }];
+      return [{ seq: [['sitHug', 550], ...GET_UP], prop: 'mat' }];
     }
     return [];
   }
@@ -625,10 +1013,11 @@ class Figure {
     for (const [n, w] of pool) { if ((r -= w) <= 0) { name = n; break; } }
     this.lastB = name;
     this.history = [...this.history.slice(-2), name];
+    this.svg.parentElement?.classList?.toggle('stunt', STUNTS.has(name));
     this.energy = clamp(this.energy + (ACTIVE_BEHAVIORS.has(name) ? .3 : -.2), 0, 1);
     // Expressive gestures come forward; floor work stays mid-stage. Travel is one purposeful leg.
     let travel = [];
-    if (this.roam && !MOVERS.has(name)) {
+    if (this.roam && !MOVERS.has(name) && !STUNTS.has(name) && this.mood !== 'spy') {
       const close = CLOSE_BEHAVIORS.has(name) || this.mood === 'party';
       if (close && this.pos.z < .55) travel = [{ walk: [this.pos.x * .45, rnd(.65, .95)], speed: 48 }];
       else if (Math.random() < .32) travel = B.wander(this, 1);
@@ -646,24 +1035,39 @@ class Figure {
   begin(seg, instant = false) {
     const now = performance.now();
     seg.t0 = now; this.from = instant ? null : { ...this.pose };
-    seg.blend = seg.effort ? 140 : seg.walk ? 300 : 320;
-    if (seg.walk || seg.roll != null) {
+    seg.blend = seg.snap ?? (seg.effort ? 140 : seg.walk ? 260 : seg.go ? 150 : 320);
+    if (seg.call) { seg.call(this); seg.call = null; if (!seg.seq && !seg.loop && !seg.go && !seg.walk) return this.next(); }
+    if (seg.go) {
+      // Off the floor: only a figure on a stage can leave it.
+      if (!this.roam) return this.next();
+      this.enterFree();
+      seg.a = { ...this.free }; seg.b = { x: seg.go.to[0], y: seg.go.to[1], s: seg.go.land ? depthScale(seg.go.land.z) : seg.go.s ?? this.free.s, rot: seg.go.rot ?? 0 };
+      seg.dur = seg.go.dur || frameSum(seg.seq || seg.loop);
+    } else if (seg.fly) { this.enterFree(); seg.a = { ...this.free }; }
+    else if (seg.walk || seg.roll != null) {
       // Moving only makes sense on a stage; a fixed figure skips it.
       if (!this.roam) return this.next();
       seg.p0 = { ...this.pos };
       seg.p1 = seg.walk ? { x: clamp(seg.walk[0], -this.vb.xMax, this.vb.xMax), z: clamp(seg.walk[1], -1, 1) } : { x: clamp(seg.roll, -this.vb.xMax, this.vb.xMax), z: this.pos.z };
       const dx = seg.p1.x - seg.p0.x, dz = (seg.p1.z - seg.p0.z) / 2 * DEPTH_WORLD, dist = Math.hypot(dx, dz);
       if (dist < 6) return this.next();
-      seg.sideways = Math.abs(dx) >= Math.abs(dz) * .7;
-      const face = dx >= 0 ? 1 : -1;
-      // Turn to face you first, so changing direction reads as turning around rather than a mirror flip.
-      if ((seg.sideways || seg.roll != null) && face !== this.face && this.pose.turn > .3 && !seg.turned) {
+      // The body is seen according to its heading: profile across the stage, back when it walks away, chest toward you.
+      seg.heading = { turn: clamp(Math.abs(dx) / dist * 1.15, 0, 1), back: dz < -Math.abs(dx) * .3 ? 1 : 0 };
+      const face = dx >= 0 ? 1 : -1, sideways = seg.heading.turn > .35;
+      // A person pivots through the chest: turn toward you (or away) before setting off the other way.
+      if ((sideways || seg.roll != null) && face !== this.face && this.pose.turn > .3 && !seg.turned) {
         seg.turned = true; this.queue.unshift(seg);
-        return this.begin({ seq: [['standB', 280]] });
+        return this.begin({ seq: [[{ ...POSES.standB, back: this.pose.back }, 240]], snap: 170 });
       }
-      if (seg.sideways || seg.roll != null) this.face = face;
-      seg.cycle = seg.roll != null ? [['tuck', 1000]] : seg.cyc === 'lunge' ? LUNGE_CYCLE : seg.sideways ? WALK_CYCLE : STEP_CYCLE;
-      seg.dur = dist / (seg.roll != null ? 75 : seg.speed || 46) * 1000;
+      if (!seg.turned && !seg.pivoted && seg.roll == null && Math.abs(seg.heading.back - this.pose.back) > .5) {
+        seg.pivoted = true; this.queue.unshift(seg);
+        return this.begin({ seq: [[{ ...POSES.stand, turn: 1, back: .5 }, 230]], snap: 170 });
+      }
+      if (sideways || seg.roll != null) this.face = face;
+      const running = seg.run ? 1 : 0;
+      seg.stride = running ? RUN_STRIDE : STRIDE; seg.dist = dist;
+      seg.cycle = seg.roll != null ? (seg.cyc === 'star' ? [['jack', 1000]] : [['tuck', 1000]]) : seg.cyc === 'lunge' ? LUNGE_CYCLE : null;
+      seg.dur = dist / (seg.roll != null ? 75 : seg.speed || 52) * 1000;
     } else if (seg.seq) seg.dur = frameSum(seg.seq);
     else if (seg.reps) seg.dur = frameSum(seg.loop) * seg.reps;
     this.seg = seg;
@@ -673,14 +1077,28 @@ class Figure {
     if (e >= seg.dur) {
       if (seg.p1) this.pos = { ...seg.p1 };
       if (seg.roll != null) this.pose.spin = 0;
+      if (seg.go) {
+        this.free = { ...seg.b };
+        if (seg.go.land) { this.pos = { ...seg.go.land }; this.free = null; this.pose.spin = 0; }
+      }
       this.next(); return this.target(now);
     }
     let p;
-    if (seg.p1) {
+    if (seg.go) {
+      const u = e / seg.dur, k = seg.go.ease === 'line' ? u : seg.go.ease === 'in' ? u * u : ease(u), { a, b } = seg;
+      this.free = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k - 4 * (seg.go.h || 0) * u * (1 - u), s: a.s + (b.s - a.s) * k, rot: a.rot + (b.rot - a.rot) * k };
+      p = seg.cycle ? seg.cycle(u) : framesAt(seg.seq || seg.loop, e, !seg.seq);
+      if (seg.go.flip) p = { ...p, spin: seg.go.flip * u };
+    } else if (seg.fly) {
+      const t = e / 1000, { a, fly } = seg;
+      this.free = { x: a.x + fly.v[0] * t, y: a.y + fly.v[1] * t + .5 * fly.g * t * t, s: a.s, rot: 0 };
+      p = { ...framesAt(seg.loop, e, true), spin: fly.spin * t };
+    } else if (seg.p1) {
       const k = ease(e / seg.dur);
       this.pos = { x: seg.p0.x + (seg.p1.x - seg.p0.x) * k, z: seg.p0.z + (seg.p1.z - seg.p0.z) * k };
-      p = framesAt(seg.cycle, e, true);
-      if (seg.roll != null) p.spin = 360 * k;
+      // The stride comes from the ground covered, so feet stay planted at any speed or depth.
+      p = seg.cycle ? framesAt(seg.cycle, e, true) : gait(seg.dist * k / seg.stride, seg.heading.turn, seg.heading.back, seg.run ? 1 : 0, seg.arms);
+      if (seg.roll != null) p.spin = 360 * k * (this.face);
     } else p = framesAt(seg.seq || seg.loop, e, !seg.seq);
     if (this.from) {
       const kb = e / seg.blend;
@@ -693,7 +1111,8 @@ class Figure {
     if (this.paused) { this.seg.t0 += now - this.last; this.last = now; return; }
     if (motionPreference.matches) {
       this.last = now; this.seg.t0 = now;
-      this.pose = poseOf(this.mood === 'rest' || this.mood === 'waiting' ? 'sitCross' : 'stand');
+      this.free = this.mood === 'spy' ? { x: 0, y: 80, s: 1, rot: 0 } : null;
+      this.pose = poseOf(this.mood === 'spy' ? 'spyHold' : this.mood === 'rest' || this.mood === 'waiting' || this.mood === 'night' ? 'sitCross' : 'stand');
       this.J = solve(this.pose); for (const k in this.J) this.V[k] = [0, 0]; this.draw(this.pose); return;
     }
     const dt = Math.min(.05, (now - this.last) / 1000); this.last = now;
@@ -715,20 +1134,69 @@ class Figure {
     for (const k of ['fL', 'fR']) if (this.J[k][1] > -2.8) { this.J[k][1] = -2.8; this.V[k][1] = Math.min(0, this.V[k][1]); }
     this.draw(p);
   }
+  /** Two eyes head-on, one in profile, none from behind; hair only where the face is. */
+  drawFace(J, p, face) {
+    const q = this.q, turn = p.turn, seen = 1 - clamp((p.back - .25) / .3, 0, 1), far = clamp((.62 - turn) / .24, 0, 1), now = this.last;
+    let gx = 0, gy = 0;
+    if (this.gaze && now < this.gaze.until) {
+      const dx = this.gaze.x - (this.free?.x ?? (this.pos.x * (this.roam ? depthScale(this.pos.z) : 0))), dy = this.gaze.y - ((this.free?.y ?? 0) + J.head[1]), d = Math.hypot(dx, dy) || 1;
+      gx = dx / d * face * 1.7; gy = dy / d * 1.5;
+    }
+    this.eye[0] += (gx - this.eye[0]) * .18; this.eye[1] += (gy - this.eye[1]) * .18;
+    const blink = !motionPreference.matches && Math.sin(this.last / 1000 * 1.3 + this.phase) > .994;
+    const shut = this.seg.zzz || blink ? 1 : p.shut, open = 1 - shut * .9;
+    const hx = J.head[0], hy = J.head[1] + 1 + p.nod * 2.4;
+    q('eyes').setAttribute('transform', `translate(${(hx + this.eye[0]).toFixed(2)} ${(hy + this.eye[1]).toFixed(2)}) scale(1 ${open.toFixed(2)})`);
+    q('eyes').style.opacity = seen.toFixed(2);
+    q('eyeN').setAttribute('cx', (3 + 2 * turn).toFixed(2)); q('eyeF').setAttribute('cx', (-3 + 5 * turn).toFixed(2));
+    q('eyeF').style.opacity = far.toFixed(2);
+    q('eyeN').setAttribute('cy', '0'); q('eyeF').setAttribute('cy', '0');
+    const mouth = q('mouth');
+    mouth.style.opacity = p.mo > .05 ? seen.toFixed(2) : '0';
+    mouth.setAttribute('cx', (hx + 3.6 * turn).toFixed(2)); mouth.setAttribute('cy', (hy + 3.6).toFixed(2));
+    mouth.setAttribute('rx', (.8 + p.mo * .9).toFixed(2)); mouth.setAttribute('ry', (.3 + p.mo * 1.8).toFixed(2));
+    const x0 = -7 - 3.5 * turn, x1 = 7 - 3 * turn, top = -13.2 + 1.6 * turn;
+    const hair = q('hair');
+    hair.setAttribute('d', `M${(hx + x0).toFixed(2)} ${(J.head[1] - 6 + turn * 3).toFixed(2)}Q${(hx + (x0 + x1) / 2).toFixed(2)} ${(J.head[1] + top).toFixed(2)} ${(hx + x1).toFixed(2)} ${(J.head[1] - 6.6).toFixed(2)}`);
+    hair.style.opacity = seen.toFixed(2);
+  }
+  /** The ball rises and falls between the body parts that touch it, so it stays on the beat of the kicks. */
+  drawBall(J, p) {
+    const b = this.seg.ball, g = this.q('ballG'); g.classList.toggle('on', !!b);
+    if (!b) { this.ballAway = null; return; }
+    const e = performance.now() - this.seg.t0, top = k => k === 'head' ? add(J.head, [0, -15]) : k.startsWith('f') ? add(J[k], [4, -8]) : add(J[k], [1, -7]);
+    let c;
+    if (b.beats) {
+      const n = b.beats.length, i = Math.min(n - 1, Math.floor(e / b.beat)), u = clamp(e / b.beat - i, 0, 1), from = top(b.beats[i]), to = top(b.beats[Math.min(n - 1, i + 1)]);
+      c = [from[0] + (to[0] - from[0]) * u, from[1] + (to[1] - from[1]) * u - 4 * (b.beats[i] === 'head' ? 34 : 46) * u * (1 - u)];
+      this.ballAt = c;
+    } else if (b.away) {
+      const t = Math.max(0, e - 330) / 1000; this.ballAt ||= [10, -14];
+      c = e < 330 ? add(J.fR, [5, -6]) : [J.fR[0] + 340 * t, J.fR[1] - 6 - 200 * t + 320 * t * t];
+    } else {
+      c = add(J[b.rest], [7, -3]); if (b.pop) c = add(c, [-2, -clamp(e / 260, 0, 1) * 8]);
+      this.ballAt = c;
+    }
+    g.setAttribute('transform', `translate(${c[0].toFixed(2)} ${c[1].toFixed(2)}) rotate(${(e / 3 % 360).toFixed(0)})`);
+  }
   draw(p) {
     const J = this.J, q = this.q, face = this.face * (p.face < 0 ? -1 : 1);
     // Depth: farther back is higher on the stage and smaller.
     let gx = this.pos.x + p.x * face, gy, s;
-    if (this.roam) {
+    if (this.free) {
+      s = this.free.s ?? 1; gx = this.free.x + p.x * face * s; gy = this.free.y;
+      q('root').style.opacity = '1';
+    } else if (this.roam) {
       s = depthScale(clamp(this.pos.z + p.z, -1, 1));
       gy = this.vb.horizon * (1 - s);
       gx *= s;
       // A little haze in the distance.
-      q('root').style.opacity = (.6 + .4 * s).toFixed(2);
+      q('root').style.opacity = (.55 + .45 * s).toFixed(2);
     } else { gy = -p.z * 9; s = 1 + .2 * p.z; }
     const xs = [J.hip[0], J.hL[0], J.hR[0], J.fL[0], J.fR[0], J.head[0]], ys = [J.hip[1], J.head[1], J.fL[1], J.fR[1]];
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-    q('root').setAttribute('transform', `translate(${gx.toFixed(2)} ${gy.toFixed(2)}) scale(${(face * s).toFixed(3)} ${s.toFixed(3)})` + (p.spin ? ` rotate(${p.spin.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})` : ''));
+    const rot = this.free?.rot || 0;
+    q('root').setAttribute('transform', `translate(${gx.toFixed(2)} ${gy.toFixed(2)})` + (rot ? ` rotate(${rot.toFixed(1)})` : '') + ` scale(${(face * s).toFixed(3)} ${s.toFixed(3)})` + (p.spin ? ` rotate(${p.spin.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})` : ''));
     // Torso between the springy hip and shoulders: it stretches and squashes on its own.
     const v = sub(J.sh, J.hip), up = mul(v, 1 / Math.max(1, Math.hypot(v[0], v[1]))), perp = [-up[1], up[0]];
     const len = Math.hypot(v[0], v[1]) + 6, ang = Math.atan2(v[0], -v[1]) / R, d = torsoPath(len, p.turn);
@@ -736,8 +1204,9 @@ class Figure {
     q('tfill').setAttribute('d', d); q('tfill').setAttribute('transform', `translate(1.6 1.4) ${tr}`);
     q('tline').setAttribute('d', d); q('tline').setAttribute('transform', tr);
     q('head').setAttribute('cx', J.head[0].toFixed(2)); q('head').setAttribute('cy', J.head[1].toFixed(2));
-    const blink = !motionPreference.matches && Math.sin(this.last / 1000 * 1.3 + this.phase) > .994;
-    q('eyes').setAttribute('transform', `translate(${J.head[0] + p.turn * 4} ${J.head[1] + 1}) scale(${1 - p.turn * .45} ${this.seg.zzz || blink ? .12 : 1})`);
+    this.drawFace(J, p, face);
+    q('spine').setAttribute('d', `M${J.sh[0].toFixed(2)} ${J.sh[1].toFixed(2)}L${J.hip[0].toFixed(2)} ${(J.hip[1] - 1).toFixed(2)}`);
+    q('spine').style.opacity = clamp((p.back - .5) * 2, 0, 1).toFixed(2);
     const so = 7 * (1 - p.turn), ho = 4.5 * (1 - p.turn);
     const at = { aL: add(J.sh, mul(perp, -so)), aR: add(J.sh, mul(perp, so)), lL: add(J.hip, mul(perp, -ho)), lR: add(J.hip, mul(perp, ho)) };
     // In side view the far arm goes behind the body.
@@ -754,14 +1223,31 @@ class Figure {
       ft.setAttribute('rx', (3.8 + 1.9 * p.turn).toFixed(2)); ft.setAttribute('ry', '2.8');
       ft.setAttribute('cx', fc[0].toFixed(2)); ft.setAttribute('cy', fc[1].toFixed(2)); ft.setAttribute('transform', `rotate(${(-fa).toFixed(1)} ${fc[0].toFixed(2)} ${fc[1].toFixed(2)})`);
     }
-    // Props: the chair draws itself in; the z's float up from the head while asleep.
-    q('chair').classList.toggle('on', this.seg.prop === 'chair');
-    const mat = this.seg.prop === 'mat' || this.mode === 'legRaise' || this.mode === 'jacksPlank';
-    for (const prop of ['mat', 'bottle', 'towel', 'watch']) q(prop).classList.toggle('on', prop === 'mat' ? mat : this.seg.prop === prop);
+    // Props: furniture stands on the floor, the rest stays in the hand; the z's float up from the head while asleep.
+    const props = new Set((this.seg.prop || '').split(' '));
+    q('chair').classList.toggle('on', props.has('chair'));
+    if (this.mode === 'legRaise' || this.mode === 'jacksPlank') props.add('mat');
+    for (const prop of ['mat', 'bottle', 'towel', 'watch', 'bed', 'bar', 'strap', 'desk', 'backpack', 'blanket', 'mug', 'phone', 'brush', 'book', 'barbell']) q(prop).classList.toggle('on', props.has(prop));
+    q('dbL').classList.toggle('on', props.has('dumbbells')); q('dbR').classList.toggle('on', props.has('dumbbells'));
     const handR = J.hR, wristL = add(J.hL, mul(sub(J.eL, J.hL), .18));
-    q('bottle').setAttribute('transform', `translate(${handR}) rotate(${-p.aR[1] + 110})`);
-    q('towel').setAttribute('transform', `translate(${handR}) rotate(${p.t * .5})`);
-    q('watch').setAttribute('transform', `translate(${wristL})`);
+    const heldAt = (name, at) => { if (props.has(name)) q(name).setAttribute('transform', at); };
+    heldAt('bottle', `translate(${handR}) rotate(${-p.aR[1] + 110})`);
+    heldAt('towel', `translate(${handR}) rotate(${p.t * .5})`);
+    heldAt('watch', `translate(${wristL})`);
+    heldAt('mug', `translate(${handR}) rotate(${(-p.aR[1] + 110) * .6})`);
+    heldAt('phone', `translate(${handR}) rotate(${-p.aR[1] + 150})`);
+    heldAt('brush', `translate(${handR}) rotate(${-p.aR[1] + 70})`);
+    if (props.has('book')) q('book').setAttribute('transform', `translate(${mul(add(J.hL, J.hR), .5)})`);
+    if (props.has('barbell')) { const mid = mul(add(J.hL, J.hR), .5), d = sub(J.hR, J.hL); q('barbell').setAttribute('transform', `translate(${mid}) rotate(${Math.atan2(d[1], d[0]) / R})`); }
+    if (props.has('dumbbells')) { q('dbL').setAttribute('transform', `translate(${J.hL})`); q('dbR').setAttribute('transform', `translate(${J.hR})`); }
+    if (props.has('backpack')) q('backpack').setAttribute('transform', `translate(${(J.sh[0] - 10 * p.turn).toFixed(1)} ${(J.sh[1] + 9).toFixed(1)}) scale(1.5)`);
+    // The towel is a strip between both hands, and a rope turns through the hands' line.
+    const band = q('towelBand'), rope = q('rope');
+    band.style.opacity = props.has('towel2') ? '1' : '0';
+    if (props.has('towel2')) { const mid = mul(add(J.hL, J.hR), .5); band.setAttribute('d', `M${J.hL[0].toFixed(1)} ${J.hL[1].toFixed(1)}Q${mid[0].toFixed(1)} ${(mid[1] + 9).toFixed(1)} ${J.hR[0].toFixed(1)} ${J.hR[1].toFixed(1)}`); }
+    rope.style.opacity = props.has('rope') && this.seg.rope ? '1' : '0';
+    if (this.seg.rope) { const a = (performance.now() - this.seg.t0) / this.seg.rope * Math.PI * 2, mid = mul(add(J.hL, J.hR), .5), y = -46 + Math.cos(a) * 92; rope.setAttribute('d', `M${J.hL[0].toFixed(1)} ${J.hL[1].toFixed(1)}Q${mid[0].toFixed(1)} ${(mid[1] + y * 1.5).toFixed(1)} ${J.hR[0].toFixed(1)} ${J.hR[1].toFixed(1)}`); }
+    this.drawBall(J, p);
     q('sweat').setAttribute('transform', `translate(${J.head[0] - 14} ${J.head[1] - 4})`);
     q('sweat').style.opacity = this.seg.effort ? (.3 + .3 * Math.sin(this.last / 180)).toFixed(2) : '0';
     const zz = q('zzz');
@@ -771,7 +1257,7 @@ class Figure {
     const sh = q('sh'), span = Math.max(26, hi - lo + 12);
     sh.setAttribute('cx', (gx + (lo + hi) / 2 * face * s).toFixed(2)); sh.setAttribute('cy', gy.toFixed(2));
     sh.setAttribute('rx', (span / 2 * s * Math.max(.5, 1 - p.lift / 40)).toFixed(2)); sh.setAttribute('ry', (2.6 * s).toFixed(2));
-    sh.setAttribute('opacity', Math.max(.3, 1 - p.lift / 25).toFixed(2));
+    sh.setAttribute('opacity', this.free ? '0' : Math.max(.3, 1 - p.lift / 25).toFixed(2));
   }
 }
 // The shared pencil: a small displacement whose noise changes a few times per second (line boiling).
@@ -782,7 +1268,6 @@ let seed = 1;
 setInterval(() => { if (document.hidden || motionPreference.matches) return; seed = seed % 4 + 1; document.getElementById('sketchNoise').setAttribute('seed', seed); }, 180);
 (function loop(now) {
   for (const f of FIGS) { if (!f.svg.isConnected) FIGS.delete(f); else f.tick(now); }
-  tickPeek(now);
   requestAnimationFrame(loop);
 })(performance.now());
 function mountFigs() { document.querySelectorAll('svg.rig:not([data-mounted])').forEach(s => { s.dataset.mounted = '1'; new Figure(s); }); }
@@ -797,8 +1282,22 @@ function fig(h, mode, id = '', roam = false) {
   if (roam) return `<svg ${idAttr} class="rig roam" data-anim="${mode}" data-h="${h}" viewBox="-60 -128 120 134" style="position:absolute;inset:0;width:100%;height:100%" aria-label="Personita"></svg>`;
   return `<svg ${idAttr} class="rig" data-anim="${mode}" data-h="${h}" viewBox="-55 -122 110 128" width="${Math.round(h * 110 / 128)}" height="${h}" aria-label="Personita"></svg>`;
 }
+/** The thing the person touched answers: a nudge, a stomp, a spin, a glow. */
+function poke(el, kind = 'bump') {
+  if (!el?.animate || motionPreference.matches) return;
+  const frames = {
+    bump: [{ transform: 'translateY(0)' }, { transform: 'translateY(3px)' }, { transform: 'translateY(-1px)' }, { transform: 'translateY(0)' }],
+    stomp: [{ transform: 'scale(1,1)' }, { transform: 'scale(1.015,.95)' }, { transform: 'scale(.995,1.015)' }, { transform: 'scale(1,1)' }],
+    spin: [{ transform: 'rotate(0)' }, { transform: 'rotate(90deg)' }],
+    glow: [{ filter: 'brightness(1)' }, { filter: 'brightness(1.8)' }, { filter: 'brightness(1)' }],
+  }[kind];
+  el.animate(frames, { duration: kind === 'glow' ? 900 : 280, easing: 'cubic-bezier(.2,.7,.3,1)' });
+}
 function setFig(el, mode) { if (!el) return; if (el._fig) el._fig.play(mode); else el.dataset.anim = mode; }
-function react(el, kind = 'cheer') { el?._fig?.react(kind); }
+function react(el, kind = 'cheer') {
+  if (el?._suppressClick) { el._suppressClick = false; return; }
+  el?._fig?.react(kind);
+}
 function previewAction(stage, name, mood) {
   if (stage === 'rest') { S.next = 1; S.restLeft = mood === 'waiting' ? 0 : 300; }
   go(stage);
@@ -826,6 +1325,8 @@ const ICONS = {
   home: { main: 'M4 11l8-7 8 7v9H4z', red: 'M10 20v-5h4v5' },
   gear: { main: 'M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1' },
   grid: { main: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
+  swap: { main: 'M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4' },
+  back: { main: 'M19 12H5m6-6-6 6 6 6' },
   trash: { main: 'M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13' },
   check: { main: 'M20 6 9 17l-5-5' },
   close: { main: 'M6 6l12 12M18 6 6 18' },
@@ -899,7 +1400,7 @@ function swipe(el, h) {
   el.addEventListener('pointerdown', e => {
     el._held = false;
     // Capturing a button's pointer would retarget its click to the sheet and swallow the action.
-    if (e.target.closest('button, input, textarea, select, a, .peekSvg')) { x0 = null; return; }
+    if (e.target.closest('button, input, textarea, select, a, .peek')) { x0 = null; return; }
     x0 = e.clientX; y0 = e.clientY; el.setPointerCapture(e.pointerId);
   }, options);
   el.addEventListener('pointerup', e => {
@@ -952,11 +1453,8 @@ function general() {
   $('fig').addEventListener('click', () => react($('fig')));
 }
 
-function start() {
-  $('view').innerHTML = `${topBar()}
-    <div class="intro"><h1>Un momento para ti.</h1></div>
-    <div class="stage" id="stage">${fig(150, 'prep', 'fig', true)}</div>
-    <button class="startTrack" id="track" aria-label="Mantén presionado para iniciar sesión" type="button"><svg class="startGoo" viewBox="0 0 112 120" aria-hidden="true">
+function startTrackHtml() {
+  return `<button class="startTrack" id="track" aria-label="Iniciar" type="button"><svg class="startGoo" viewBox="0 0 112 120" aria-hidden="true">
       <defs>
         <filter id="startSoftFilter" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="12"/></filter>
         <filter id="startLightFilter" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
@@ -967,6 +1465,12 @@ function start() {
       <ellipse class="innerLight" cx="56" cy="60" rx="12" ry="12" fill="#FFF3DD" filter="url(#startLightFilter)" opacity="0"/>
       <circle class="hatchRing" cx="56" cy="60" r="42" fill="none" stroke="#FFD9BA" stroke-width="2" opacity="0"/>
       <g class="glyph" transform="translate(44 48)">${PLAY}</g></svg></button>`;
+}
+function start() {
+  $('view').innerHTML = `${topBar()}
+    <div class="intro"><h1>Un momento para ti.</h1></div>
+    <div class="stage" id="stage">${fig(150, 'prep', 'fig', true)}</div>
+    ${startTrackHtml()}`;
   $('fig').addEventListener('click', () => react($('fig')));
   startGestureCleanup?.();
   startGestureCleanup = bindGooStart($('track'), () => {
@@ -995,13 +1499,15 @@ function bindGooStart(track, onComplete, onReact) {
   let frame = null, last = null, idle = 0, elapsed = 0, active = false, finished = false, latched = false;
   let pointer = null, key = null, nextPulse = .18;
   const activate = () => {
-    active = true; elapsed = 0; last = null; nextPulse = .18;
+    active = true; elapsed = 0; last = null; nextPulse = .18; track.classList?.add('pressing');
     bloom.style.setProperty('--start-origin-y', `${track.offsetTop + track.offsetHeight / 2}px`);
-    buzz(12, 70); onReact('flexOnce');
+    buzz(12, 70); onReact('excited');
   };
   const cancel = (force = false) => {
     if (finished || (latched && !force)) return;
     const captured = pointer;
+    if (active) onReact('calm');
+    track.classList?.remove('pressing');
     pointer = null; key = null; active = false; latched = false; elapsed = 0; idle = 0; last = null;
     track.disabled = false; bloom.style.opacity = '0'; view.style.opacity = ''; stopBuzz();
     if (captured !== null && track.hasPointerCapture(captured)) track.releasePointerCapture(captured);
@@ -1040,10 +1546,10 @@ function bindGooStart(track, onComplete, onReact) {
     const dt = last === null ? 0 : Math.min((now - last) / 1000, .05); last = now;
     const reduced = motionPreference.matches;
     if (active) elapsed += dt; else idle += dt;
-    const chargeDuration = 1.2, burstDuration = reduced ? .12 : .48;
+    const chargeDuration = 1.2, burstDuration = reduced ? .12 : .7;
     if (active && !latched && elapsed >= chargeDuration) {
       latched = true; pointer = null; key = null; track.disabled = true;
-      buzz(65, 230); onReact('cheer');
+      buzz(65, 230); onReact('blast');
     } else if (active && !latched && elapsed >= nextPulse) {
       const progress = elapsed / chargeDuration;
       buzz(Math.round(10 + progress * 16), Math.round(70 + progress * 130));
@@ -1085,7 +1591,8 @@ function bindGooStart(track, onComplete, onReact) {
     ring.setAttribute('r', 42 + (reduced ? 0 : growth * 27 + smooth(burst) * 135));
     ring.setAttribute('opacity', reduced ? 0 : (Math.sin(burst * Math.PI) * .8).toFixed(3));
     bloom.style.opacity = reduced ? '0' : (Math.sin(Math.PI * burst) * .85).toFixed(3);
-    view.style.opacity = active ? (1 - smooth(burst)).toFixed(3) : '';
+    // The page goes in the second half of the flash, so the blast can be seen first.
+    view.style.opacity = active ? (1 - smooth((burst - .45) / .55)).toFixed(3) : '';
     if (active && elapsed >= chargeDuration + burstDuration) {
       finished = true; controller.abort(); bloom.remove(); view.style.opacity = ''; onComplete(); return;
     }
@@ -1111,13 +1618,14 @@ function selectionSummary(item) {
 function renderSelection() {
   const sel = S.selection, cards = [...sel.options, null];
   $('view').innerHTML = `${topBar()}
-    <div class="intro"><h1>${sel.kind === 'warm' ? 'Vamos entrando en calor.' : 'Elige cómo seguir.'}</h1><p>Desliza entre tus opciones.<br>Si ninguna te convence, busca en Otros.</p></div>
-    <div class="stage" id="stage">${fig(150, movementFor(selectionItem()), 'fig')}<span class="chev" style="right:0">›</span></div>
-    <div class="carousel" id="car"><div class="track" id="trk">${cards.map(w => w ? `
-      <div class="wcard"><div class="art">${fig(58, thumbnailFor(w))}</div><div style="flex:1"><div class="wname">${htmlText(w.name)}</div><div class="num">${selectionSummary(w)}</div></div><span class="num gray">⌃</span></div>` : `
-      <div class="wcard" id="otros" style="cursor:pointer"><div class="art">${icon('grid', 26)}</div><div style="flex:1"><div class="wname">Otros</div><div class="num">VER TODOS</div></div></div>`).join('')}</div></div>
-    <div class="pips" id="pips">${cards.map((_, i) => `<i class="pip"></i>`).join('')}</div>
-    <div class="row"><button class="btn" onclick="cancelSelection()">VOLVER</button><button class="btn" id="selectContinue" onclick="confirmSelection()">ELEGIR Y CONTINUAR</button></div>
+    <div class="intro"><h1>${sel.kind === 'warm' ? 'Vamos entrando en calor.' : 'Lo que sigue.'}</h1></div>
+    <div class="stage" id="stage">${fig(150, movementFor(selectionItem()), 'fig')}</div>
+    <div class="pickCard"><div class="carousel" id="car"><div class="track" id="trk">${cards.map(w => w ? `
+      <div class="wcard"><div class="art">${icon(w.zone || 'hiit', 26)}</div><div class="wtext"><div class="wname">${htmlText(w.name)}</div><div class="num">${selectionSummary(w)}</div></div></div>` : `
+      <div class="wcard" id="otros"><div class="art">${icon('grid', 26)}</div><div class="wtext"><div class="wname">Otros</div></div></div>`).join('')}</div></div>
+      <button class="tool swapBtn" aria-label="Cambiar" onclick="openOthers()">${icon('swap', 20)}</button>
+      <div class="pips" id="pips">${cards.map(() => `<i class="pip"></i>`).join('')}</div></div>
+    <div class="row"><button class="tool" aria-label="Volver" onclick="cancelSelection()">${icon('back', 24)}</button><button class="btn" id="selectContinue" onclick="confirmSelection()">Continuar</button></div>
     <div class="sheet" id="detail"></div>
     <div class="sheet" id="others"></div>`;
   const f = $('fig');
@@ -1126,7 +1634,7 @@ function renderSelection() {
     [...$('pips').children].forEach((p, i) => p.classList.toggle('on', i === sel.index));
     const w = selectionItem();
     setFig(f, movementFor(w));
-    $('selectContinue').textContent = w ? 'ELEGIR Y CONTINUAR' : 'VER OTROS';
+    $('selectContinue').textContent = w ? 'Continuar' : 'Ver otros';
     if (sel.kind === 'warm') S.warm = sel.index;
   };
   show();
@@ -1153,26 +1661,16 @@ function confirmSelection(item = selectionItem()) {
 function openDetail(w) {
   mountFigs();
   const d = $('detail');
-  d.innerHTML = `<div class="peek">${peek()}</div>
+  d.innerHTML = `${peek()}
     <h3>${htmlText(w.name)}</h3><div class="num">${selectionSummary(w)}</div>
-    <div class="sec">${S.selection.kind === 'warm' ? 'POR QUÉ' : 'POSTURA'}</div><p>${htmlText(w.why || w.posture || 'Sigue las indicaciones que guardaste para este ejercicio.')}</p>
-    <div class="sec">TU PROGRESO</div>
-    <p>${w.avg ? htmlText(w.avg) + ' de referencia · datos de ejemplo' : 'Tu progreso aparecerá después de registrar sesiones.'}</p>
-    <div class="sec">TIP</div><p>${htmlText(w.tip || w.tips || 'Ajusta la carga y el ritmo a tu entrenamiento.')}</p>
-    <div class="row" style="margin-top:22px"><button class="btn" onclick="closeDetail()">⌄ CERRAR</button><span class="num">DESLIZA → PARA EMPEZAR</span></div>`;
+    ${w.why || w.posture ? `<div class="sec">${S.selection.kind === 'warm' ? 'POR QUÉ' : 'POSTURA'}</div><p>${htmlText(w.why || w.posture)}</p>` : ''}
+    ${w.avg ? `<div class="sec">TU PROGRESO</div><p>${htmlText(w.avg)}</p>` : ''}
+    ${w.tip || w.tips ? `<div class="sec">TIP</div><p>${htmlText(w.tip || w.tips)}</p>` : ''}
+    <div class="row" style="margin-top:22px"><button class="tool" aria-label="Cerrar" onclick="closeDetail()">${icon('close', 20)}</button></div>`;
   d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', w.name);
   $('phone').classList.add('detail-open');
   if ($('fig')?._fig) $('fig')._fig.paused = true;
   d.classList.add('open');
-  const svg = $('peekFig');
-  svg._peek = { start: performance.now(), x: 0, y: .5, tx: 0, ty: .5, pointerAt: -Infinity };
-  d.onpointermove = e => {
-    const r = svg.getBoundingClientRect();
-    svg._peek.tx = clamp((e.clientX - r.left - r.width / 2) / 100, -1, 1);
-    svg._peek.ty = clamp((e.clientY - r.top - 50) / 120, -.5, 1);
-    svg._peek.pointerAt = performance.now();
-  };
-  svg.onclick = () => { svg._peek.start = performance.now(); };
   d.onkeydown = e => { if (e.key === 'Escape') closeDetail(); };
   d.querySelector('button').focus({ preventScroll: true });
   swipe(d, { down: closeDetail, right: () => confirmSelection(w) });
@@ -1182,43 +1680,16 @@ function closeDetail() {
   $('phone').classList.remove('detail-open');
   if ($('fig')?._fig) $('fig')._fig.paused = false;
 }
-function peek() {
-  return `<svg id="peekFig" class="peekSvg" viewBox="0 0 100 88" width="100" height="88" aria-label="La personita se asoma al detalle">
-    <g class="peekTorso"><path class="peekBody" d="M39 90Q35 65 49 65Q64 65 62 90Z"/>
-      <path class="peekArm" d="M40 72Q26 65 25 81M61 72Q75 65 76 81"/></g>
-    <g class="peekHead"><circle cx="50" cy="48" r="13"/>
-      <g class="peekEyes"><ellipse class="eye" cx="45" cy="49" rx="1.3" ry="1.8"/><ellipse class="eye" cx="55" cy="49" rx="1.3" ry="1.8"/></g></g>
-    <path fill="#0B0B0B" d="M0 82H100V88H0Z"/>
-    <ellipse class="peekHand leftHand" cx="25" cy="82" rx="5" ry="3.4"/>
-    <ellipse class="peekHand rightHand" cx="76" cy="82" rx="5" ry="3.4"/></svg>`;
-}
-function tickPeek(now) {
-  const svg = document.getElementById('peekFig'), a = svg?._peek;
-  if (!a || !svg.closest('.open')) return;
-  const t = (now - a.start) / 1000, reduced = motionPreference.matches;
-  if (now - a.pointerAt > 2000 && !reduced) { a.tx = Math.sin(t * .65) * .65; a.ty = .5 + Math.sin(t * .8) * .2; }
-  if (reduced) { a.x = 0; a.y = .5; }
-  else { a.x += (a.tx - a.x) * .08; a.y += (a.ty - a.y) * .08; }
-  const reveal = reduced ? 1 : clamp((t - .18) / .8, 0, 1);
-  const rise = 1 - Math.pow(1 - reveal, 3);
-  // Hands arrive first, then a hesitant look over the edge, followed by small curious glances.
-  const duck = !reduced && t > 3 ? Math.pow(Math.max(0, Math.sin((t - 3) * .7)), 18) * 12 : 0;
-  const bob = reduced ? 0 : Math.sin(t * 1.8) * 1.2;
-  svg.querySelector('.peekHead').setAttribute('transform', `translate(${a.x * 3} ${(1 - rise) * 48 + duck + bob}) rotate(${a.x * 7} 50 65)`);
-  svg.querySelector('.peekTorso').setAttribute('transform', `translate(0 ${(1 - rise) * 32 + duck * .35})`);
-  for (const [cls, delay] of [['leftHand', 0], ['rightHand', .13]]) {
-    const k = reduced ? 1 : clamp((t - delay) / .4, 0, 1);
-    svg.querySelector('.' + cls).setAttribute('transform', `translate(0 ${(1 - k) * 12})`);
-  }
-  const blink = !reduced && Math.sin(t * 1.7) > .993;
-  svg.querySelector('.peekEyes').setAttribute('transform', `translate(${a.x * 2} ${a.y * 2}) translate(0 49) scale(1 ${blink ? .1 : 1}) translate(0 -49)`);
-}
+/** The person climbs up behind a sheet's top edge; [spyOn] gives any card that comes from below the same visitor. */
+function peek() { return `<div class="peek">${fig(112, 'spy', 'peekFig', true).replace('class="rig roam"', 'class="rig roam" data-flat')}</div>`; }
+function spyOn(sheet) { if (!sheet.querySelector(':scope > .peek')) sheet.insertAdjacentHTML('afterbegin', peek().replace('peekFig', 'peekFig' + (++spies))); }
+let spies = 0;
 function openOthers() {
   const o = $('others');
   o.innerHTML = `<div class="row"><span class="label red">${S.selection.kind === 'warm' ? 'CALENTAMIENTOS' : 'EJERCICIOS'}</span><button class="tool" aria-label="Cerrar otros" onclick="$('others').classList.remove('open')">${icon('close', 18)}</button></div>
     <div class="scroll"><div class="grid">${selectionCatalog(S.selection.kind).map((w, i) => `<button onclick="previewOther(${i})">${fig(52, thumbnailFor(w))}${htmlText(w.name)}</button>`).join('')}</div></div>
     <button class="btn" style="margin-top:16px" onclick="openNewExercise()">+ AGREGAR ${S.selection.kind === 'warm' ? 'CALENTAMIENTO' : 'EJERCICIO'}</button>`;
-  o.classList.add('open');
+  spyOn(o); o.classList.add('open');
   swipe(o, { down: () => o.classList.remove('open') });
 }
 function previewOther(index) {
@@ -1277,7 +1748,7 @@ function warmRun() {
     <div class="huge js-warm">${fmt(S.warmLeft)}</div>
     <div class="stage" id="stage">${fig(160, movementFor(w, true), 'fig')}</div>
     <div class="arcSpace"></div>
-    ${arcHtml(true)}`;
+    ${arcHtml(S.warmLeft <= 0)}`;
   $('fig').addEventListener('click', () => react($('fig')));
   bindArc(() => { S.next = 0; S.restLeft = 60; S.restOver = 0; go('rest'); });
 }
@@ -1309,7 +1780,6 @@ function ex() {
       <div class="wname" style="font-size:18px;margin-top:6px">${htmlText(e.name)}</div>
       <div style="position:relative;width:100%;display:grid;place-items:center">${muscleSvg(e.zone, exProgress(S.exIdx))}
         <span class="chev" style="left:0">‹</span><span class="chev" style="right:0">›</span></div>
-      <span class="num gray" style="font-size:10px">MANTÉN PARA INFO</span>
     </div>
     <div class="sets" id="sets"></div>
     ${arcHtml(false)}
@@ -1363,24 +1833,23 @@ function updateMuscle() { $('muscle').outerHTML = muscleSvg(exerciseAt(S.exIdx).
 function markSet(i) {
   const s = S.sets[S.exIdx][i]; s.done = !s.done;
   renderSets(); updateMuscle();
-  if (s.done) react($('mini'), 'cheer');
+  if (s.done) react($('mini'), 'cheer'); else react($('mini'), 'lookOnce');
   if (S.sets[S.exIdx].every(x => x.done)) { setTimeout(() => react($('mini'), 'clapOnce'), 900); setFig($('mini'), 'party'); }
 }
 function toggleStep(i) { $('st' + i).classList.toggle('open'); }
 function bump(i, k, d) {
   const s = S.sets[S.exIdx][i]; s[k] = Math.max(0, +(s[k] + d).toFixed(1));
   renderSets(); $('st' + i).classList.add('open');
-  if (k === 'kg') react($('mini'), 'flexOnce');
+  react($('mini'), k === 'kg' && d > 0 ? 'flexOnce' : k === 'r' && d > 0 ? 'nod' : 'lookOnce');
 }
-function addSet() { const sets = S.sets[S.exIdx], last = sets[sets.length - 1] || { r: 10, kg: 20 }; sets.push({ r: last.r, kg: last.kg, done: false }); renderSets(); }
-function delSet(i) { S.sets[S.exIdx].splice(i, 1); renderSets(); updateMuscle(); }
+function addSet() { const sets = S.sets[S.exIdx], last = sets[sets.length - 1] || { r: 10, kg: 20 }; sets.push({ r: last.r, kg: last.kg, done: false }); renderSets(); react($('mini'), 'thumbOnce'); }
+function delSet(i) { S.sets[S.exIdx].splice(i, 1); renderSets(); updateMuscle(); react($('mini'), 'shockOnce'); }
 
 function openInfo(e) {
   const d = $('info');
   d.innerHTML = `<h3>${htmlText(e.name)}</h3><div class="num">${e.kcal == null ? '' : '≈ ' + e.kcal + ' KCAL · '}${S.sets[S.exIdx].length} SERIES</div>
-    <div class="sec">POSTURA</div><p>${htmlText(e.posture)}</p><div class="sec">TIPS</div><p>${htmlText(e.tips)}</p>
-    <div class="row" style="margin-top:20px"><span class="num gray">⌄ CERRAR</span></div>`;
-  d.classList.add('open');
+    <div class="sec">POSTURA</div><p>${htmlText(e.posture)}</p><div class="sec">TIPS</div><p>${htmlText(e.tips)}</p>`;
+  spyOn(d); d.classList.add('open');
   swipe(d, { down: () => d.classList.remove('open'), tap: () => d.classList.remove('open') });
 }
 function openNext() {
@@ -1390,7 +1859,7 @@ function openNext() {
     <div>${S.choices.map((x, i) => `<button class="exrow tool" style="width:100%;text-align:left" onclick="beginExerciseSelection(${i})">${icon(x.zone, 22, i <= S.exIdx ? '#F5F5F5' : '#5C5C5C', i === S.exIdx)}
       <span style="flex:1;color:${i <= S.exIdx ? '#F5F5F5' : '#5C5C5C'}">${htmlText(x.name)}</span>
       ${S.sets[i].every(s => s.done) && S.sets[i].length ? icon('check', 16, '#F5F5F5', false) : i === S.exIdx ? '<i style="width:6px;height:6px;border-radius:3px;background:#D71921"></i>' : ''}</button>`).join('')}</div>
-    <span class="num gray" style="margin-top:auto;text-align:center">TOCA PARA ELEGIR · DESLIZA ← PARA VOLVER</span>`;
+`;
   p.classList.add('open');
   swipe(p, { left: () => p.classList.remove('open') });
 }
@@ -1407,13 +1876,20 @@ function openDash() {
     <div class="bars">${e.hist.map(v => `<i class="${v === max ? 'best' : ''}" style="height:${(v / max * 100).toFixed(0)}%"></i>`).join('')}</div>
     <div class="sec" style="margin:0">REGISTROS ANTERIORES</div>
     ${['22 OCT', '15 OCT', '8 OCT'].map((d, k) => `<div class="row num" style="padding:6px 0;border-top:1px solid #161616"><span>${d}</span><span>${e.sets.map(([r, kg]) => `${kg - k * 2.5}×${r}`).join('  ')}</span><span>${14 - k}'</span></div>`).join('')}
-    <span class="num gray" style="margin-top:auto;text-align:center">DESLIZA → PARA VOLVER</span>`;
+`;
   p.classList.add('open');
   swipe(p, { right: () => p.classList.remove('open') });
 }
 
+const RIDE = {
+  idle: { loop: [['stand', 900], ['lookDown', 800], ['standC', 900], ['nod', 300]], dur: Infinity },
+  fly: { loop: [['jumpFall', 600]], dur: Infinity, snap: 80 },
+  surf: { loop: [['surf', 300], ['surfB', 300]], dur: Infinity },
+  cheerRide: { loop: [['excitedUp', 200], ['surfB', 200]], dur: Infinity },
+  jumpUp: { loop: [['jumpUp', 500]], dur: Infinity, snap: 90 },
+};
 function arcHtml(ready) {
-  return `<div class="arc ${ready ? 'ready' : ''}" id="arc"><svg aria-hidden="true">
+  return `<div class="arc ${ready ? 'ready' : ''}" id="arc">${fig(92, '=stand', 'rider', true).replace('class="rig roam"', 'class="rig roam" data-flat')}<svg aria-hidden="true">
     <defs><linearGradient id="massFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CE1212"/><stop offset=".6" stop-color="#3A0000"/><stop offset="1" stop-color="#100000"/></linearGradient>
     <filter id="massGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter></defs>
     <ellipse class="massHalo" fill="#CE1212" opacity="0" filter="url(#massGlow)"/><path class="massBody" fill="url(#massFill)"/><text class="lbl">CONTINUAR</text></svg></div>`;
@@ -1429,15 +1905,24 @@ function bindArc(onDone, canContinue = () => true) {
   const measure = () => {
     W = arc.closest('.phone').clientWidth; R = W / 2;
     const room = Math.max(R, arc.closest('.phone').clientHeight - 40);
-    longest = Math.min(W * .9, room - R); goal = Math.min(W * .57, longest * .63); H = R + longest;
+    longest = Math.min(W * .9, room - R); goal = Math.min(W * .27, longest * .3); H = R + longest;
     arc.style.height = `${H}px`;
     arc.closest('.phone').style.setProperty('--arc-radius', `${R}px`);
   };
   measure(); window.addEventListener('resize', measure, options);
   let a = 0, v = 0, pointer = null, lastY = 0, flying = false, reached = false, fly = 0, lt = null;
+  // Absent until earned: it rises from below once and the person walks up onto it.
+  let shown = 0, caught = null;
+  const launch = () => {
+    const src = $('mini') || $('fig'), rider = $('rider')?._fig; if (!src || !rider || caught) return;
+    const r = src.getBoundingClientRect(), box = arc.getBoundingClientRect();
+    caught = { t: 0, x: r.left + r.width / 2 - box.left, y: r.bottom - box.top, s: (src._fig?.h || 92) / rider.h, src };
+    src.style.visibility = 'hidden'; rider.rideState = null;
+  };
+  const earned = () => arc.classList.contains('ready');
   body.addEventListener('pointerdown', e => {
-    if (flying || pointer !== null || e.isPrimary === false) return;
-    pointer = e.pointerId; lastY = e.clientY; v = 0; arc.setPointerCapture(pointer); buzz(10);
+    if (flying || pointer !== null || e.isPrimary === false || !earned()) return;
+    pointer = e.pointerId; lastY = e.clientY; v = 0; arc.setPointerCapture(pointer); buzz(10); launch();
   }, options);
   arc.addEventListener('pointermove', e => {
     if (e.pointerId !== pointer) return;
@@ -1464,6 +1949,13 @@ function bindArc(onDone, canContinue = () => true) {
       const k = 400, c = 2 * .2 * Math.sqrt(k); v += (-k * a - c * v) * dt; a += v * dt;
       if (motionPreference.matches) { a = 0; v = 0; }
     }
+    shown = clamp(shown + (earned() ? dt / .55 : -dt / .3), 0, 1);
+    if (motionPreference.matches) shown = earned() ? 1 : 0;
+    const lift = (1 - (1 - shown) ** 3) * R;
+    arc.style.visibility = shown > 0 ? 'visible' : 'hidden';
+    arc.style.setProperty('--arc-shift', `${(R - lift).toFixed(1)}px`);
+    arc.style.transform = `translateY(${(R - lift).toFixed(1)}px)`;
+    if (!earned() && pointer !== null) { pointer = null; a = 0; }
     const length = Math.max(0, a), ry = R + Math.min(0, a), base = H - length, top = base - ry;
     body.setAttribute('d', `M0 ${H + 2} L0 ${base} A${R} ${ry} 0 0 1 ${W} ${base} L${W} ${H + 2} Z`);
     const p = Math.min(1, length / goal), beat = motionPreference.matches ? .6 : .6 - .15 * (.5 - .5 * Math.cos(t * Math.PI / 1.8)), fade = flying ? Math.max(0, 1 - fly / .8) : 1;
@@ -1472,6 +1964,22 @@ function bindArc(onDone, canContinue = () => true) {
     label.setAttribute('x', W / 2); label.setAttribute('y', labelY); label.setAttribute('opacity', fade);
     halo.setAttribute('cx', W / 2); halo.setAttribute('cy', labelY); halo.setAttribute('rx', W * .37); halo.setAttribute('ry', W / 6);
     halo.setAttribute('opacity', (p * .4 * fade).toFixed(3));
+    const rider = $('rider')?._fig;
+    if (caught && !earned()) { caught.src.style.visibility = ''; caught = null; }
+    if (rider) {
+      rider.svg.style.visibility = caught ? 'visible' : 'hidden';
+      rider.svg.style.opacity = fade;
+    }
+    if (rider && caught) {
+      const k = 128 / rider.h, u = caught.t = Math.min(1, caught.t + dt / .62), landed = u >= 1;
+      if (landed && !caught.landed) { caught.landed = true; buzz(24, 170); if (pointer === null) v = -260; }
+      // It lands wherever the curve is under it, and from there rides what the finger does.
+      const lx = clamp(caught.x, W * .3, W * .7), dx = (lx - W / 2) / R, ay = base - ry * Math.sqrt(Math.max(0, 1 - dx * dx));
+      const px = caught.x + (lx - caught.x) * u, py = caught.y + (ay - caught.y) * u - 4 * 60 * u * (1 - u);
+      rider.free = { x: (px - W / 2) * k, y: (py - H) * k + 6, s: caught.s + (1 - caught.s) * u, rot: u * Math.asin(dx) * 46 };
+      const state = flying ? 'jumpUp' : !landed ? 'fly' : pointer !== null ? (reached ? 'cheerRide' : 'surf') : 'idle';
+      if (rider.rideState !== state) { rider.rideState = state; rider.queue = []; rider.mood = null; rider.loopSeg = RIDE[state]; rider.begin({ ...RIDE[state] }); }
+    }
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -1485,7 +1993,7 @@ function rest() {
     <div class="stage" id="stage">${fig(150, 'rest', 'fig', true)}</div>
     <div class="nextCard" onclick="endRest()">${icon(n.zone, 26, '#F5F5F5')}
       <div style="flex:1"><div class="wname">${htmlText(n.name)}</div><div class="num">ELEGIR EL SIGUIENTE</div></div><span class="red" style="font-size:20px">›</span></div>
-    <button class="btn" style="align-self:center" onclick="endRest()">SALTAR DESCANSO Y ELEGIR</button>`;
+    <button class="btn" style="align-self:center" onclick="endRest()">Saltar descanso</button>`;
   $('fig').addEventListener('click', () => react($('fig'), 'nod'));
   restFigure();
 }
@@ -1519,6 +2027,7 @@ setInterval(() => {
   if (S.stage === 'warmRun') {
     S.warmLeft = Math.max(0, S.warmLeft - dt);
     const el = document.querySelector('.js-warm'); if (el) el.textContent = fmt(Math.ceil(S.warmLeft));
+    if (S.warmLeft <= 0) $('arc')?.classList.add('ready');
   }
   if (S.stage === 'rest') {
     if (!S.restTotal || S.restLeft > S.restTotal) S.restTotal = S.restLeft;

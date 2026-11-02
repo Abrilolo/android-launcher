@@ -44,6 +44,17 @@ function svg(mode = 'prep', roam = true, width = 342, height = 500) {
 
 test('the full inline script parses', () => { new vm.Script(script); });
 
+test('the plain routine rests between sets, continues after an exercise and ends on the last set', () => {
+  const home = readFileSync(join(__dirname, '../../../app/src/main/session/home.js'), 'utf8');
+  const source = home.slice(home.indexOf('function plainStep'), home.indexOf('function enterPlain'));
+  const plainStep = vm.runInNewContext(`${source}; plainStep`);
+  const set = done => ({ done });
+  assert.equal(plainStep([[set(false), set(false)], [set(false)]], 0), 'rest');
+  assert.equal(plainStep([[set(true), set(true)], [set(false)]], 0), 'next');
+  assert.equal(plainStep([[set(true), set(true)], [set(false)]], 1), 'end');
+  assert.equal(plainStep([[set(true)], [set(true)]], 1), 'end');
+});
+
 test('mood pools exclude dances during recovery and delay impatience / sleep', () => {
   const e = engine();
   const names = (m, t) => e.behaviorPool(m, t).map(([name]) => name);
@@ -143,26 +154,32 @@ test('rebinding a sheet gesture replaces its listener and leaves button clicks a
   assert.equal(newCalls, 1);
 });
 
-test('peeking rises, glances and stops when closed or reduced motion is requested', () => {
-  const source = script.slice(script.indexOf('function tickPeek('), script.indexOf('function openOthers('));
-  const figure = svg(); let open = true;
-  figure.closest = () => open;
-  figure._peek = { start: 0, x: 0, y: .5, tx: 0, ty: .5, pointerAt: -Infinity };
-  const preference = { matches: false };
-  const tick = vm.runInNewContext(source + '\ntickPeek', {
-    document: { getElementById: () => figure }, motionPreference: preference,
-    clamp: (v, lo, hi) => Math.max(lo, Math.min(hi, v)),
-  });
-  tick(0); const hidden = figure.querySelector('.peekHead').attrs.transform;
-  tick(1200); assert.notEqual(figure.querySelector('.peekHead').attrs.transform, hidden);
-  for (let t = 1300; t < 20000; t += 17) tick(t);
-  assert.notEqual(figure._peek.x, 0);
-  open = false;
-  const stopped = figure.querySelector('.peekHead').attrs.transform;
-  tick(21000); assert.equal(figure.querySelector('.peekHead').attrs.transform, stopped);
-  open = true; preference.matches = true;
-  tick(22000); const reduced = figure.querySelector('.peekHead').attrs.transform;
-  tick(24000); assert.equal(figure.querySelector('.peekHead').attrs.transform, reduced);
+test('the spy rises from behind the edge, uses the card and returns behind it', () => {
+  const e = engine(), f = new e.Figure(svg('spy', true, 342, 150));
+  assert.equal(f.mood, 'spy');
+  assert.equal(f.free.s, 1);
+  for (let i = 0; i < 3000; i++) { e.advance(f); assert.ok(f.free, 'stays off the floor'); assert.ok(Number.isFinite(f.free.y)); }
+  assert.ok(f.free.y <= 150 && f.free.y >= -60);
+  e.preference.matches = true; e.advance(f); assert.equal(f.free.y, 80);
+});
+
+test('profile keeps one eye and the back of the head shows no face or hair', () => {
+  const e = engine(), f = new e.Figure(svg());
+  const held = (pose, turn) => { f.queue = []; f.begin({ loop: [[pose, 1000]], dur: Infinity }); f.from = null; for (let i = 0; i < 200; i++) e.advance(f); return f.q; };
+  let q = held({ turn: 0 }); assert.equal(q('eyeF').style.opacity, '1.00'); assert.equal(q('eyes').style.opacity, '1.00');
+  q = held({ turn: 1 }); assert.equal(q('eyeF').style.opacity, '0.00'); assert.equal(q('eyes').style.opacity, '1.00');
+  q = held({ turn: .2, back: 1 }); assert.equal(q('eyes').style.opacity, '0.00'); assert.equal(q('hair').style.opacity, '0.00');
+});
+
+test('walking away turns the back and the stride follows the ground covered', () => {
+  const e = engine(), f = new e.Figure(svg());
+  f.pos = { x: 0, z: 1 }; f.queue = []; f.begin({ walk: [0, -1], speed: 60 }); f.from = null;
+  for (let i = 0; i < 40; i++) e.advance(f);
+  while (f.seg.walk == null || f.seg.pivoted && !f.seg.heading) e.advance(f);
+  assert.equal(f.seg.heading.back, 1);
+  for (let i = 0; i < 60; i++) e.advance(f);
+  assert.ok(f.pose.back > .9);
+  assert.ok(e.depthScale(f.pos.z) < 1);
 });
 
 function flow() {
@@ -329,14 +346,14 @@ test('moving outside cancels at scaled bounds; extra fingers and secondary butto
   c.pointer('pointerdown', { isPrimary: false }); c.step(2000); assert.equal(c.pulses.length, 0);
   c.pointer('pointerdown'); c.step(500); c.pointer('pointermove', { clientX: 225 }); c.step(2000);
   assert.equal(c.completed(), 0);
-  c.pointer('pointerdown'); c.step(1800); assert.equal(c.completed(), 1); c.dispose();
+  c.pointer('pointerdown'); c.step(2000); assert.equal(c.completed(), 1); c.dispose();
 });
 
 test('keyboard holds match touch; repeat keys cannot reset charge or bypass it', () => {
   for (const key of [' ', 'Enter']) {
     const c = hatchControl(); c.key('keydown', key); c.step(600); c.key('keyup', key); c.step(1800);
     assert.equal(c.completed(), 0);
-    c.key('keydown', key); c.step(700); c.key('keydown', key, true); c.step(1100);
+    c.key('keydown', key); c.step(700); c.key('keydown', key, true); c.step(1300);
     assert.equal(c.completed(), 1); c.dispose();
   }
 });
@@ -363,6 +380,36 @@ test('reduced motion keeps the same hold duration without shaking or flashing', 
   assert.equal(c.phone.children[0].style.opacity, '0'); assert.equal(c.attr('.hatchRing', 'opacity'), '0');
   assert.equal(c.attr('.mass', 'transform'), 'translate(56 60) rotate(0) scale(1) translate(-56 -60)');
   c.step(200); assert.equal(c.completed(), 1); c.dispose();
+});
+
+const runtime = readFileSync(join(__dirname, '../../../app/src/main/session/runtime.js'), 'utf8');
+function runtimeFunction(name, sandbox) {
+  const start = runtime.indexOf(`function ${name}(`), end = runtime.indexOf('\n}', start) + 2;
+  return vm.runInNewContext(runtime.slice(start, end) + `\n${name}`, sandbox);
+}
+
+test('the next exercise is the first with sets left, in whatever order they were taken', () => {
+  const row = done => ({ done });
+  const S = { sets: [[row(true)], [row(false)], [row(true)], []] };
+  const next = runtimeFunction('nextPending', { S });
+  assert.equal(next(0), 1); assert.equal(next(2), 1); assert.equal(next(-1), 1);
+  S.sets[1][0].done = true;
+  assert.equal(next(0), -1);
+});
+
+test('a long absence pauses the clocks; a short one or a long timer does not', () => {
+  const now = 10_000_000_000, minute = 60_000;
+  const run = (seenAgo, deadlineIn) => {
+    const seenAt = now - seenAgo * minute;
+    const S = { startedAt: seenAt - 30 * minute, seenAt, restDeadline: seenAt + deadlineIn * minute };
+    const absorb = runtimeFunction('absorbAbsence', { S, AWAY_LIMIT: 20 * minute, Date: { now: () => now }, timerDeadlines: () => [S.restDeadline] });
+    absorb();
+    return S;
+  };
+  assert.equal(run(40, 1).restDeadline, now + minute);
+  assert.equal(run(40, 1).startedAt, now - 30 * minute);
+  assert.equal(run(5, 1).restDeadline, now - 4 * minute);
+  assert.equal(run(40, 30).restDeadline, now - 10 * minute);
 });
 
 test('haptics use the Android bridge and cancel through the same bridge', () => {

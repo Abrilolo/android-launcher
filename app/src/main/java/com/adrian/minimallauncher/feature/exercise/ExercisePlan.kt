@@ -14,6 +14,9 @@ data class PlanExercise(
     val care: String,
     val core: Boolean = false,
     val timed: Boolean = false,
+    /** Set on exercises from an edited routine, whose ids say nothing about the muscle or the load. */
+    val muscle: String? = null,
+    val startKg: Float? = null,
 ) {
     /** Lower end of the rep (or seconds) range, used as the starting value the first time. */
     val minTarget: Int get() = Regex("(\\d+)-").find(scheme)?.groupValues?.get(1)?.toInt() ?: 10

@@ -25,7 +25,9 @@ val generateExerciseSessionAssets = tasks.register("generateExerciseSessionAsset
     val prototype = rootProject.file("docs/design/concept/EjercicioSesionVisual.html")
     val runtime = file("src/main/session/runtime.js")
     val style = file("src/main/session/runtime.css")
-    inputs.files(prototype, runtime, style)
+    val home = file("src/main/session/home.js")
+    val homeStyle = file("src/main/session/home.css")
+    inputs.files(prototype, runtime, style, home, homeStyle)
     outputs.dir(sessionAssets)
     doLast {
         var html = prototype.readText(Charsets.UTF_8)
@@ -46,8 +48,8 @@ val generateExerciseSessionAssets = tasks.register("generateExerciseSessionAsset
         val clockStart = html.indexOf("// ---------- Clock ----------")
         val boot = html.lastIndexOf("go('start');")
         check(clockStart > 0 && boot > clockStart)
-        html = html.replaceRange(clockStart, boot + "go('start');".length, runtime.readText(Charsets.UTF_8))
-        html = html.replace("</head>", "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'\"><style>${style.readText(Charsets.UTF_8)}</style></head>")
+        html = html.replaceRange(clockStart, boot + "go('start');".length, runtime.readText(Charsets.UTF_8) + "\n" + home.readText(Charsets.UTF_8))
+        html = html.replace("</head>", "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'\"><style>${style.readText(Charsets.UTF_8)}${homeStyle.readText(Charsets.UTF_8)}</style></head>")
         val target = sessionAssets.get().file("exercise-session/index.html").asFile
         target.parentFile.mkdirs()
         target.writeText(html, Charsets.UTF_8)

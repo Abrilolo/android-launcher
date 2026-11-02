@@ -9,6 +9,8 @@ import com.adrian.minimallauncher.data.routine.RoutineEngine
 import com.adrian.minimallauncher.data.routine.WidgetInputs
 import com.adrian.minimallauncher.data.routine.WidgetPick
 import com.adrian.minimallauncher.data.routine.WidgetSelector
+import com.adrian.minimallauncher.feature.exercise.Session
+import com.adrian.minimallauncher.feature.exercise.SessionKind
 import java.time.LocalDate
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
@@ -41,6 +43,14 @@ class PhaseRemindersTest {
         assertEquals(items.first { !it.done }, PhaseReminders.next(items))
         val picks = WidgetSelector.pick(trabajo, day.atTime(13, 0), WidgetInputs(phaseReminders = items))
         assertEquals(items.first { !it.done }, (picks.first { it is WidgetPick.PhaseStep } as WidgetPick.PhaseStep).next)
+    }
+
+    @Test fun trainingFollowsTheEditedRoutine() {
+        val at = day.atTime(20, 20)
+        val training = WidgetSelector.pick(trabajo, at, WidgetInputs(session = Session("P", "Pecho", "", SessionKind.STRENGTH)))
+        assertTrue(training.any { it is WidgetPick.Training })
+        val free = WidgetSelector.pick(trabajo, at, WidgetInputs(session = Session("D", "Descanso", "", SessionKind.REST)))
+        assertTrue(free.none { it is WidgetPick.Training })
     }
 
     @Test fun oldSpaceNamesMapToTheirPhase() {

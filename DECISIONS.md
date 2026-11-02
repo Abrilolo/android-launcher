@@ -369,3 +369,18 @@ Mantiene la UI independiente de las aplicaciones concretas.
 
 - La Activity del launcher no debe aparecer en su propia lista.
 - Apps sin launch intent válido se omitirán o no podrán abrirse.
+
+## 2026-11-02 - Ejercicio abre en Hoy; la guía es opcional
+
+### Decision
+
+Hoy es la entrada de Ejercicio. La rutina se puede hacer sin guía, en un cuadro que cambia en la misma pantalla, o con la guía, y las dos comparten la misma sesión. Las dos usan los mismos gestos y la misma tarjeta: deslizar para seguir, estirar para la información y swipes laterales para la rutina y las metas.
+
+### Reason
+
+El usuario quiere ver su progreso sin pasar de pantalla en pantalla y entrar a la guía solo cuando la quiera.
+
+### Impact
+
+- La hora de entrenar ya no abre el inicio guiado.
+- Iniciar ya no depende de la hora.

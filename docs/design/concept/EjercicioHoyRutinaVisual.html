@@ -45,7 +45,7 @@
   .person { width:154px; max-height:100%; height:212px; overflow:visible; }
   .phase-note { margin-bottom:22px; text-align:center; }
   .phase-note strong { font-size:14px; font-weight:500; }
-  .bottom-nav { margin:0 14px 10px; padding:8px 6px 9px; border:1px solid var(--red); border-bottom-color:transparent; border-radius:22px; display:grid; grid-template-columns:repeat(4,1fr); gap:2px; }
+  .bottom-nav { margin:0; padding:8px 20px 19px; border:1px solid var(--red); border-bottom-color:transparent; border-radius:22px 22px 0 0; display:grid; grid-template-columns:repeat(4,1fr); gap:2px; }
   .bottom-nav button { border:0; background:none; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; min-height:44px; color:var(--muted); font-size:10px; position:relative; padding:2px 0; }
   .bottom-nav button.active { color:var(--white); } .bottom-nav .active::before { content:''; width:3px; height:3px; border-radius:50%; background:var(--red); position:absolute; top:-4px; }
   .home-line { flex:none; width:100px; height:4px; border-radius:4px; background:#777; margin:0 auto 8px; }
@@ -60,9 +60,9 @@
   .day-title { text-align:center; } .day-title strong { font-size:14px; font-weight:500; display:block; margin-bottom:5px; } .day-title small { font-size:10px; color:var(--muted); }
   .muscle-stack { position:relative; isolation:isolate; height:210px; flex:none; overflow:hidden; margin:0 -8px 14px; touch-action:pan-y; cursor:grab; user-select:none; }
   .muscle-stack.dragging { cursor:grabbing; }
-  .muscle-card { position:absolute; top:8px; left:50%; width:124px; padding:0; display:flex; flex-direction:column; align-items:center; gap:9px; border:0; background:none; color:var(--muted); font-size:11px; transform-origin:50% 50%; transition:transform .36s cubic-bezier(.2,.8,.2,1),opacity .3s; }
+  .muscle-card { position:absolute; top:8px; left:50%; width:96px; padding:0; display:flex; flex-direction:column; align-items:center; gap:9px; border:0; background:none; color:var(--muted); font-size:11px; transform-origin:50% 50%; transition:transform .36s cubic-bezier(.2,.8,.2,1),opacity .3s; }
   .muscle-stack.dragging .muscle-card { transition:none; }
-  .gallery-art { width:120px; height:138px; display:grid; place-items:center; border:1px solid #333; border-radius:18px; background:linear-gradient(150deg,#171717,#060606); }
+  .gallery-art { width:92px; height:112px; display:grid; place-items:center; border:1px solid #333; border-radius:18px; background:linear-gradient(150deg,#171717,#060606); }
   .muscle-card.active { color:var(--white); } .muscle-card.active .gallery-art { border-color:#862832; background:linear-gradient(150deg,#260E12,#080405); }
   .overview-stage { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; }
   .overview-summary { text-align:center; margin:14px 0 40px; }
@@ -101,13 +101,13 @@
   .save-button.save-button { display:block; width:86%; margin-inline:auto; min-height:54px; border:0; border-radius:28px; background:var(--white); color:#111; font-size:14px; transition:background .16s,color .16s,transform .16s; }
   .save-button.save-button:active { background:var(--red); color:#FFF; transform:scale(.985); }
   .gallery-layout { position:relative; }
-  .gallery-layout .muscle-stack { margin:0 24px 14px; }
+  .gallery-layout .muscle-stack { margin:0 44px 14px; height:178px; }
   .group-tools { position:absolute; top:60px; left:0; right:0; display:flex; justify-content:space-between; z-index:2; pointer-events:none; }
   .group-tools>* { pointer-events:auto; }
   .group-chip[data-action=add-groups] { order:2; }
   .group-chip[data-action=remove-groups] { order:1; }
-  .group-chip { display:grid; place-items:center; width:34px; height:34px; border:1px solid #4B252A; border-radius:50%; background:#11090A; color:#F16B76; }
-  .group-chip[aria-expanded=true] { background:#45121B; border-color:#E74A5A; }
+  .group-chip { display:grid; place-items:center; width:38px; height:38px; border:1px solid transparent; border-radius:50%; background:transparent; color:var(--muted); }
+  .group-chip:active,.group-chip[aria-expanded=true] { background:#45121B; border-color:#E74A5A; color:#F16B76; }
   .group-picker { position:absolute; right:44px; top:0; width:220px; max-width:calc(100vw - 130px); z-index:3; border:1px solid #3D292D; background:#151214; border-radius:18px; padding:12px; box-shadow:0 14px 35px #000B; transform-origin:100% 16px; animation:picker-pop .25s cubic-bezier(.2,.8,.2,1); }
   .group-picker[data-mode=remove] { right:auto; left:44px; transform-origin:0 16px; }
   .picker-heading { display:flex; align-items:center; justify-content:space-between; gap:4px; margin-bottom:6px; font-size:13px; }
@@ -307,7 +307,7 @@ function showRoutine() {
   syncEdgeLights();
 }
 function showDone() {
-  $('done-content').innerHTML=`<div class="row topbar"><h2 class="shiny-text">Viernes, 30 octubre</h2><button class="icon-button" data-action="settings" data-owner="done" aria-label="Ajustes">${icon('settings')}</button></div><div class="intro"><h3 class="shiny-text">Hoy lo hiciste.</h3></div><div class="character-stage">${person('celebrate')}</div><div class="stats"><div class="stat"><strong>42<span style="font-size:15px"> min</span></strong><small>Tu tiempo</small></div><div class="stat"><strong>12</strong><small>Series registradas</small></div></div><div class="action-footer"><button class="secondary shine-frame" data-action="goals" data-owner="done">${frameLight()}Ver mis metas ${icon('arrow',17)}</button></div>`;
+  $('done-content').innerHTML=`<div class="row topbar"><h2 class="shiny-text">Viernes, 30 octubre</h2><button class="icon-button" data-action="settings" data-owner="done" aria-label="Ajustes">${icon('settings')}</button></div><div class="intro"><h3 class="shiny-text">Hoy lo hiciste.</h3></div><div class="character-stage">${person('celebrate')}</div><div class="shine-frame" style="padding-block:16px 0">${frameLight()}<div class="stats"><div class="stat"><strong>42<span style="font-size:15px"> min</span></strong><small>Tu tiempo</small></div><div class="stat"><strong>12</strong><small>Series registradas</small></div></div><button class="secondary" style="border:0;border-top:1px solid #1C1C1C;width:100%" data-action="goals" data-owner="done">Ver mis metas ${icon('arrow',17)}</button></div>`;
 }
 let suppressCalendarClickUntil=0;
 function selectDay(index,focus=false) { state.day=Math.max(0,Math.min(days.length-1,index));state.group='all';showRoutine();if(focus)$('day-strip').querySelector('[aria-pressed=true]').focus({preventScroll:true}); }

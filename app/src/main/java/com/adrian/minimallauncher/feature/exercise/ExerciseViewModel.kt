@@ -1,6 +1,8 @@
 package com.adrian.minimallauncher.feature.exercise
 
 import android.app.Application
+import android.os.Looper
+import android.webkit.WebView
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrian.minimallauncher.data.BodyMetricRecord
@@ -33,6 +35,8 @@ data class ExerciseDay(
     val completed: Boolean = false,
     /** Days of the current week (Monday first) with a finished session or at least one logged set. */
     val weekDone: Set<LocalDate> = emptySet(),
+    /** Days of the current week that the routine leaves free. */
+    val weekRest: Set<LocalDate> = emptySet(),
 ) {
     val doneSets: Int get() = session.exercises.sumOf { ex -> sets[ex.id].orEmpty().size.coerceAtMost(ex.sets) }
 }
@@ -43,6 +47,14 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     private val dao = db.exercise()
     private val personal = PersonalRepository(db)
     private val settingsRepository = SettingsRepository(application)
+
+    // The first WebView of a process is the slow one; made when the launcher is idle, opening Ejercicio doesn't pay for it.
+    init {
+        Looper.getMainLooper().queue.addIdleHandler {
+            runCatching { WebView(application).destroy() }
+            false
+        }
+    }
 
     // Re-checked every minute so the page rolls over to the next day's session at midnight.
     private val today = flow {
@@ -59,15 +71,17 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
             dao.lastBefore(date.toString()),
             dao.activeDates(monday.toString()),
             personal.completedWorkouts,
-        ) { sets, last, active, workouts ->
+            db.guidedExercise().plans().map { rows -> rows.associate { it.id to it.payload } }.distinctUntilChanged(),
+        ) { sets, last, active, workouts, plans ->
             val weekDays = (0L..6L).map { monday.plusDays(it) }
             ExerciseDay(
                 date = date,
-                session = TokyoGuide.sessionFor(date),
+                session = RoutinePlans.sessionFor(date, plans),
                 sets = sets.groupBy { it.exerciseId },
                 lastLogs = last.associateBy { it.exerciseId },
                 completed = date.toString() in workouts,
                 weekDone = weekDays.filter { it.toString() in workouts || it.toString() in active }.toSet(),
+                weekRest = weekDays.filter { RoutinePlans.sessionFor(it, plans).kind == SessionKind.REST }.toSet(),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ExerciseDay())

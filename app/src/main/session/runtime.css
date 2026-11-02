@@ -16,6 +16,11 @@ body { display: block; padding: 0; }
 .val, .chk, .tool { min-height: 44px; }
 .chk { min-height: 30px; min-width: 30px; }
 .wcard { min-height: 90px; }
+.timerControls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 6px; touch-action: manipulation; }
+.timerBtn { width: 48px; height: 48px; padding: 0; display: grid; place-items: center; border: 1px solid #5C5C5C; border-radius: 50%; background: none; cursor: pointer; }
+.timerBtn.main { width: 60px; height: 60px; border-color: #444; background: #000; }
+.timerBtn.main:active { background: #D71921; border-color: #D71921; }
+.timerBtn:active { transform: scale(.94); }
 @media (max-height: 620px) {
   #view { gap: 10px; }
   .intro h1 { font-size: 21px; }

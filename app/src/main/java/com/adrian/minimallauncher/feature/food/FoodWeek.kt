@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,8 +42,16 @@ import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.MealRecord
 import com.adrian.minimallauncher.data.ModuleSettings
+import com.adrian.minimallauncher.feature.ChartColumn
+import com.adrian.minimallauncher.feature.ChartRow
+import com.adrian.minimallauncher.feature.ChartShades
+import com.adrian.minimallauncher.feature.ChartStack
 import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.ModuleRow
+import com.adrian.minimallauncher.feature.RangeSwitch
 import com.adrian.minimallauncher.feature.SmallLabel
+import com.adrian.minimallauncher.feature.StackChart
+import com.adrian.minimallauncher.feature.shortDay
 import com.adrian.minimallauncher.ui.components.DotMatrixText
 import com.adrian.minimallauncher.ui.components.LocalReactions
 import com.adrian.minimallauncher.ui.components.StrokeIcon
@@ -49,6 +60,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private val White = Color(0xFFF5F5F5)
 private val Gray = Color(0xFF5C5C5C)
@@ -57,11 +69,12 @@ private val Track = Color(0xFF2A2A2A)
 
 /** How many weight records the line shows. */
 private const val WEIGHT_POINTS = 10
+private const val RECENT_MEALS = 12
+private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * The food week (ComidaVisual.html, Semana): weight against its goal with the recent line, the BMI (IMC) on a scale
- * of its ranges, and each day's kcal against the goal with the protein and fiber days below. Lines and bars draw once
- * when it opens.
+ * The food week: kcal by day or week with what passed the goal in red, the protein and fiber days, weight against
+ * its goal, the BMI (IMC) on a scale of its ranges and the latest meals.
  */
 @Composable
 fun FoodWeek(today: LocalDate, meals: List<MealRecord>, metrics: List<BodyMetricRecord>, settings: ModuleSettings, onAddWeight: (Float) -> Unit) {
@@ -76,13 +89,36 @@ fun FoodWeek(today: LocalDate, meals: List<MealRecord>, metrics: List<BodyMetric
     var adding by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
 
+    var range by rememberSaveable { mutableStateOf("dia") }
+    val columns = remember(meals, range, today, settings.kcalGoal) { kcalColumns(meals, range, today, settings.kcalGoal.toFloat()) }
+    val fedDays = meals.map { Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }.filter { !it.isBefore(today.minusDays(19)) }.distinct().size
+    val average = if (fedDays > 0) meals.filter { !Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate().isBefore(today.minusDays(19)) }.sumOf { it.kcal.toDouble() }.toFloat() / fedDays else 0f
+    val monday = today.with(DayOfWeek.MONDAY)
+    val days = (0..6).map { monday.plusDays(it.toLong()) }
+    val byDay = meals.groupBy { Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }
+
     Column(verticalArrangement = Arrangement.spacedBy(22.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+                    Text(average.whole(), style = MaterialTheme.typography.headlineMedium, color = White)
+                    SmallLabel("kcal al día")
+                }
+                RangeSwitch(listOf("dia" to "Día", "semana" to "Semana"), range, { range = it })
+            }
+            StackChart(columns)
+        }
+        if (settings.proteinGoalG > 0) GoalDots("huevo", "Proteína", days, today) { d -> byDay[d].orEmpty().sumOf { it.proteinG.toDouble() } >= settings.proteinGoalG }
+        if (settings.fiberGoalG > 0) GoalDots("hoja", "Fibra", days, today) { d -> byDay[d].orEmpty().sumOf { it.fiberG.toDouble() } >= settings.fiberGoalG }
+        Separator()
+
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SmallLabel("Peso")
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
                     StrokeIcon("bascula", if (now != null) StrokeState.DONE else StrokeState.OFF, 26.dp)
                     DotMatrixText(now?.oneDecimal() ?: "--.-", cell = 4.dp)
-                    if (goal != null) SmallLabel(goal.oneDecimal())
+                    if (goal != null) SmallLabel("meta ${goal.oneDecimal()}")
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (now != null && goal != null && Math.abs(now - goal) >= 0.05f) {
@@ -109,22 +145,54 @@ fun FoodWeek(today: LocalDate, meals: List<MealRecord>, metrics: List<BodyMetric
         if (bmi != null) {
             val healthy = bmi >= 18.5f && bmi < 25f
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SmallLabel("IMC")
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                     Text(bmi.oneDecimal(), style = MaterialTheme.typography.headlineSmall, color = if (healthy) White else LauncherRed)
-                    if (goalBmi != null) SmallLabel(goalBmi.oneDecimal())
+                    if (goalBmi != null) SmallLabel("meta ${goalBmi.oneDecimal()}")
                 }
                 BmiScale(bmi, goalBmi, healthy)
             }
             Separator()
         }
 
-        val monday = today.with(DayOfWeek.MONDAY)
-        val days = (0..6).map { monday.plusDays(it.toLong()) }
-        val byDay = meals.groupBy { Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }
-        val kcal = days.map { d -> byDay[d].orEmpty().sumOf { it.kcal.toDouble() }.toFloat() }
-        KcalBars(days, today, kcal, settings.kcalGoal.toFloat(), grow.value)
-        if (settings.proteinGoalG > 0) GoalDots("huevo", days, today) { d -> byDay[d].orEmpty().sumOf { it.proteinG.toDouble() } >= settings.proteinGoalG }
-        if (settings.fiberGoalG > 0) GoalDots("hoja", days, today) { d -> byDay[d].orEmpty().sumOf { it.fiberG.toDouble() } >= settings.fiberGoalG }
+        val recent = meals.sortedByDescending { it.createdAt }.take(RECENT_MEALS)
+        if (recent.isNotEmpty()) Column {
+            SmallLabel("Registros")
+            recent.forEach { meal ->
+                val at = Instant.ofEpochMilli(meal.createdAt).atZone(zone)
+                ModuleRow(null, meal.description, "${shortDay(at.toLocalDate())} · ${at.toLocalTime().format(hhmm)}", "${meal.kcal.whole()} kcal")
+            }
+        }
+    }
+}
+
+/** Each day or week: its kcal per day, split in the kcal of each macro; what passed the goal hangs in red. */
+private fun kcalColumns(meals: List<MealRecord>, range: String, today: LocalDate, goal: Float): List<ChartColumn> {
+    val zone = ZoneId.systemDefault()
+    val weeks = range == "semana"
+    val last = if (weeks) today.with(DayOfWeek.MONDAY) else today
+    val keys = if (weeks) (11L downTo 0L).map { last.minusWeeks(it) } else (19L downTo 0L).map { last.minusDays(it) }
+    val dated = meals.map { it to Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }
+    return keys.map { key ->
+        val rows = dated.filter { (_, d) -> (if (weeks) d.with(DayOfWeek.MONDAY) else d) == key }
+        val count = rows.map { it.second }.distinct().size.coerceAtLeast(1)
+        fun total(part: (MealRecord) -> Float) = rows.sumOf { part(it.first).toDouble() }.toFloat() / count
+        val kcal = total { it.kcal }
+        val protein = total { it.proteinG }
+        val carbs = total { it.carbsG }
+        val fat = total { it.fatG }
+        val parts = listOf(protein * 4, carbs * 4, fat * 9, (kcal - protein * 4 - carbs * 4 - fat * 9).coerceAtLeast(0f))
+        val over = if (goal > 0f) (kcal - goal).coerceAtLeast(0f) else 0f
+        ChartColumn(
+            if (weeks) "Semana ${shortDay(key)}" else shortDay(key), shortDay(key), "${kcal.whole()} kcal",
+            parts.mapIndexedNotNull { i, value -> ChartStack(value, ChartShades[i * 2]).takeIf { value > 0.5f } }, over,
+            buildList {
+                add(ChartRow(ChartShades[0], "Proteína", "${protein.whole()} g"))
+                add(ChartRow(ChartShades[2], "Carbohidratos", "${carbs.whole()} g"))
+                add(ChartRow(ChartShades[4], "Grasa", "${fat.whole()} g"))
+                if (over > 0f) add(ChartRow(LauncherRed, "De más", "+${over.whole()}"))
+            },
+        )
     }
 }
 
@@ -166,48 +234,12 @@ private fun BmiScale(bmi: Float, goal: Float?, healthy: Boolean) {
     }
 }
 
-/** Monday to Sunday: white up to the goal, red past it; days to come are empty outlines and today has a red ring. */
-@Composable
-private fun KcalBars(days: List<LocalDate>, today: LocalDate, kcal: List<Float>, goal: Float, progress: Float) {
-    val top = maxOf(goal, kcal.maxOrNull() ?: 0f, 1f) * 1.1f
-    Canvas(Modifier.fillMaxWidth().height(110.dp).semantics { contentDescription = "kcal de la semana" }) {
-        val slot = size.width / 7
-        val bar = 10.dp.toPx()
-        val radius = CornerRadius(bar / 2)
-        fun h(v: Float) = v / top * size.height
-        if (goal > 0f) drawLine(Color(0xFF3A3A3A), Offset(0f, size.height - h(goal)), Offset(size.width, size.height - h(goal)), 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())))
-        days.forEachIndexed { i, d ->
-            val left = slot * i + (slot - bar) / 2
-            val k = kcal[i]
-            when {
-                d.isAfter(today) || k <= 0f -> {
-                    val hh = h(if (goal > 0f) goal else top / 2)
-                    drawRoundRect(Track, Offset(left, size.height - hh), Size(bar, hh), radius, style = Stroke(1.5.dp.toPx()))
-                }
-                else -> {
-                    val base = if (goal > 0f) minOf(k, goal) else k
-                    val over = if (goal > 0f) (k - goal).coerceAtLeast(0f) else 0f
-                    val hb = h(base) * progress
-                    drawRoundRect(White, Offset(left, size.height - hb), Size(bar, hb), radius)
-                    if (over > 0f) {
-                        val ho = h(over) * progress
-                        drawRoundRect(LauncherRed, Offset(left, size.height - hb - ho - 3.dp.toPx()), Size(bar, ho), radius)
-                    }
-                }
-            }
-            if (d == today) {
-                val r = 2.dp.toPx()
-                drawCircle(LauncherRed, r, Offset(left + bar / 2, size.height + 0f - r))
-            }
-        }
-    }
-}
-
 /** One dot per day: white when that day's goal was met, red for today while it is not, gray otherwise. */
 @Composable
-private fun GoalDots(icon: String, days: List<LocalDate>, today: LocalDate, met: (LocalDate) -> Boolean) {
+private fun GoalDots(icon: String, label: String, days: List<LocalDate>, today: LocalDate, met: (LocalDate) -> Boolean) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) { StrokeIcon(icon, StrokeState.OFF, 16.dp) }
+        SmallLabel(label, Modifier.padding(start = 8.dp).width(66.dp), maxLines = 1)
         days.forEach { d ->
             val ok = !d.isAfter(today) && met(d)
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
