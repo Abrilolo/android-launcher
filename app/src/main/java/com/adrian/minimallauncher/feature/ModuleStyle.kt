@@ -1,5 +1,6 @@
 package com.adrian.minimallauncher.feature
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.adrian.minimallauncher.ui.components.StrokeIcon
@@ -247,23 +249,20 @@ data class DockItem(
     val icon: String,
     /** A red count on the tile; empty for a plain red dot. */
     val badge: String? = null,
-    /** A line before this tile, as Ajustes has. */
-    val apart: Boolean = false,
     /** What a long press offers. */
     val menu: List<Pair<String, () -> Unit>> = emptyList(),
 )
 
-/** The modules' navigation: see-through tiles. A tap opens with one short hop, a hold offers more. */
+/** The modules' navigation, as the exercise scene has it: one bar edge to edge, each place named, where you are in red. */
 @Composable
 fun ModuleDock(items: List<DockItem>, active: String, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 8.dp).cornerGlow(26.dp, 0.4f).padding(start = 8.dp, end = 8.dp, top = 9.dp, bottom = 13.dp),
-        Arrangement.SpaceAround, Alignment.Bottom,
+        modifier.fillMaxWidth()
+            .drawBehind { drawRect(Color(0xFF1E1E1E), size = Size(size.width, 1.dp.toPx())) }
+            .padding(start = 6.dp, end = 6.dp, top = 8.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        items.forEach { item ->
-            if (item.apart) Box(Modifier.align(Alignment.CenterVertically).width(1.dp).height(40.dp).background(Color(0xFF2A2A2A)))
-            DockTile(item, item.key == active) { onOpen(item.key) }
-        }
+        items.forEach { item -> DockTile(item, item.key == active) { onOpen(item.key) } }
     }
 }
 
@@ -275,6 +274,7 @@ private fun RowScope.DockTile(item: DockItem, active: Boolean, onOpen: () -> Uni
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.94f else 1f, tween(120), label = "press")
+    val tint by animateColorAsState(if (active) LauncherRed else Faint, tween(160), label = "tint")
     val hop = remember { Animatable(0f) }
     var hops by remember { mutableIntStateOf(0) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -283,27 +283,30 @@ private fun RowScope.DockTile(item: DockItem, active: Boolean, onOpen: () -> Uni
         hop.animateTo(-5f, tween(100))
         hop.animateTo(0f, tween(120))
     }
-    Box(Modifier.size(56.dp)) {
-        Box(
+    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+        Column(
             Modifier
-                .fillMaxSize()
-                .graphicsLayer { scaleX = scale; scaleY = scale; translationY = hop.value * density.density }
-                .cornerGlow(17.dp, 0.22f)
+                .fillMaxWidth()
+                .heightIn(min = 52.dp)
                 .combinedClickable(
                     source, null, role = Role.Tab,
                     onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); hops++; onOpen() },
                     onLongClick = if (item.menu.isEmpty()) null else ({ haptics.performHapticFeedback(HapticFeedbackType.LongPress); menuOpen = true }),
-                )
-                .semantics { contentDescription = item.label },
-            contentAlignment = Alignment.Center,
-        ) { StrokeIcon(item.icon, if (active) StrokeState.DONE else StrokeState.OFF, 24.dp) }
-        if (active) Box(Modifier.align(Alignment.BottomCenter).offset(y = 8.dp).size(4.dp).background(LauncherRed, CircleShape))
-        item.badge?.let { badge ->
-            val round = Modifier.align(Alignment.TopEnd)
-            if (badge.isEmpty()) Box(round.offset(3.dp, (-3).dp).size(10.dp).background(LauncherRed, CircleShape))
-            else Box(round.offset(6.dp, (-6).dp).defaultMinSize(20.dp, 20.dp).background(LauncherRed, CircleShape).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
-                Text(badge, style = MaterialTheme.typography.labelSmall, color = Color.White)
+                ),
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(Modifier.size(28.dp).graphicsLayer { scaleX = scale; scaleY = scale; translationY = hop.value * density.density }, contentAlignment = Alignment.Center) {
+                StrokeIcon(item.icon, StrokeState.OFF, 24.dp, color = tint)
+                item.badge?.let { badge ->
+                    val round = Modifier.align(Alignment.TopEnd)
+                    if (badge.isEmpty()) Box(round.offset(2.dp, (-2).dp).size(10.dp).background(LauncherRed, CircleShape))
+                    else Box(round.offset(9.dp, (-5).dp).defaultMinSize(18.dp, 18.dp).background(LauncherRed, CircleShape).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+                        Text(badge, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color.White)
+                    }
+                }
             }
+            Text(item.label, color = tint, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), maxLines = 1)
         }
         if (menuOpen) {
             Popup(

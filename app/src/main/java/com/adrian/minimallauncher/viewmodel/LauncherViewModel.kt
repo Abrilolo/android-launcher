@@ -5,11 +5,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import com.adrian.minimallauncher.data.APPS_DEFAULT_LAYOUT
+import com.adrian.minimallauncher.data.AppCategory
 import com.adrian.minimallauncher.data.AppGroup
 import com.adrian.minimallauncher.data.APPS_PAGE
 import com.adrian.minimallauncher.data.AppRepository
+import com.adrian.minimallauncher.data.AppSection
 import com.adrian.minimallauncher.data.BackupRepository
 import com.adrian.minimallauncher.data.BodyMetricRecord
+import com.adrian.minimallauncher.data.DEFAULT_APP_CATEGORIES
 import com.adrian.minimallauncher.data.DEFAULT_SECTION_ORDER
 import com.adrian.minimallauncher.data.DEFAULT_HOME_PAGES
 import com.adrian.minimallauncher.data.DEFAULT_WIDGET_LAYOUT
@@ -111,8 +114,38 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // Answers to "¿comida?" by payment id; kept in memory (a saved food expense resumes at the meal step).
     private val foodAnswers = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     private val stackDao = LauncherDatabase.get(application).stack()
-    private val _apps = MutableStateFlow<List<LauncherApp>>(emptyList())
-    val apps: StateFlow<List<LauncherApp>> = _apps
+    private val _rawApps = MutableStateFlow<List<LauncherApp>>(emptyList())
+
+    val appCategories: StateFlow<List<AppCategory>> = settings.appCategories
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_APP_CATEGORIES)
+
+    val apps: StateFlow<List<LauncherApp>> = combine(
+        _rawApps,
+        appCategories,
+        settings.appCategoryMap,
+        settings.appDistractionMap,
+    ) { raw, categories, catMap, distMap ->
+        val validIds = categories.map { it.id }.toSet()
+        val distractionById = categories.associate { it.id to it.isDistraction }
+        raw.map { app ->
+            if (app.isVault) app
+            else {
+                val catId = catMap[app.packageName]?.takeIf { it in validIds }
+                    ?: app.categoryId.takeIf { it in validIds }
+                    ?: "all"
+                val isDistraction = distMap[app.packageName]
+                    ?: distractionById[catId]
+                    ?: false
+                val section = when (catId) {
+                    "apps" -> AppSection.ESSENTIAL
+                    "entertainment" -> AppSection.ENTERTAINMENT
+                    "games" -> AppSection.GAMES
+                    else -> AppSection.OTHER
+                }
+                app.copy(categoryId = catId, section = section, isEntertainment = isDistraction)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val currentTime: StateFlow<LocalDateTime> = flow {
         while (true) {
@@ -285,7 +318,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun refreshApps() {
         viewModelScope.launch(Dispatchers.IO) {
-            _apps.value = repository.loadApps()
+            _rawApps.value = repository.loadApps()
             _aiShortcuts.value = repository.loadShortcuts(AiApp.entries.map { it.packageName })
         }
     }
@@ -548,8 +581,44 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (from < 0 || to !in indices) return this
         return toMutableList().apply { add(to, removeAt(from)) }
     }
+
+    // ---- App Categories & Assignments ----
+
+    fun addAppCategory(name: String, isDistraction: Boolean = false): String {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return "all"
+        val id = "cat_${System.currentTimeMillis()}"
+        val newCat = AppCategory(id = id, name = trimmed, isDistraction = isDistraction, visible = true)
+        val current = appCategories.value.toMutableList()
+        val allIndex = current.indexOfFirst { it.id == "all" }
+        if (allIndex >= 0) current.add(allIndex, newCat) else current.add(newCat)
+        viewModelScope.launch { settings.setAppCategories(current) }
+        return id
+    }
+
+    fun renameAppCategory(id: String, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        val updated = appCategories.value.map { if (it.id == id) it.copy(name = trimmed) else it }
+        viewModelScope.launch { settings.setAppCategories(updated) }
+    }
+
+    fun setAppCategoryDistraction(id: String, isDistraction: Boolean) {
+        if (id == "all") return
+        val updated = appCategories.value.map { if (it.id == id) it.copy(isDistraction = isDistraction) else it }
+        viewModelScope.launch { settings.setAppCategories(updated) }
+    }
+
     fun setSectionVisible(section: String, visible: Boolean) { viewModelScope.launch { settings.setSectionVisible(section, visible) } }
     fun moveSection(section: String, delta: Int) { viewModelScope.launch { settings.moveSection(section, delta) } }
+    fun deleteAppCategory(id: String) { viewModelScope.launch { settings.deleteAppCategory(id) } }
+    fun setAppCategory(packageName: String, categoryId: String) { viewModelScope.launch { settings.setAppCategory(packageName, categoryId) } }
+    fun setCategoryApps(categoryId: String, selectedPackages: Set<String>) {
+        val currentByPkg = apps.value.filterNot { it.isVault }.associate { it.packageName to it.categoryId }
+        viewModelScope.launch { settings.setCategoryApps(categoryId, selectedPackages, currentByPkg) }
+    }
+    fun setAppDistraction(packageName: String, isDistraction: Boolean) { viewModelScope.launch { settings.setAppDistraction(packageName, isDistraction) } }
+
     fun setVaultLockSeconds(seconds: Int) = updateModuleSettings { it.copy(vaultLockSeconds = seconds) }
     fun updateModuleSettings(change: (ModuleSettings) -> ModuleSettings) { viewModelScope.launch { settings.setModuleSettings(change(moduleSettings.value)) } }
     fun exportBackup(uri: Uri) {
@@ -653,7 +722,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return page.id
     }
 
-    /** Removes a page and its widgets. The app list can never be removed: apps only live there. */
+    /** Removes a page and its widgets. The main page can never be removed. */
     fun deletePage(pageId: String) {
         val current = homePages.value
         val page = current.pages.firstOrNull { it.id == pageId } ?: return

@@ -182,7 +182,7 @@ fun FinanceScreen(
                     DockItem("hoy", "Hoy", "hoy", badge = summary.sharedOpen.size.takeIf { it > 0 }?.toString()),
                     DockItem("semana", "Semana", "semana"),
                     DockItem("mes", "Mes", "mes"),
-                    DockItem("ajustes", "Ajustes", "gear", apart = true),
+                    DockItem("ajustes", "Ajustes", "gear"),
                 ),
                 tab,
                 onOpen = { key -> if (key == "ajustes") settingsOpen = true else tab = key },

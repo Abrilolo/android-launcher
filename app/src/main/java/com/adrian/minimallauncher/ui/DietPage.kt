@@ -187,7 +187,7 @@ fun DietPage(
                     DockItem("hoy", "Hoy", "hoy", badge = mealsLeft.takeIf { it > 0 }?.toString()),
                     DockItem("semana", "Semana", "semana"),
                     DockItem("recetas", "Recetas", "escuela", menu = listOf("Nueva receta" to { openRecipe = "new" })),
-                    DockItem("ajustes", "Ajustes", "gear", apart = true),
+                    DockItem("ajustes", "Ajustes", "gear"),
                 ),
                 tab,
                 onOpen = { key ->

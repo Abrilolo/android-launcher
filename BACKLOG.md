@@ -105,6 +105,12 @@ Pedido: "no me gustó mucho que el ejercicio guiado sea como la función princip
 - [ ] Plan editado: el widget, la página Semana y la sugerencia por exceso de kcal ya leen Tu rutina, no la guía Tokio. **Por validar.**
 - [ ] Falta: la rutina sin guía no tiene calentamiento (sigue solo en la guiada).
 
+#### Barra de abajo de Ejercicio en las demás vistas (2026-11-04)
+
+Pedido: "el estilo de la barra que tenemos para los menus en el apartado de ejercicio, hazla tambien para las demás vistas". **Por validar en el S24+.**
+
+- [ ] Dieta y Finanzas: la misma barra de Ejercicio, una sola de lado a lado con línea arriba, ícono y nombre; la activa en rojo. Se quitó la raya antes de Ajustes. Sigue el rebote al tocar, los números rojos y los menús al mantener. **Por validar.**
+
 #### Ejercicio · Hoy y barra de abajo acomodados (2026-11-02)
 
 Pedido: "mira el acomodo de la foto, pero conserva ya nuestros diseños... la barra de abajo sí hazla así, pero conservando nuestros menús". **Por validar en el S24+.**

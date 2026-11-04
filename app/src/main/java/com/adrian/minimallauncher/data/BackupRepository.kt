@@ -92,6 +92,11 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             }))
             .put("exerciseStack", JSONArray(stack.all().map { JSONObject().put("id", it.id).put("name", it.name).put("muscleGroup", it.muscleGroup).put("met", it.met.toDouble()).put("minutes", it.minutes).put("sortOrder", it.sortOrder).put("placeholder", it.placeholder) }))
             .put("moduleSettings", settings.moduleSettings.first().toJson())
+            .put("appCategories", JSONArray(settings.appCategories.first().map {
+                JSONObject().put("id", it.id).put("name", it.name).put("isDistraction", it.isDistraction).put("visible", it.visible)
+            }))
+            .put("appCategoryMap", JSONObject(settings.appCategoryMap.first()))
+            .put("appDistractionMap", JSONObject(settings.appDistractionMap.first()))
             .put("guidedExercise", JSONArray(db.guidedExercise().all().map { JSONObject().put("id", it.id).put("payload", it.payload).put("updatedAt", it.updatedAt) }))
             .put("routine", routine.toJson())
     }
@@ -160,6 +165,25 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             val imported = json.toModuleSettings()
             settings.setModuleSettings(imported)
             settings.setMealPlans(imported.meals.mapNotNull { slot -> slot.recipeId?.let { slot.id to it } }.toMap())
+        }
+        root.optJSONArray("appCategories")?.let { arr ->
+            val cats = (0 until arr.length()).mapNotNull { i ->
+                runCatching {
+                    val o = arr.getJSONObject(i)
+                    AppCategory(o.getString("id"), o.getString("name"), o.optBoolean("isDistraction", false), o.optBoolean("visible", true))
+                }.getOrNull()
+            }
+            if (cats.isNotEmpty()) settings.setAppCategories(cats)
+        }
+        root.optJSONObject("appCategoryMap")?.let { obj ->
+            val merged = settings.appCategoryMap.first().toMutableMap()
+            obj.keys().forEach { k -> merged[k] = obj.optString(k) }
+            settings.setAppCategoryMap(merged)
+        }
+        root.optJSONObject("appDistractionMap")?.let { obj ->
+            val merged = settings.appDistractionMap.first().toMutableMap()
+            obj.keys().forEach { k -> merged[k] = obj.optBoolean(k) }
+            settings.setAppDistractionMap(merged)
         }
         root.optJSONObject("routine")?.let { routine.fromJson(it) }
         val total = RECORD_ARRAYS.sumOf { key -> root.optJSONArray(key)?.length() ?: 0 }

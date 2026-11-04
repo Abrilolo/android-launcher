@@ -2,13 +2,14 @@ package com.adrian.minimallauncher.data
 
 import android.content.ClipData
 import android.content.Context
-import androidx.core.content.FileProvider
-import java.io.File
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherApps
 import android.net.Uri
 import android.os.Process
+import androidx.core.content.FileProvider
 import com.adrian.minimallauncher.feature.ai.AppShortcut
+import java.io.File
 
 /** An app the user picked by name; matched by known package or by its launcher label. */
 private class CuratedApp(val names: List<String>, val packages: List<String> = emptyList(), val prefix: Boolean = false) {
@@ -37,21 +38,59 @@ class AppRepository(private val context: Context) {
         CuratedApp(listOf("binance"), listOf("com.binance.dev")),
     )
 
-    // Not shown in a section of their own, but restricted like entertainment.
-    private val distractingPackages = setOf("com.instagram.android", "com.twitter.android", "com.facebook.katana")
+    // Social/distracting apps treated as entertainment by default.
+    private val distractingPackages = setOf(
+        "com.instagram.android",
+        "com.twitter.android",
+        "com.facebook.katana",
+        "com.zhiliaoapp.musically",
+        "com.ss.android.ugc.trill",
+        "com.reddit.frontpage",
+        "tv.twitch.android.app",
+    )
 
-    // Each list is shown on the main screen in this order.
+    // Everyday essential and utility apps (never distracting by default).
     private val essentialApps = listOf(
         CuratedApp(listOf("whatsapp"), listOf("com.whatsapp")),
         CuratedApp(emptyList(), listOf("com.samsung.android.app.notes")),
         CuratedApp(emptyList(), listOf("com.sec.android.gallery3d")),
         CuratedApp(emptyList(), listOf("com.sec.android.app.camera")),
         CuratedApp(emptyList(), listOf("com.android.chrome")),
-        CuratedApp(emptyList(), listOf("com.samsung.android.calendar")),
-        CuratedApp(emptyList(), listOf("com.samsung.android.dialer")),
+        CuratedApp(emptyList(), listOf("com.samsung.android.calendar", "com.google.android.calendar")),
+        CuratedApp(emptyList(), listOf("com.samsung.android.dialer", "com.google.android.dialer")),
+        CuratedApp(listOf("clima", "weather", "eltiempo", "tiempo"), listOf("com.sec.android.daemonapp", "com.samsung.android.weather", "com.google.android.apps.weather"), prefix = true),
         CuratedApp(listOf("spotify"), listOf("com.spotify.music")),
         CuratedApp(listOf("outlook"), listOf("com.microsoft.office.outlook")),
+        CuratedApp(listOf("maps", "googlemaps"), listOf("com.google.android.apps.maps")),
+        CuratedApp(listOf("reloj", "clock"), listOf("com.sec.android.app.clockpackage", "com.google.android.deskclock")),
+        CuratedApp(listOf("calculadora", "calculator"), listOf("com.sec.android.app.popupcalculator", "com.google.android.calculator")),
         CuratedApp(emptyList(), listOf("com.android.settings")),
+    )
+
+    // School, study, and document apps (never distracting by default).
+    private val schoolApps = listOf(
+        CuratedApp(listOf("classroom", "googleclassroom"), listOf("com.google.android.apps.classroom")),
+        CuratedApp(listOf("canvas", "canvasstudent"), listOf("com.instructure.candroid"), prefix = true),
+        CuratedApp(listOf("teams", "microsoftteams"), listOf("com.microsoft.teams")),
+        CuratedApp(listOf("notion"), listOf("notion.id"), prefix = true),
+        CuratedApp(listOf("drive", "googledrive"), listOf("com.google.android.apps.docs")),
+        CuratedApp(listOf("documentos", "googledocs", "docs"), listOf("com.google.android.apps.docs.editors.docs")),
+        CuratedApp(listOf("hojasdecalculo", "googlesheets", "sheets"), listOf("com.google.android.apps.docs.editors.sheets")),
+        CuratedApp(listOf("presentaciones", "googleslides", "slides"), listOf("com.google.android.apps.docs.editors.slides")),
+        CuratedApp(listOf("word", "microsoftword"), listOf("com.microsoft.office.word")),
+        CuratedApp(listOf("excel", "microsoftexcel"), listOf("com.microsoft.office.excel")),
+        CuratedApp(listOf("powerpoint", "microsoftpowerpoint"), listOf("com.microsoft.office.powerpoint")),
+        CuratedApp(listOf("onenote", "microsoftonenote"), listOf("com.microsoft.office.onenote")),
+        CuratedApp(listOf("microsoft365", "office"), listOf("com.microsoft.office.officehubrow")),
+        CuratedApp(listOf("moodle"), listOf("com.moodle.moodlemobile"), prefix = true),
+        CuratedApp(listOf("blackboard"), listOf("com.blackboard.android.bbstudent"), prefix = true),
+        CuratedApp(listOf("duolingo"), listOf("com.duolingo")),
+        CuratedApp(listOf("kahoot"), listOf("no.mobitroll.kahoot.android"), prefix = true),
+        CuratedApp(listOf("quizlet"), listOf("com.quizlet.quizletandroid"), prefix = true),
+        CuratedApp(listOf("zoom"), listOf("us.zoom.videomeetings"), prefix = true),
+        CuratedApp(listOf("meet", "googlemeet"), listOf("com.google.android.apps.tachyon", "com.google.android.apps.meetings")),
+        CuratedApp(listOf("acrobat", "adobereader"), listOf("com.adobe.reader"), prefix = true),
+        CuratedApp(listOf("goodnotes"), emptyList(), prefix = true),
     )
 
     private val entertainmentApps = listOf(
@@ -66,6 +105,12 @@ class AppRepository(private val context: Context) {
         CuratedApp(listOf("crunchyroll"), listOf("com.crunchyroll.crunchyroid")),
         CuratedApp(listOf("foxone"), listOf("com.foxappy.astericmx"), prefix = true),
         CuratedApp(listOf("youtube"), listOf("com.google.android.youtube")),
+        CuratedApp(listOf("instagram"), listOf("com.instagram.android")),
+        CuratedApp(listOf("tiktok"), listOf("com.zhiliaoapp.musically", "com.ss.android.ugc.trill")),
+        CuratedApp(listOf("x", "twitter"), listOf("com.twitter.android")),
+        CuratedApp(listOf("facebook"), listOf("com.facebook.katana")),
+        CuratedApp(listOf("reddit"), listOf("com.reddit.frontpage")),
+        CuratedApp(listOf("twitch"), listOf("tv.twitch.android.app")),
     )
 
     private val gameApps = listOf(
@@ -86,11 +131,15 @@ class AppRepository(private val context: Context) {
             val packageName = info.activityInfo.packageName
             if (packageName == context.packageName) return@mapNotNull null
             val label = info.loadLabel(pm).toString()
-            val (section, order) = classify(packageName, label)
+            val isSystemGame = info.activityInfo.applicationInfo?.category == ApplicationInfo.CATEGORY_GAME
+            val (section, categoryId, order) = classify(packageName, label, isSystemGame)
             val app = LauncherApp(
-                packageName, label, section,
+                packageName = packageName,
+                label = label,
+                section = section,
                 isEntertainment = section == AppSection.ENTERTAINMENT || section == AppSection.GAMES || packageName in distractingPackages,
                 isVault = section == AppSection.VAULT,
+                categoryId = categoryId,
             )
             app to order
         }.distinctBy { it.first.packageName }
@@ -98,17 +147,24 @@ class AppRepository(private val context: Context) {
             .map { it.first }
     }
 
-    private fun classify(packageName: String, label: String): Pair<AppSection, Int> {
-        listOf(
-            AppSection.VAULT to vaultApps,
-            AppSection.ESSENTIAL to essentialApps,
-            AppSection.ENTERTAINMENT to entertainmentApps,
-            AppSection.GAMES to gameApps,
-        ).forEach { (section, curated) ->
-            val index = curated.indexOfFirst { it.matches(packageName, label) }
-            if (index >= 0) return section to index
+    private fun classify(packageName: String, label: String, isSystemGame: Boolean): Triple<AppSection, String, Int> {
+        vaultApps.indexOfFirst { it.matches(packageName, label) }.takeIf { it >= 0 }?.let {
+            return Triple(AppSection.VAULT, "vault", it)
         }
-        return AppSection.OTHER to Int.MAX_VALUE
+        essentialApps.indexOfFirst { it.matches(packageName, label) }.takeIf { it >= 0 }?.let {
+            return Triple(AppSection.ESSENTIAL, "apps", it)
+        }
+        schoolApps.indexOfFirst { it.matches(packageName, label) }.takeIf { it >= 0 }?.let {
+            return Triple(AppSection.OTHER, "school", 100 + it)
+        }
+        entertainmentApps.indexOfFirst { it.matches(packageName, label) }.takeIf { it >= 0 }?.let {
+            return Triple(AppSection.ENTERTAINMENT, "entertainment", 200 + it)
+        }
+        gameApps.indexOfFirst { it.matches(packageName, label) }.takeIf { it >= 0 }?.let {
+            return Triple(AppSection.GAMES, "games", 300 + it)
+        }
+        if (isSystemGame) return Triple(AppSection.GAMES, "games", 400)
+        return Triple(AppSection.OTHER, "all", Int.MAX_VALUE)
     }
 
     fun openApp(packageName: String) {

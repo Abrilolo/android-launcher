@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +20,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +39,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,6 +61,9 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -69,28 +76,29 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.GRID_COLUMNS
 import com.adrian.minimallauncher.data.GridSize
 import com.adrian.minimallauncher.data.HomePage
-import com.adrian.minimallauncher.data.catalogSizesFor
 import com.adrian.minimallauncher.data.HomePages
 import com.adrian.minimallauncher.data.PageKind
 import com.adrian.minimallauncher.data.WidgetStackConfig
+import com.adrian.minimallauncher.data.catalogSizesFor
+import com.adrian.minimallauncher.data.defaultBgAlpha
 import com.adrian.minimallauncher.feature.CardFill
 import com.adrian.minimallauncher.feature.CardLine
 import com.adrian.minimallauncher.feature.ModuleHeader
-import com.adrian.minimallauncher.feature.ModuleTextField
+import com.adrian.minimallauncher.feature.SearchField
 import com.adrian.minimallauncher.feature.SmallLabel
+import com.adrian.minimallauncher.feature.ai.LocalAiReplay
 import com.adrian.minimallauncher.ui.components.GearLineIcon
 import com.adrian.minimallauncher.ui.components.WIDGET_LABELS
 import com.adrian.minimallauncher.ui.components.WidgetContent
 import com.adrian.minimallauncher.ui.components.widgetCard
-import com.adrian.minimallauncher.data.defaultBgAlpha
-import com.adrian.minimallauncher.feature.ai.LocalAiReplay
-import androidx.compose.runtime.mutableStateMapOf
 import java.time.LocalDateTime
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharedFlow
@@ -134,9 +142,10 @@ val LocalSelectedStack = compositionLocalOf { mutableStateOf<String?>(null) }
 
 /**
  * The home screen as a row of pages, Samsung style. The main page is shown first and the
- * home button returns to it. Long press on empty space enters full-page edit mode: pages shrink,
- * each gets a house (make it the main page) and a trash can, both ends get a "+" to add a widget
- * page, and a bottom bar offers Widgets and Ajustes. Long-pressing a widget opens its in-place menu.
+ * home button returns to it. Swiping up on any page opens the full-screen App Drawer.
+ * Long press on empty space enters full-page edit mode: pages shrink, each gets a house
+ * (make it the main page) and a trash can, both ends get a "+" to add a widget page,
+ * and a bottom bar offers Widgets and Ajustes. Long-pressing a widget opens its in-place menu.
  */
 @Composable
 fun HomePagesHost(
@@ -151,6 +160,7 @@ fun HomePagesHost(
     onRestoreWeek: () -> Unit,
     onAddWidget: (pageId: String, widgetId: String, stackId: String?, size: GridSize, at: Pair<Int, Int>?) -> Unit,
     onSettings: () -> Unit,
+    onOpenApps: () -> Unit = {},
     overlayOpen: Boolean = false,
     pageContent: @Composable (HomePage, PageScope) -> Unit,
 ) {
@@ -168,6 +178,8 @@ fun HomePagesHost(
     var hostWidth by remember { mutableStateOf(0) }
     val density = LocalDensity.current
     val pageCount by rememberUpdatedState(list.size)
+    val latestOpenApps by rememberUpdatedState(onOpenApps)
+    val swipeUpThresholdPx = with(density) { 56.dp.toPx() }
 
     // Times each page was landed on; its assistant widgets animate on every arrival.
     val arrivals = remember { mutableStateMapOf<String, Int>() }
@@ -203,12 +215,12 @@ fun HomePagesHost(
         var waited = 0
         while (true) {
             delay(100)
-            val now = when {
+            val nowSide = when {
                 held.window.x < edge -> -1
                 hostWidth > 0 && held.window.x > hostWidth - edge -> 1
                 else -> 0
             }
-            if (now != side) { side = now; waited = 0; continue }
+            if (nowSide != side) { side = nowSide; waited = 0; continue }
             if (side == 0) continue
             waited += 100
             if (waited >= 600) {
@@ -226,77 +238,114 @@ fun HomePagesHost(
     }
     val goToMain: () -> Unit = { scope.launch { pagerState.animateScrollToPage(pages.mainIndex + offset) } }
 
+    var unconsumedUpDrag by remember { mutableFloatStateOf(0f) }
+    val swipeUpNestedScroll = remember(atRootHome, swipeUpThresholdPx) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y > 0f) unconsumedUpDrag = 0f
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (atRootHome && source == NestedScrollSource.UserInput && available.y < 0f) {
+                    unconsumedUpDrag += -available.y
+                    if (unconsumedUpDrag >= swipeUpThresholdPx) {
+                        unconsumedUpDrag = 0f
+                        latestOpenApps()
+                    }
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                unconsumedUpDrag = 0f
+                return Velocity.Zero
+            }
+        }
+    }
+
     Box(
         Modifier
             .fillMaxSize()
             .then(if (atRootHome) Modifier.systemGestureExclusion() else Modifier)
             .background(MaterialTheme.colorScheme.background)
+            .nestedScroll(swipeUpNestedScroll)
             .onGloballyPositioned { hostCoords = it }
             .onSizeChanged { hostWidth = it.width },
     ) {
-      CompositionLocalProvider(LocalWidgetCarry provides carry) {
-        // In edit mode the page chrome and toolbar sit outside the pages, so they need the system bar insets themselves.
-        Column(if (editMode) Modifier.fillMaxSize().safeDrawingPadding() else Modifier.fillMaxSize()) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f),
-                contentPadding = if (editMode) PaddingValues(horizontal = 36.dp) else PaddingValues(0.dp),
-                pageSpacing = if (editMode) 12.dp else 0.dp,
-                key = { index -> list.getOrNull(index - offset)?.id ?: if (index == 0) "add_start" else "add_end" },
-            ) { index ->
-                val page = list.getOrNull(index - offset)
-                val touchOnWidget = remember { booleanArrayOf(false) }
-                val selectedStack = remember { mutableStateOf<String?>(null) }
-                CompositionLocalProvider(
-                    LocalPageId provides page?.id,
-                    LocalAiReplay provides (page?.id?.let { arrivals[it] } ?: 0),
-                    LocalTouchOnWidget provides touchOnWidget,
-                    LocalSelectedStack provides selectedStack,
-                ) {
-                when {
-                    page == null -> AddPageSlot(atStart = index == 0) {
-                        val id = onAddPage(index == 0)
-                        currentId = id
-                    }
-                    editMode -> EditablePage(
-                        page = page,
-                        isMain = page.id == pages.mainId,
-                        onSetMain = { onSetMain(page.id) },
-                        onDelete = {
-                            // Stay next to the deleted page, as One UI does, instead of jumping to the main one.
-                            val index = list.indexOf(page)
-                            list.getOrNull(index - 1)?.let { currentId = it.id } ?: list.getOrNull(index + 1)?.let { currentId = it.id }
-                            onDeletePage(page.id)
-                        },
-                        // Pages with widgets stay interactive (their stacks have edit controls; Apps covers its list itself).
-                        // A tap on Semana leaves edit mode.
-                        onTapPage = if (page.kind.hasWidgets) null else ({ editMode = false }),
+        CompositionLocalProvider(LocalWidgetCarry provides carry) {
+            // In edit mode the page chrome and toolbar sit outside the pages, so they need the system bar insets themselves.
+            Column(if (editMode) Modifier.fillMaxSize().safeDrawingPadding() else Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = if (editMode) PaddingValues(horizontal = 36.dp) else PaddingValues(0.dp),
+                    pageSpacing = if (editMode) 12.dp else 0.dp,
+                    key = { index -> list.getOrNull(index - offset)?.id ?: if (index == 0) "add_start" else "add_end" },
+                ) { index ->
+                    val page = list.getOrNull(index - offset)
+                    val touchOnWidget = remember { booleanArrayOf(false) }
+                    val selectedStack = remember { mutableStateOf<String?>(null) }
+                    CompositionLocalProvider(
+                        LocalPageId provides page?.id,
+                        LocalAiReplay provides (page?.id?.let { arrivals[it] } ?: 0),
+                        LocalTouchOnWidget provides touchOnWidget,
+                        LocalSelectedStack provides selectedStack,
                     ) {
-                        pageContent(page, PageScope(true, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
-                    }
-                    else -> Box(Modifier.fillMaxSize().longPressOnEmptySpace(touchOnWidget, { selectedStack.value = null }, enterEdit)) {
-                        pageContent(page, PageScope(false, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
+                        when {
+                            page == null -> AddPageSlot(atStart = index == 0) {
+                                val id = onAddPage(index == 0)
+                                currentId = id
+                            }
+                            editMode -> EditablePage(
+                                page = page,
+                                isMain = page.id == pages.mainId,
+                                onSetMain = { onSetMain(page.id) },
+                                onDelete = {
+                                    // Stay next to the deleted page, as One UI does, instead of jumping to the main one.
+                                    val idx = list.indexOf(page)
+                                    list.getOrNull(idx - 1)?.let { currentId = it.id } ?: list.getOrNull(idx + 1)?.let { currentId = it.id }
+                                    onDeletePage(page.id)
+                                },
+                                // Pages with widgets stay interactive (their stacks have edit controls).
+                                // A tap on Semana leaves edit mode.
+                                onTapPage = if (page.kind.hasWidgets) null else ({ editMode = false }),
+                            ) {
+                                pageContent(page, PageScope(true, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
+                            }
+                            else -> Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .longPressOrSwipeUpOnPage(
+                                        touchOnWidget = touchOnWidget,
+                                        swipeUpThresholdPx = swipeUpThresholdPx,
+                                        onTouchEmpty = { selectedStack.value = null },
+                                        onLongPress = enterEdit,
+                                        onSwipeUp = { if (atRootHome) latestOpenApps() },
+                                    ),
+                            ) {
+                                pageContent(page, PageScope(false, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
+                            }
+                        }
                     }
                 }
+                AnimatedVisibility(editMode) {
+                    EditToolbar(
+                        weekDeleted = list.none { it.kind == PageKind.WEEK },
+                        onWidgets = {
+                            val current = list.firstOrNull { it.id == currentId }
+                            val pageId = current?.takeIf { it.kind.hasWidgets }?.id
+                                ?: list.firstOrNull { it.kind == PageKind.WIDGETS }?.id
+                                ?: onAddPage(false)
+                            catalogTarget = CatalogTarget(pageId, null)
+                        },
+                        onSettings = { editMode = false; onSettings() },
+                        onRestoreWeek = onRestoreWeek,
+                        onDone = { editMode = false },
+                    )
                 }
-            }
-            AnimatedVisibility(editMode) {
-                EditToolbar(
-                    weekDeleted = list.none { it.kind == PageKind.WEEK },
-                    onWidgets = {
-                        val current = list.firstOrNull { it.id == currentId }
-                        val pageId = current?.takeIf { it.kind.hasWidgets }?.id
-                            ?: list.firstOrNull { it.kind == PageKind.WIDGETS }?.id
-                            ?: onAddPage(false)
-                        catalogTarget = CatalogTarget(pageId, null)
-                    },
-                    onSettings = { editMode = false; onSettings() },
-                    onRestoreWeek = onRestoreWeek,
-                    onDone = { editMode = false },
-                )
             }
         }
-      }
         catalogTarget?.let { target ->
             WidgetCatalog(
                 data = data,
@@ -365,34 +414,60 @@ fun HomePagesHost(
 private data class CatalogTarget(val pageId: String, val stackId: String?)
 
 /**
- * Long press on any empty space of the page (including the app list or headers), but NOT when the
- * finger goes down on a widget (which sets [touchOnWidget] during the Initial pass and opens its own
- * in-place popup menu instead).
+ * Long press on any empty space of the page (not when the finger goes down on a widget),
+ * or upward swipe gesture to open the App Drawer (Samsung One UI / Android style).
  */
-fun Modifier.longPressOnEmptySpace(touchOnWidget: BooleanArray, onTouchEmpty: () -> Unit, onLongPress: () -> Unit): Modifier = pointerInput(touchOnWidget) {
+fun Modifier.longPressOrSwipeUpOnPage(
+    touchOnWidget: BooleanArray,
+    swipeUpThresholdPx: Float,
+    onTouchEmpty: () -> Unit,
+    onLongPress: () -> Unit,
+    onSwipeUp: () -> Unit,
+): Modifier = pointerInput(touchOnWidget, swipeUpThresholdPx) {
     val latestEmpty = onTouchEmpty
-    val latest = onLongPress
+    val latestLongPress = onLongPress
+    val latestSwipeUp = onSwipeUp
     awaitEachGesture {
         touchOnWidget[0] = false
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
         // Wait for the Main pass of the down event so child widgets have set touchOnWidget[0] = true if touched.
         awaitPointerEvent(PointerEventPass.Main)
         if (!touchOnWidget[0]) latestEmpty()
-        // Null means the finger stayed down and still past the timeout: a long press.
+        var movedPastSlop = false
         val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
             var ended = false
             while (!ended) {
                 val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
-                ended = change == null || !change.pressed || (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+                if (change == null || !change.pressed) {
+                    ended = true
+                } else {
+                    val delta = change.position - down.position
+                    if (delta.getDistance() > viewConfiguration.touchSlop) {
+                        movedPastSlop = true
+                        ended = true
+                    }
+                }
             }
             true
         }
-        // Only enter full-page edit mode if the touch was NOT on a widget.
         if (released == null && !touchOnWidget[0]) {
-            latest()
+            latestLongPress()
             do {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 event.changes.forEach { it.consume() }
+            } while (event.changes.any { it.pressed })
+        } else if (movedPastSlop) {
+            var swipedUp = false
+            do {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.firstOrNull { it.id == down.id }
+                if (change != null && !swipedUp) {
+                    val delta = change.position - down.position
+                    if (delta.y <= -swipeUpThresholdPx && abs(delta.y) > abs(delta.x) * 1.35f) {
+                        swipedUp = true
+                        latestSwipeUp()
+                    }
+                }
             } while (event.changes.any { it.pressed })
         }
     }
@@ -413,11 +488,11 @@ private fun EditablePage(
                 contentDescription = if (isMain) "Página principal" else "Hacer página principal"
             })
             SmallLabel(
-                when (page.kind) { PageKind.APPS -> "APPS"; PageKind.WEEK -> "SEMANA"; PageKind.WIDGETS -> "WIDGETS" },
+                when (page.kind) { PageKind.APPS -> "INICIO"; PageKind.WEEK -> "SEMANA"; PageKind.WIDGETS -> "WIDGETS" },
                 Modifier.weight(1f),
                 color = if (isMain) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // The app list can't be deleted: apps only live there.
+            // The primary home page can't be deleted.
             if (page.kind != PageKind.APPS) {
                 TrashIcon(Modifier.clickable(role = Role.Button, onClick = onDelete).padding(12.dp).semantics { contentDescription = "Borrar página" })
             }
@@ -631,9 +706,8 @@ private fun WidgetCatalog(
             .padding(horizontal = 24.dp),
     ) {
         ModuleHeader(if (addingToStack) "AGREGAR A LA PILA" else "WIDGETS", onClose, Modifier.padding(top = 8.dp))
-        ModuleTextField(query, { query = it }, "Buscar widgets", Modifier.fillMaxWidth().padding(vertical = 8.dp))
+        SearchField(query, { query = it }, Modifier.fillMaxWidth().padding(vertical = 8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            if (widgets.isEmpty()) SmallLabel("SIN RESULTADOS", Modifier.padding(vertical = 16.dp))
             widgets.forEach { (id, label) ->
                 // Joining a stack takes the stack's size, so there is only one layout to pick.
                 val sizes = if (addingToStack) catalogSizesFor(id).take(1) else catalogSizesFor(id)

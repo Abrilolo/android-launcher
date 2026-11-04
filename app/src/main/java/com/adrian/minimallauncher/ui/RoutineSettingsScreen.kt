@@ -97,7 +97,7 @@ private val GroupLabels = listOf(AppGroup.ESSENTIAL to "ESENCIALES", AppGroup.OT
 /** The group an app belongs to under the phase rule; vault apps always open, so they belong to none. */
 private fun LauncherApp.group(): AppGroup? = when {
     isVault -> null
-    isEssential -> AppGroup.ESSENTIAL
+    !isEntertainment -> AppGroup.ESSENTIAL
     isEntertainment -> AppGroup.ENTERTAINMENT
     else -> AppGroup.OTHER
 }

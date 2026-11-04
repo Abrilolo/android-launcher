@@ -1,4 +1,5 @@
 package com.adrian.minimallauncher.ui.components
+
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,7 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.LauncherApp
 import kotlinx.coroutines.launch
+
 private fun LauncherApp.indexLetter(): Char = label.trim().firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetter) ?: '#'
+
 /**
  * Shows at most [visibleRows] apps and scrolls inside that window, so the section
  * headers around it stay in place. With [alphabetIndex], a letter strip on the left
@@ -44,14 +48,16 @@ fun AppList(
     onClick: (LauncherApp) -> Unit,
     colorFor: @Composable (LauncherApp) -> Color,
     lockedFor: (LauncherApp) -> Boolean = { false },
+    badgeFor: (LauncherApp) -> String? = { null },
+    onLongClick: ((LauncherApp) -> Unit)? = null,
     alphabetIndex: Boolean = false,
     emptyText: String? = null,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     if (apps.isEmpty()) {
         if (emptyText != null) Text(emptyText, Modifier.padding(vertical = 8.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-    val listState = rememberLazyListState()
     val height = appItemHeight() * minOf(apps.size, visibleRows)
     Row(Modifier.fillMaxWidth().height(height)) {
         if (alphabetIndex && apps.size > visibleRows) {
@@ -66,11 +72,19 @@ fun AppList(
         }
         LazyColumn(Modifier.weight(1f).fillMaxHeight(), listState) {
             itemsIndexed(apps, key = { _, app -> app.packageName }) { _, app ->
-                AppTextItem(app.label, { onClick(app) }, colorFor(app), lockedFor(app))
+                AppTextItem(
+                    label = app.label,
+                    onClick = { onClick(app) },
+                    color = colorFor(app),
+                    locked = lockedFor(app),
+                    badge = badgeFor(app),
+                    onLongClick = onLongClick?.let { handler -> { handler(app) } },
+                )
             }
         }
     }
 }
+
 @Composable
 private fun LetterStrip(letters: List<Char>, selected: Char?, onSelect: (Char?) -> Unit) {
     Column(

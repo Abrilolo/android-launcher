@@ -1,6 +1,7 @@
 package com.adrian.minimallauncher.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import java.util.Base64
 import java.time.LocalTime
 
-val DEFAULT_SECTION_ORDER = listOf("apps", "entertainment", "games", "all")
+val DEFAULT_SECTION_ORDER = listOf("apps", "school", "entertainment", "games", "all")
 private val Context.settings by preferencesDataStore(name = "settings")
 
 /** Per-module preferences edited from the Módulos page (and each module's own settings). */
@@ -118,11 +119,11 @@ val DEFAULT_WIDGET_LAYOUT = listOf(
     WidgetStackConfig("stack_notes", listOf("notes"), span = 2),
 )
 
-/** What a home page shows: the week summary, the app list, or a grid of widgets. */
+/** What a home page shows: the week summary, the main widget page, or an extra grid of widgets. */
 enum class PageKind {
     WEEK, APPS, WIDGETS;
 
-    /** Apps has widgets above its list; Semana is a fixed summary. */
+    /** Main and extra widget pages hold widgets; Semana is a fixed summary. */
     val hasWidgets: Boolean get() = this != WEEK
 }
 
@@ -146,6 +147,9 @@ class SettingsRepository(context: Context) {
     private val hiddenSectionsKey = stringSetPreferencesKey("hidden_sections")
     private val pauseSecondsKey = intPreferencesKey("pause_seconds")
     private val sectionOrderKey = stringPreferencesKey("section_order")
+    private val appCategoriesKey = stringPreferencesKey("app_categories")
+    private val appCategoryMapKey = stringPreferencesKey("app_category_map")
+    private val appDistractionMapKey = stringPreferencesKey("app_distraction_map")
     private val exerciseStartKey = stringPreferencesKey("exercise_start")
     private val exerciseRestKey = intPreferencesKey("exercise_rest_seconds")
     private val vaultLockKey = intPreferencesKey("vault_lock_seconds")
@@ -197,9 +201,21 @@ class SettingsRepository(context: Context) {
         }.getOrNull() }?.takeIf { it.size == Space.all.size } ?: Space.all
     }
 
-    val hiddenSections = context.settings.data.map { it[hiddenSectionsKey].orEmpty() }
+    /** User-defined app categories in display order; always includes "all" ("Todas"). */
+    val appCategories = context.settings.data.map { prefs -> readAppCategories(prefs) }
+
+    /** Per-app category assignment (`packageName -> categoryId`). */
+    val appCategoryMap = context.settings.data.map { prefs -> decodeStringMap(prefs[appCategoryMapKey]) }
+
+    /** Per-app distraction override (`packageName -> isDistraction`). */
+    val appDistractionMap = context.settings.data.map { prefs ->
+        decodeStringMap(prefs[appDistractionMapKey]).mapValues { (_, v) -> v == "1" || v.equals("true", ignoreCase = true) }
+    }
+
+    val hiddenSections = appCategories.map { cats -> cats.filterNot { it.visible }.map { it.id }.toSet() }
     val pauseSeconds = context.settings.data.map { it[pauseSecondsKey] ?: 30 }
-    val sectionOrder = context.settings.data.map { prefs -> normalizeOrder(prefs[sectionOrderKey]?.split(',').orEmpty()) }
+    val sectionOrder = appCategories.map { cats -> cats.map { it.id } }
+
     val homePages = context.settings.data.map { prefs ->
         val pages = prefs[homePagesKey]?.split(',')?.mapNotNull { entry ->
             val (id, kind) = entry.split(':').takeIf { it.size == 2 } ?: return@mapNotNull null
@@ -222,6 +238,7 @@ class SettingsRepository(context: Context) {
         }
         if (APPS_PAGE in layouts) layouts else layouts + (APPS_PAGE to APPS_DEFAULT_LAYOUT)
     }
+
     val moduleSettings = context.settings.data.map { prefs ->
         val default = ModuleSettings()
         ModuleSettings(
@@ -259,28 +276,150 @@ class SettingsRepository(context: Context) {
     /** When the last backup file was written, or null if never. */
     val lastBackupAt = context.settings.data.map { it[lastBackupKey] }
 
-    // Drops unknown ids and appends sections added after the order was saved.
-    private fun normalizeOrder(saved: List<String>) = saved.filter { it in DEFAULT_SECTION_ORDER }.distinct().let { it + (DEFAULT_SECTION_ORDER - it.toSet()) }
+    private fun readAppCategories(prefs: Preferences): List<AppCategory> {
+        val raw = prefs[appCategoriesKey]
+        if (!raw.isNullOrBlank()) {
+            val decoded = raw.split('|').mapNotNull { row ->
+                val p = row.split('~')
+                if (p.size < 4) null
+                else runCatching {
+                    AppCategory(
+                        id = decode(p[0]),
+                        name = decode(p[1]),
+                        isDistraction = p[2] == "1" || p[2].equals("true", ignoreCase = true),
+                        visible = p[3] == "1" || p[3].equals("true", ignoreCase = true),
+                    )
+                }.getOrNull()
+            }.distinctBy { it.id }
+            if (decoded.isNotEmpty()) {
+                return if (decoded.any { it.id == "all" }) decoded else decoded + AppCategory("all", "Todas", isDistraction = false, visible = true)
+            }
+        }
+        // Migrate from legacy hiddenSections / sectionOrder if present
+        val legacyHidden = prefs[hiddenSectionsKey].orEmpty()
+        val legacyOrder = prefs[sectionOrderKey]?.split(',')?.filter(String::isNotBlank).orEmpty()
+        val byId = DEFAULT_APP_CATEGORIES.associateBy { it.id }
+        val orderedIds = if (legacyOrder.isEmpty()) {
+            DEFAULT_APP_CATEGORIES.map { it.id }
+        } else {
+            val base = legacyOrder.filter { it in byId }.distinct().toMutableList()
+            // Insert "school" right after "apps" (or at start) when migrating from legacy 4-tab order
+            if ("school" !in base) {
+                val appsIdx = base.indexOf("apps")
+                base.add(if (appsIdx >= 0) appsIdx + 1 else 0, "school")
+            }
+            DEFAULT_APP_CATEGORIES.map { it.id }.forEach { if (it !in base) base.add(it) }
+            base
+        }
+        return orderedIds.mapNotNull { id ->
+            byId[id]?.copy(visible = id !in legacyHidden)
+        }
+    }
+
+    private fun encodeAppCategories(categories: List<AppCategory>): String {
+        val normalized = if (categories.any { it.id == "all" }) categories else categories + AppCategory("all", "Todas", isDistraction = false, visible = true)
+        return normalized.joinToString("|") { cat ->
+            "${encode(cat.id)}~${encode(cat.name)}~${if (cat.isDistraction) "1" else "0"}~${if (cat.visible) "1" else "0"}"
+        }
+    }
+
+    private fun decodeStringMap(text: String?): Map<String, String> = text.orEmpty().split('|').mapNotNull { pair ->
+        val (k, v) = pair.split('=').takeIf { it.size == 2 }?.let { runCatching { decode(it[0]) to decode(it[1]) }.getOrNull() } ?: return@mapNotNull null
+        if (k.isBlank()) null else k to v
+    }.toMap()
+
+    private fun encodeStringMap(map: Map<String, String>): String =
+        map.entries.joinToString("|") { "${encode(it.key)}=${encode(it.value)}" }
+
     private fun encode(value: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String) = String(Base64.getUrlDecoder().decode(value), Charsets.UTF_8)
 
-    private fun decodePlan(text: String?): Map<String, String> = text.orEmpty().split('|').mapNotNull { pair ->
-        val (slot, recipe) = pair.split('=').takeIf { it.size == 2 }?.let { decode(it[0]) to decode(it[1]) } ?: return@mapNotNull null
-        slot to recipe
-    }.toMap()
+    private fun decodePlan(text: String?): Map<String, String> = decodeStringMap(text)
 
     /** Plans [recipeId] for meal slot [slotId] (null clears it). */
     suspend fun setMealPlan(slotId: String, recipeId: String?) {
         context.settings.edit { prefs ->
             val plan = decodePlan(prefs[mealPlanKey]).toMutableMap()
             if (recipeId == null) plan.remove(slotId) else plan[slotId] = recipeId
-            prefs[mealPlanKey] = plan.entries.joinToString("|") { "${encode(it.key)}=${encode(it.value)}" }
+            prefs[mealPlanKey] = encodeStringMap(plan)
         }
     }
 
     /** Replaces the whole plan (backup import). */
     suspend fun setMealPlans(plan: Map<String, String>) {
-        context.settings.edit { prefs -> prefs[mealPlanKey] = plan.entries.joinToString("|") { "${encode(it.key)}=${encode(it.value)}" } }
+        context.settings.edit { prefs -> prefs[mealPlanKey] = encodeStringMap(plan) }
+    }
+
+    suspend fun setAppCategories(categories: List<AppCategory>) {
+        context.settings.edit { prefs ->
+            prefs[appCategoriesKey] = encodeAppCategories(categories)
+        }
+    }
+
+    suspend fun setAppCategory(packageName: String, categoryId: String) {
+        context.settings.edit { prefs ->
+            val map = decodeStringMap(prefs[appCategoryMapKey]).toMutableMap()
+            map[packageName] = categoryId
+            prefs[appCategoryMapKey] = encodeStringMap(map)
+            // Moving an app to a category clears any per-app override so it inherits the category's distraction rule.
+            val dist = decodeStringMap(prefs[appDistractionMapKey]).toMutableMap()
+            if (dist.remove(packageName) != null) {
+                prefs[appDistractionMapKey] = encodeStringMap(dist)
+            }
+        }
+    }
+
+    suspend fun setCategoryApps(categoryId: String, selectedPackages: Set<String>, currentCategoryByPackage: Map<String, String>) {
+        context.settings.edit { prefs ->
+            val map = decodeStringMap(prefs[appCategoryMapKey]).toMutableMap()
+            val dist = decodeStringMap(prefs[appDistractionMapKey]).toMutableMap()
+            currentCategoryByPackage.forEach { (pkg, currentCat) ->
+                when {
+                    pkg in selectedPackages && currentCat != categoryId -> {
+                        map[pkg] = categoryId
+                        dist.remove(pkg)
+                    }
+                    pkg !in selectedPackages && currentCat == categoryId -> {
+                        map[pkg] = "all"
+                        dist.remove(pkg)
+                    }
+                }
+            }
+            selectedPackages.forEach { pkg ->
+                if (map[pkg] != categoryId) {
+                    map[pkg] = categoryId
+                    dist.remove(pkg)
+                }
+            }
+            prefs[appCategoryMapKey] = encodeStringMap(map)
+            prefs[appDistractionMapKey] = encodeStringMap(dist)
+        }
+    }
+
+    suspend fun setAppDistraction(packageName: String, isDistraction: Boolean) {
+        context.settings.edit { prefs ->
+            val dist = decodeStringMap(prefs[appDistractionMapKey]).toMutableMap()
+            dist[packageName] = if (isDistraction) "1" else "0"
+            prefs[appDistractionMapKey] = encodeStringMap(dist)
+        }
+    }
+
+    suspend fun setAppCategoryMap(map: Map<String, String>) {
+        context.settings.edit { prefs -> prefs[appCategoryMapKey] = encodeStringMap(map) }
+    }
+
+    suspend fun setAppDistractionMap(map: Map<String, Boolean>) {
+        context.settings.edit { prefs -> prefs[appDistractionMapKey] = encodeStringMap(map.mapValues { if (it.value) "1" else "0" }) }
+    }
+
+    suspend fun deleteAppCategory(categoryId: String) {
+        if (categoryId == "all") return
+        context.settings.edit { prefs ->
+            val current = readAppCategories(prefs).filterNot { it.id == categoryId }
+            prefs[appCategoriesKey] = encodeAppCategories(current)
+            val map = decodeStringMap(prefs[appCategoryMapKey]).filterValues { it != categoryId }
+            prefs[appCategoryMapKey] = encodeStringMap(map)
+        }
     }
 
     private fun encodeMeals(meals: List<MealSlot>) =
@@ -344,20 +483,19 @@ class SettingsRepository(context: Context) {
 
     suspend fun setSectionVisible(section: String, visible: Boolean) {
         context.settings.edit { prefs ->
-            val hidden = prefs[hiddenSectionsKey].orEmpty().toMutableSet()
-            if (visible) hidden.remove(section) else hidden.add(section)
-            prefs[hiddenSectionsKey] = hidden
+            val updated = readAppCategories(prefs).map { if (it.id == section) it.copy(visible = visible) else it }
+            prefs[appCategoriesKey] = encodeAppCategories(updated)
         }
     }
 
     suspend fun moveSection(section: String, delta: Int) {
         context.settings.edit { prefs ->
-            val order = normalizeOrder(prefs[sectionOrderKey]?.split(',').orEmpty()).toMutableList()
-            val from = order.indexOf(section)
+            val list = readAppCategories(prefs).toMutableList()
+            val from = list.indexOfFirst { it.id == section }
             val to = from + delta
-            if (from < 0 || to !in order.indices) return@edit
-            order.add(to, order.removeAt(from))
-            prefs[sectionOrderKey] = order.joinToString(",")
+            if (from < 0 || to !in list.indices) return@edit
+            list.add(to, list.removeAt(from))
+            prefs[appCategoriesKey] = encodeAppCategories(list)
         }
     }
 

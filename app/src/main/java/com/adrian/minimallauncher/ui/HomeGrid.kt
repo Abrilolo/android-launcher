@@ -1,6 +1,5 @@
 package com.adrian.minimallauncher.ui
 
-import com.adrian.minimallauncher.ui.components.RoutineWidgetData
 import android.app.AlarmManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -34,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.adrian.minimallauncher.data.LauncherApp
 import com.adrian.minimallauncher.data.MealKind
 import com.adrian.minimallauncher.data.MealSlot
 import com.adrian.minimallauncher.data.ModuleSettings
@@ -53,11 +54,13 @@ import com.adrian.minimallauncher.feature.ai.AiApp
 import com.adrian.minimallauncher.feature.ai.AiAppState
 import com.adrian.minimallauncher.feature.exercise.ExerciseDay
 import com.adrian.minimallauncher.feature.finance.formatPesos
+import com.adrian.minimallauncher.ui.components.AppTextItem
 import com.adrian.minimallauncher.ui.components.DotActivation
 import com.adrian.minimallauncher.ui.components.DotIcon
 import com.adrian.minimallauncher.ui.components.DotIcons
 import com.adrian.minimallauncher.ui.components.DotMatrixText
 import com.adrian.minimallauncher.ui.components.LocalReactions
+import com.adrian.minimallauncher.ui.components.RoutineWidgetData
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -128,8 +131,8 @@ data class HomeData(
 )
 
 /**
- * A widget page: clock and the page's widget stacks. Long press (anywhere on empty space, handled by the
- * pages host) turns on edit mode, where each stack shows its own controls.
+ * A widget page: the page's widget stacks, and on the main page ([essentialApps]) the essential apps below them.
+ * Long press (anywhere on empty space, handled by the pages host) turns on edit mode, where each stack shows its own controls.
  */
 @Composable
 fun HomeGrid(
@@ -148,9 +151,15 @@ fun HomeGrid(
     modifier: Modifier = Modifier,
     onRemoveStack: (stackId: String) -> Unit = {},
     onSetAlpha: (stackId: String, alpha: Float) -> Unit = { _, _ -> },
+    essentialApps: List<LauncherApp> = emptyList(),
+    isAllowed: (LauncherApp) -> Boolean = { true },
+    onOpenApp: (String) -> Unit = {},
+    onRestrictedApp: (LauncherApp) -> Unit = {},
 ) {
     val scroll = rememberScrollState()
     val scroller = rememberEdgeScroller(scroll)
+    val normal = MaterialTheme.colorScheme.onSurface
+    val dimmed = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier
             .fillMaxSize()
@@ -161,18 +170,11 @@ fun HomeGrid(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            SmallLabel(spaceName.uppercase(spanish), Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
             // U+FE0E keeps the gear as a monochrome text glyph instead of a color emoji.
             IconButton(onClick = onSettings) { Text("⚙︎", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        // The big clock is a widget now ("Reloj"), so each page decides whether it has one.
 
-        if (widgetLayout.isEmpty()) {
-            SmallLabel(
-                if (editMode) "PÁGINA VACÍA · TOCA WIDGETS ABAJO PARA AGREGAR" else "PÁGINA VACÍA · MANTÉN PRESIONADO PARA AGREGAR WIDGETS",
-                Modifier.padding(vertical = 24.dp),
-            )
-        }
         WidgetGridView(
             stacks = widgetLayout,
             editMode = editMode,
@@ -188,6 +190,29 @@ fun HomeGrid(
             onSetAlpha = onSetAlpha,
             scroller = scroller,
         )
+
+        if (essentialApps.isNotEmpty()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .graphicsLayer { alpha = if (editMode) 0.35f else 1f },
+            ) {
+                essentialApps.forEach { app ->
+                    val allowed = isAllowed(app)
+                    AppTextItem(
+                        label = app.label,
+                        onClick = {
+                            if (!editMode) {
+                                if (allowed) onOpenApp(app.packageName) else onRestrictedApp(app)
+                            }
+                        },
+                        color = if (allowed) normal else dimmed,
+                        locked = !allowed,
+                    )
+                }
+            }
+        }
     }
 }
 

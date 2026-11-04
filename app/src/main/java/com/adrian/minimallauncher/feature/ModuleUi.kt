@@ -4,10 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,9 +31,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.adrian.minimallauncher.ui.components.StrokeIcon
+import com.adrian.minimallauncher.ui.components.StrokeState
 
 /** The single accent: only for "active", "next" or "attention". */
 val LauncherRed = Color(0xFFD71921)
@@ -98,6 +101,55 @@ fun StatusDot(filled: Boolean, next: Boolean, modifier: Modifier = Modifier, siz
     )
 }
 
+/** Search bar showing only the magnifying glass icon, without placeholder text. */
+@Composable
+fun SearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.semantics { contentDescription = "Buscar" },
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+        singleLine = true,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        decorationBox = { inner ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(CardFill, shape)
+                    .border(1.dp, Color(0xFF333333), shape)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                StrokeIcon("lupa", if (value.isNotEmpty()) StrokeState.DONE else StrokeState.OFF, 18.dp)
+                Box(Modifier.weight(1f)) {
+                    inner()
+                }
+                if (value.isNotEmpty()) {
+                    Box(
+                        Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .clickable(role = Role.Button) { onValueChange("") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        StrokeIcon("no", StrokeState.OFF, 14.dp)
+                    }
+                }
+            }
+        },
+    )
+}
+
 /** Dark rounded field with the hint inside, as in the concept; [minLines] above 1 makes it multi-line. */
 @Composable
 fun ModuleTextField(
@@ -129,7 +181,7 @@ fun ModuleTextField(
                     .border(1.dp, Color(0xFF333333), shape)
                     .padding(horizontal = 14.dp, vertical = 14.dp),
             ) {
-                if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF777777))
+                if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF777777))
                 inner()
             }
         },

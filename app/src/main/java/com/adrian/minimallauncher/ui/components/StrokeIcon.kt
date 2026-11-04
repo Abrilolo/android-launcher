@@ -109,6 +109,10 @@ object StrokeIcons {
         "hoy" to StrokeGlyph("M16 12a4 4 0 1 1-8 0a4 4 0 0 1 8 0", "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"),
         "tazon" to StrokeGlyph("M3 11h18c0 5-4 9-9 9s-9-4-9-9z", "M8 11c0-3 2-5 4-5M14 8l3-3"),
         "camara" to StrokeGlyph("M4 8h3l2-3h6l2 3h3v11H4z", "M15 13a3 3 0 1 1-6 0a3 3 0 0 1 6 0"),
+        "lupa" to StrokeGlyph("M19 11a8 8 0 1 1-16 0a8 8 0 0 1 16 0M21 21l-4.35-4.35"),
+        "ojo" to StrokeGlyph("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z", "M15 12a3 3 0 1 1-6 0a3 3 0 0 1 6 0"),
+        "ojo_off" to StrokeGlyph("M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z", "M4 4l16 16"),
+        "candado_abierto" to StrokeGlyph("M7 11V8a5 5 0 0 1 9.5-2M5 11h14v10H5z", "M12 15v2"),
     )
 
     fun get(name: String): StrokeGlyph = all[name] ?: all.getValue("nueva")

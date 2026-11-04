@@ -21,9 +21,8 @@ data class Space(
 
     fun allows(app: LauncherApp): Boolean = when {
         app.isVault -> true
-        app.isEssential -> AppGroup.ESSENTIAL in availableGroups
         app.isEntertainment -> AppGroup.ENTERTAINMENT in availableGroups
-        else -> AppGroup.OTHER in availableGroups
+        else -> AppGroup.ESSENTIAL in availableGroups || AppGroup.OTHER in availableGroups
     }
 
     companion object {
