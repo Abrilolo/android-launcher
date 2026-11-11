@@ -16,13 +16,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -42,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -51,15 +48,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.routine.ActionKind
 import com.adrian.minimallauncher.data.routine.ActionState
 import com.adrian.minimallauncher.data.routine.Place
-import com.adrian.minimallauncher.data.routine.PhaseMode
 import com.adrian.minimallauncher.data.routine.RoutineEngine
 import com.adrian.minimallauncher.data.routine.RoutinePhase
 import com.adrian.minimallauncher.data.routine.Trigger
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
@@ -67,14 +65,16 @@ import com.adrian.minimallauncher.ui.components.rememberReactions
 import com.adrian.minimallauncher.viewmodel.LauncherViewModel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 private val White = Color(0xFFF5F5F5)
 private val Gray = Color(0xFF5C5C5C)
 private val Muted = Color(0xFFB0B0B0)
 private val Line = Color(0xFF222222)
-private val Card = Color(0xFF0B0B0B)
+private val Rule = Color(0xFF161616)
 private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
+private val spanish = Locale.forLanguageTag("es")
 
 /** Phase icon by seed id; phases the user adds get the generic one. Also used by the Rutinas widget. */
 internal fun phaseIcon(phase: RoutinePhase) = when (phase.id) {
@@ -91,9 +91,10 @@ fun RoutineHost(viewModel: LauncherViewModel, onClose: () -> Unit) {
 }
 
 /**
- * Rutinas (concept: docs/design/concept/RutinasVisual.html). No text while in use: phases and actions are icons,
- * hours and numbers; what comes next is red. The pencil shows names and lets the user rename, change the trigger
- * (hour or place), and add or remove actions and phases. The gear opens the routine settings (places, apps).
+ * Rutinas (concept: docs/design/concept/RutinasVisual.html). Plain text labels: the phases are named under their icons,
+ * the selected one is underlined; the open phase is a table of its actions with the hour and the words HECHO or SIGUE.
+ * No cards. EDITAR turns the phase into a form (name, trigger, actions on or off, quitar, agregar). The gear opens the
+ * routine settings (places, apps).
  */
 @Composable
 fun RoutinesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
@@ -123,22 +124,21 @@ fun RoutinesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onClose
     Box(modifier.fillMaxSize().background(Color.Black).safeDrawingPadding()) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RestartButton(onRestart = viewModel::resetRoutine)
-                SettingsGear(onSettings)
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Text("RUTINAS", style = MaterialTheme.typography.titleLarge, color = White)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    TextAction("REINICIAR", LauncherAccent, viewModel::resetRoutine)
+                    SettingsGear(onSettings)
+                }
             }
 
             Column {
-                PhaseStrip(phases, currentIndex, selected.id, editing, onPick = { selectedId = it }, onAdd = {
+                PhaseStrip(phases, places, currentIndex, selected.id, editing, onPick = { selectedId = it; editing = false }, onAdd = {
                     selectedId = viewModel.addPhase("Nueva", Trigger.Between(LocalTime.of(20, 0), LocalTime.of(21, 0)))
                 })
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(16.dp))
                 DayLine(phases, now.toLocalTime())
             }
 
@@ -149,7 +149,7 @@ fun RoutinesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onClose
                 else -> StrokeState.OFF
             }
             val states = RoutineEngine.actionStates(selected, now.toLocalDate(), done)
-            PhaseCard(
+            PhaseDetail(
                 phase = selected,
                 state = phaseState,
                 isCurrent = selected.id == current.id,
@@ -179,8 +179,17 @@ fun RoutinesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onClose
     }
 }
 
+/** The phases in a row: icon, name, and the trigger (hour or place); the open one is underlined. */
 @Composable
-private fun PhaseStrip(phases: List<RoutinePhase>, currentIndex: Int, selectedId: String, editing: Boolean, onPick: (String) -> Unit, onAdd: () -> Unit) {
+private fun PhaseStrip(
+    phases: List<RoutinePhase>,
+    places: List<Place>,
+    currentIndex: Int,
+    selectedId: String,
+    editing: Boolean,
+    onPick: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
     Row(Modifier.fillMaxWidth()) {
         phases.forEachIndexed { i, phase ->
             val state = when {
@@ -188,36 +197,49 @@ private fun PhaseStrip(phases: List<RoutinePhase>, currentIndex: Int, selectedId
                 i == currentIndex -> StrokeState.NOW
                 else -> StrokeState.OFF
             }
+            val open = phase.id == selectedId
             Column(
-                Modifier.weight(1f).clickable(role = Role.Button) { onPick(phase.id) }.semantics { contentDescription = phase.name },
+                Modifier.weight(1f).clickable(role = Role.Tab) { onPick(phase.id) }.semantics { contentDescription = phase.name },
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                StrokeIcon(phaseIcon(phase), state, 40.dp)
-                TriggerMark(phase, color = when {
-                    state == StrokeState.DONE -> White
-                    i == currentIndex + 1 -> LauncherRed
-                    else -> Muted
-                })
-                Box(Modifier.size(4.dp).background(if (phase.id == selectedId) White else Color.Transparent, CircleShape))
+                StrokeIcon(phaseIcon(phase), state, 36.dp)
+                Text(
+                    phase.name.uppercase(spanish),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    color = if (open) White else Muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    triggerText(phase, places, short = true),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    color = when {
+                        state == StrokeState.DONE -> White
+                        i == currentIndex + 1 -> LauncherAccent
+                        else -> Muted
+                    },
+                    maxLines = 1,
+                )
+                Box(Modifier.width(20.dp).height(2.dp).background(if (open) White else Color.Transparent))
             }
         }
-        if (editing) Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            AddSlot(40, onAdd, "Agregar fase")
+        if (editing) Box(Modifier.weight(1f).clickable(role = Role.Button, onClick = onAdd).semantics { contentDescription = "Agregar fase" }) {
+            Text("+ FASE", Modifier.padding(top = 10.dp), style = MaterialTheme.typography.labelSmall, color = White)
         }
     }
 }
 
-/** The phase's hour, or a pin when a place starts it. */
-@Composable
-private fun TriggerMark(phase: RoutinePhase, color: Color) {
-    Box(Modifier.height(16.dp), contentAlignment = Alignment.Center) {
-        when (val t = phase.trigger) {
-            is Trigger.Between -> Text(t.start.format(hhmm), style = MaterialTheme.typography.labelSmall, color = color)
-            else -> StrokeIcon("pin", StrokeState.OFF, 14.dp, color = color)
-        }
-    }
+/** What starts a phase: its hour, or the place with arrive or leave (short form for the strip). */
+private fun triggerText(phase: RoutinePhase, places: List<Place>, short: Boolean = false): String = when (val t = phase.trigger) {
+    is Trigger.Between -> t.start.format(hhmm)
+    is Trigger.Arrive -> if (short) "LUGAR" else "LLEGA · ${placeName(places, t.placeId)}"
+    is Trigger.Leave -> if (short) "LUGAR" else "SALE · ${placeName(places, t.placeId)}"
 }
+
+private fun placeName(places: List<Place>, id: String): String =
+    places.firstOrNull { it.id == id }?.name?.uppercase(spanish) ?: id.uppercase(spanish)
 
 /** The day as one line: gray where a routine holds, white what already passed, a red mark now. */
 @Composable
@@ -238,12 +260,13 @@ private fun DayLine(phases: List<RoutinePhase>, now: LocalTime) {
                 if (a < nowH) drawLine(White, Offset(x(a) + gap, y), Offset(x(minOf(b, nowH)) - gap, y), thick, StrokeCap.Round)
             }
         }
-        drawLine(LauncherRed, Offset(x(nowH), 1.dp.toPx()), Offset(x(nowH), size.height - 1.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
+        drawLine(LauncherAccent, Offset(x(nowH), 1.dp.toPx()), Offset(x(nowH), size.height - 1.dp.toPx()), 2.dp.toPx(), StrokeCap.Round)
     }
 }
 
+/** The open phase: its name and trigger as text, its actions as a table, and the rest timer when one runs. */
 @Composable
-private fun PhaseCard(
+private fun PhaseDetail(
     phase: RoutinePhase,
     state: StrokeState,
     isCurrent: Boolean,
@@ -285,9 +308,7 @@ private fun PhaseCard(
         plays[s.action.id] = (plays[s.action.id] ?: 0) + 1
     }
 
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Card).border(1.dp, Line, RoundedCornerShape(24.dp)).padding(18.dp),
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             if (editing) {
                 BasicTextField(
@@ -295,37 +316,42 @@ private fun PhaseCard(
                     Modifier.weight(1f).semantics { contentDescription = "Nombre de la fase" },
                     textStyle = MaterialTheme.typography.titleLarge.copy(color = White),
                     singleLine = true,
-                    cursorBrush = SolidColor(LauncherRed),
+                    cursorBrush = SolidColor(LauncherAccent),
                 )
-                IconButton("papelera", "Quitar fase", onDeletePhase)
-                IconButton("listo", "Listo", { if (name.isNotBlank() && name != phase.name) viewModel.renamePhase(phase.id, name); onEdit(false) }, color = LauncherRed)
+                TextAction("QUITAR", Muted, onDeletePhase)
+                TextAction("LISTO", LauncherAccent) {
+                    if (name.isNotBlank() && name != phase.name) viewModel.renamePhase(phase.id, name)
+                    onEdit(false)
+                }
             } else {
-                StrokeIcon(phaseIcon(phase), state, 36.dp)
+                Text(
+                    phase.name.uppercase(spanish),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (state == StrokeState.NOW) White else Muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(triggerText(phase, places), style = MaterialTheme.typography.labelLarge, color = if (state == StrokeState.NOW) LauncherAccent else Muted)
                 Spacer(Modifier.width(12.dp))
-                TriggerMark(phase, if (state == StrokeState.NOW) White else Muted)
-                Spacer(Modifier.weight(1f))
-                IconButton("reiniciar", "Reiniciar rutina", viewModel::resetRoutine)
-                Spacer(Modifier.width(4.dp))
-                IconButton("lapiz", "Editar fase", { name = phase.name; onEdit(true) })
+                TextAction("EDITAR", LauncherAccent) { name = phase.name; onEdit(true) }
             }
         }
         if (editing) TriggerEditor(phase, places, viewModel)
 
-        if (lockedApps > 0) Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StrokeIcon("apps", StrokeState.DONE, 18.dp)
-                Text("$openApps", style = MaterialTheme.typography.labelSmall, color = White)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StrokeIcon("candado", StrokeState.NOW, 18.dp)
-                Text("$lockedApps", style = MaterialTheme.typography.labelSmall, color = LauncherRed)
-            }
+        if (!editing && lockedApps > 0) Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Text("ABIERTAS $openApps", style = MaterialTheme.typography.labelSmall, color = White)
+            Text("BLOQUEADAS $lockedApps", style = MaterialTheme.typography.labelSmall, color = LauncherAccent)
         }
-        Box(Modifier.padding(top = 16.dp).fillMaxWidth().height(1.dp).background(Line))
+        Box(Modifier.padding(top = 12.dp).fillMaxWidth().height(1.dp).background(Line))
 
         val shown = if (editing) states else states.filter { it.on }
-        if (phase.mode == PhaseMode.ORDERED && !editing) {
-            Chain(shown, next, plays, ::tap)
+        ActionTable(
+            shown, next, editing, plays, ::tap,
+            onRemove = { viewModel.removeAction(phase.id, it) },
+            onAdd = onAddAction,
+        )
+        if (phase.mode == com.adrian.minimallauncher.data.routine.PhaseMode.ORDERED && !editing) {
             resting?.let { s ->
                 RestRing(s.action.minutes.coerceAtLeast(1)) {
                     viewModel.markAction(s.action.id)
@@ -334,8 +360,6 @@ private fun PhaseCard(
                     resting = null
                 }
             }
-        } else {
-            ActionGrid(shown, next, editing, plays, ::tap, onRemove = { viewModel.removeAction(phase.id, it) }, onAdd = onAddAction)
         }
     }
 }
@@ -346,8 +370,8 @@ private fun ColumnScope.TriggerEditor(phase: RoutinePhase, places: List<Place>, 
     val byTime = phase.trigger is Trigger.Between
     val fallback = phase.window ?: Trigger.Between(LocalTime.of(20, 0), LocalTime.of(21, 0))
     Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Chip("reloj", "HORA", byTime) { if (!byTime) viewModel.setPhaseTrigger(phase.id, fallback) }
-        Chip("pin", "LUGAR", !byTime) { if (byTime) viewModel.setPhaseTrigger(phase.id, Trigger.Arrive(places.firstOrNull()?.id ?: "casa"), phase.window) }
+        Chip("HORA", byTime) { if (!byTime) viewModel.setPhaseTrigger(phase.id, fallback) }
+        Chip("LUGAR", !byTime) { if (byTime) viewModel.setPhaseTrigger(phase.id, Trigger.Arrive(places.firstOrNull()?.id ?: "casa"), phase.window) }
     }
     when (val t = phase.trigger) {
         is Trigger.Between -> Text(
@@ -368,21 +392,25 @@ private fun ColumnScope.TriggerEditor(phase: RoutinePhase, places: List<Place>, 
             val leave = t is Trigger.Leave
             Row(Modifier.padding(top = 10.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 places.forEach { place ->
-                    Chip(null, place.name.uppercase(), place.id == placeId) {
+                    Chip(place.name.uppercase(spanish), place.id == placeId) {
                         viewModel.setPhaseTrigger(phase.id, if (leave) Trigger.Leave(place.id) else Trigger.Arrive(place.id), phase.window)
                     }
                 }
             }
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip(null, "LLEGAR", !leave) { viewModel.setPhaseTrigger(phase.id, Trigger.Arrive(placeId), phase.window) }
-                Chip(null, "SALIR", leave) { viewModel.setPhaseTrigger(phase.id, Trigger.Leave(placeId), phase.window) }
+                Chip("LLEGAR", !leave) { viewModel.setPhaseTrigger(phase.id, Trigger.Arrive(placeId), phase.window) }
+                Chip("SALIR", leave) { viewModel.setPhaseTrigger(phase.id, Trigger.Leave(placeId), phase.window) }
             }
         }
     }
 }
 
+/**
+ * The actions as a table: icon, name, then the hour (red when it is next) and HECHO or SIGUE. Tapping a row marks it.
+ * While editing, each row says ACTIVA or APAGADA (tap toggles) and QUITAR removes it; AGREGAR ACCIÓN adds one.
+ */
 @Composable
-private fun ActionGrid(
+private fun ActionTable(
     states: List<ActionState>,
     next: ActionState?,
     editing: Boolean,
@@ -391,69 +419,54 @@ private fun ActionGrid(
     onRemove: (String) -> Unit,
     onAdd: () -> Unit,
 ) {
-    val cells: List<ActionState?> = states + if (editing) listOf(null) else emptyList()
-    Column(Modifier.padding(top = 18.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        cells.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth()) {
-                row.forEach { s ->
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
-                        if (s == null) AddSlot(48, onAdd, "Agregar acción")
-                        else ActionCell(s, next, editing, plays[s.action.id], onTap, onRemove)
+    Column(Modifier.fillMaxWidth()) {
+        states.forEach { s ->
+            val lit = if (editing) s.on else s.done
+            val isNext = next?.action?.id == s.action.id
+            Row(
+                Modifier.fillMaxWidth().clickable(role = Role.Button) { onTap(s) }.padding(vertical = 12.dp)
+                    .semantics { contentDescription = s.action.kind.label },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                StrokeIcon(s.action.kind.icon, if (lit) StrokeState.NOW else StrokeState.OFF, 28.dp, playKey = plays[s.action.id])
+                Text(
+                    s.action.kind.label.uppercase(spanish),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = when {
+                        lit -> White
+                        isNext -> LauncherAccent
+                        else -> Muted
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (editing) {
+                    Text(if (s.on) "ACTIVA" else "APAGADA", style = MaterialTheme.typography.labelSmall, color = if (s.on) White else Muted)
+                    TextAction("QUITAR", Muted) { onRemove(s.action.id) }
+                } else {
+                    s.action.at?.let { at ->
+                        Text(
+                            at.format(hhmm), style = MaterialTheme.typography.labelLarge,
+                            color = when {
+                                s.done -> White
+                                isNext -> LauncherAccent
+                                else -> Muted
+                            },
+                        )
+                    }
+                    when {
+                        s.done -> Text("HECHO", style = MaterialTheme.typography.labelSmall, color = White)
+                        isNext -> Text("SIGUE", style = MaterialTheme.typography.labelSmall, color = LauncherAccent)
                     }
                 }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Rule))
         }
-    }
-}
-
-@Composable
-private fun ActionCell(s: ActionState, next: ActionState?, editing: Boolean, play: Int?, onTap: (ActionState) -> Unit, onRemove: (String) -> Unit) {
-    val lit = if (editing) s.on else s.done
-    Column(
-        Modifier.clickable(role = Role.Button) { onTap(s) }.semantics { contentDescription = s.action.kind.label },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box {
-            StrokeIcon(s.action.kind.icon, if (lit) StrokeState.NOW else StrokeState.OFF, 48.dp, playKey = play)
-            if (editing) Text(
-                "✕",
-                Modifier.align(Alignment.TopEnd).offset(x = 10.dp, y = (-8).dp).size(18.dp).clip(CircleShape)
-                    .background(Color(0xFF1C1C1C)).border(1.dp, Color(0xFF333333), CircleShape)
-                    .clickable(role = Role.Button) { onRemove(s.action.id) }.semantics { contentDescription = "Quitar" },
-                style = MaterialTheme.typography.labelSmall, color = Muted, textAlign = TextAlign.Center,
-            )
-        }
-        when {
-            editing -> Text(s.action.kind.label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Muted)
-            s.action.at != null -> Text(
-                s.action.at!!.format(hhmm), style = MaterialTheme.typography.labelSmall,
-                color = when {
-                    s.done -> White
-                    next?.action?.id == s.action.id -> LauncherRed
-                    else -> Muted
-                },
-            )
-        }
-    }
-}
-
-/** An ordered phase: its steps as a chain; a red dot marks the next one. */
-@Composable
-private fun Chain(states: List<ActionState>, next: ActionState?, plays: Map<String, Int>, onTap: (ActionState) -> Unit) {
-    Row(Modifier.padding(top = 22.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
-        states.forEachIndexed { i, s ->
-            if (i > 0) Box(Modifier.width(14.dp).height(1.5.dp).background(if (states[i - 1].done && s.done) White else Color(0xFF333333)))
-            Column(
-                Modifier.clickable(role = Role.Button) { onTap(s) }.semantics { contentDescription = s.action.kind.label },
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(Modifier.size(6.dp).background(if (next?.action?.id == s.action.id) LauncherRed else Color.Transparent, CircleShape))
-                Spacer(Modifier.height(6.dp))
-                StrokeIcon(s.action.kind.icon, if (s.done) StrokeState.NOW else StrokeState.OFF, 40.dp, playKey = plays[s.action.id])
-            }
-        }
+        if (editing) Box(
+            Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onAdd).padding(vertical = 14.dp),
+        ) { Text("+ AGREGAR ACCIÓN", style = MaterialTheme.typography.labelSmall, color = White) }
     }
 }
 
@@ -472,7 +485,7 @@ private fun RestRing(minutes: Int, onDone: () -> Unit) {
             drawCircle(Color(0xFF1C1C1C), radius = size.minDimension / 2 - w, style = Stroke(w))
             val fraction = left / total.toFloat()
             drawArc(
-                if (fraction < 0.25f) LauncherRed else White, -90f, 360f * fraction, false,
+                if (fraction < 0.25f) LauncherAccent else White, -90f, 360f * fraction, false,
                 topLeft = Offset(w, w), size = androidx.compose.ui.geometry.Size(size.width - 2 * w, size.height - 2 * w),
                 style = Stroke(w, cap = StrokeCap.Round),
             )
@@ -480,100 +493,57 @@ private fun RestRing(minutes: Int, onDone: () -> Unit) {
     }
 }
 
-/** The list of actions to add (labels are fine here: it is editing). The empty slot keeps room for new ones. */
+/** The list of actions to add, as a table of names. Actions already in the phase show white. */
 @Composable
 private fun Catalog(have: Set<String>, onPick: (String) -> Unit, onClose: () -> Unit, modifier: Modifier) {
     Column(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Card)
-            .border(1.dp, Line, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).padding(start = 24.dp, end = 24.dp, top = 18.dp, bottom = 32.dp),
+        modifier.fillMaxWidth().background(Color.Black).border(1.dp, Line, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+            .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 32.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("AGREGAR", style = MaterialTheme.typography.labelSmall, color = LauncherRed)
+            Text("AGREGAR ACCIÓN", style = MaterialTheme.typography.labelLarge, color = LauncherAccent)
             Spacer(Modifier.weight(1f))
-            Text("✕", Modifier.clickable(role = Role.Button, onClick = onClose).padding(6.dp), style = MaterialTheme.typography.labelSmall, color = Muted)
+            TextAction("CERRAR", Muted, onClose)
         }
-        val types: List<com.adrian.minimallauncher.data.routine.ActionType?> = com.adrian.minimallauncher.data.routine.ActionCatalog.all + listOf(null)
-        Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            types.chunked(4).forEach { row ->
-                Row(Modifier.fillMaxWidth()) {
-                    row.forEach { type ->
-                        Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
-                            if (type == null) DashedBox(36)
-                            else Column(
-                                Modifier.clickable(role = Role.Button) { onPick(type.key) }.semantics { contentDescription = type.label },
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                StrokeIcon(type.icon, if (type.key in have) StrokeState.DONE else StrokeState.OFF, 36.dp)
-                                Text(type.label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Muted)
-                            }
-                        }
-                    }
-                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+        val types = com.adrian.minimallauncher.data.routine.ActionCatalog.all
+        Column(Modifier.padding(top = 8.dp)) {
+            types.forEach { type ->
+                val on = type.key in have
+                Row(
+                    Modifier.fillMaxWidth().clickable(role = Role.Button) { onPick(type.key) }.padding(vertical = 12.dp)
+                        .semantics { contentDescription = type.label },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    StrokeIcon(type.icon, if (on) StrokeState.DONE else StrokeState.OFF, 24.dp)
+                    Text(type.label.uppercase(spanish), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = if (on) White else Muted)
+                    Text(if (on) "YA ESTÁ" else "AGREGAR", style = MaterialTheme.typography.labelSmall, color = if (on) Muted else LauncherAccent)
                 }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Rule))
             }
         }
     }
 }
 
+/** A plain text button: the words are the control. */
 @Composable
-private fun IconButton(icon: String, description: String, onClick: () -> Unit, color: Color = Muted) {
-    Box(
-        Modifier.size(36.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) { StrokeIcon(icon, StrokeState.DONE, 20.dp, color = color) }
+private fun TextAction(label: String, color: Color, onClick: () -> Unit) {
+    Text(
+        label,
+        Modifier.clickable(role = Role.Button, onClick = onClick).padding(horizontal = 4.dp, vertical = 6.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = color,
+    )
 }
 
 @Composable
-private fun Chip(icon: String?, label: String, on: Boolean, onClick: () -> Unit) {
+private fun Chip(label: String, on: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, Color(0xFF333333), RoundedCornerShape(10.dp))
+        Modifier.clip(RoundedCornerShape(8.dp)).border(1.dp, Color(0xFF333333), RoundedCornerShape(8.dp))
             .background(if (on) Color(0xFF1C1C1C) else Color.Transparent)
             .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (icon != null) StrokeIcon(icon, if (on) StrokeState.DONE else StrokeState.OFF, 16.dp)
         Text(label, style = MaterialTheme.typography.labelSmall, color = if (on) White else Muted)
-    }
-}
-
-@Composable
-private fun AddSlot(sizeDp: Int, onClick: () -> Unit, description: String) {
-    Box(
-        Modifier.clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        DashedBox(sizeDp)
-        Text("+", style = MaterialTheme.typography.titleMedium, color = Gray)
-    }
-}
-
-@Composable
-private fun DashedBox(sizeDp: Int) {
-    Canvas(Modifier.size(sizeDp.dp)) {
-        val w = 1.5.dp.toPx()
-        drawRoundRect(
-            Color(0xFF3A3A3A), topLeft = Offset(w / 2, w / 2), size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()),
-            style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))),
-        )
-    }
-}
-
-@Composable
-private fun RestartButton(onRestart: () -> Unit) {
-    Row(
-        Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF1C1C1C))
-            .border(1.dp, LauncherRed, RoundedCornerShape(10.dp))
-            .clickable(role = Role.Button, onClick = onRestart)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StrokeIcon("reiniciar", StrokeState.NOW, 16.dp)
-        Text("REINICIAR RUTINA", style = MaterialTheme.typography.labelSmall, color = LauncherRed)
     }
 }

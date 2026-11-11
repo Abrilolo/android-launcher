@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,7 +40,10 @@ import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
 
 /** The single accent: only for "active", "next" or "attention". */
-val LauncherRed = Color(0xFFD71921)
+val LauncherAccent = Color(0xFF1A77B5)
+
+/** Diseño 2026-11-09: rosa peligro para pasado, error y fuera de rango. */
+val LauncherDanger = Color(0xFFFF2962)
 val CardFill = Color(0xFF0B0B0B)
 val CardLine = Color(0xFF222222)
 val ModuleCardShape = RoundedCornerShape(22.dp)
@@ -89,7 +93,7 @@ fun SmallLabel(text: String, modifier: Modifier = Modifier, color: Color = Mater
 fun StatusDot(filled: Boolean, next: Boolean, modifier: Modifier = Modifier, size: Dp = 12.dp) {
     val ring = when {
         filled -> MaterialTheme.colorScheme.onSurface
-        next -> LauncherRed
+        next -> LauncherAccent
         else -> Color(0xFF555555)
     }
     Box(
@@ -160,9 +164,11 @@ fun ModuleTextField(
     minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     val shape = RoundedCornerShape(16.dp)
     BasicTextField(
+        visualTransformation = visualTransformation,
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,

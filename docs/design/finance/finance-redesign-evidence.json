@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "platform": "android",
+  "scope": "Finance simplification, settings, goals, pending payment classification",
+  "comparison": "existing-system",
+  "designReference": {
+    "path": "settings-goal-target.png",
+    "width": 1536,
+    "height": 1024
+  },
+  "sources": [
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceScreen.kt",
+      "sha256": "a05b0b80e2f41725ece5fc1f4c92b751c6a91b1485dd24ac6228238d87363617"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceOverview.kt",
+      "sha256": "1e1b1e4e7274cbdaee753cfce9de752ebff33aaf21cf6ba6da90321ab6ff18fd"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinancePeriod.kt",
+      "sha256": "03d10768134cdcacac683bde7624209ca803eaffaa5e64f82a01f308f8e78bd5"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceSettings.kt",
+      "sha256": "6aa49fe21fabacffabef204d5ffa25f2f292adb35156b696a65e4b5c36636c27"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/BudgetPlanner.kt",
+      "sha256": "ff605aebb0487220c0cba816dc8e6bf06e8a2ad9ca36918f2a374375d2b88f0b"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/SavingGoal.kt",
+      "sha256": "34cc97087b7371d70e93c5a9ff10e7671106882d02339c79ae7212228a61c326"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/EntrySheet.kt",
+      "sha256": "30522d2ff4b4a2fed23ad778666548cb5e5ba10e4a286a96a009f91ec02eb8c7"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/ScheduledPayments.kt",
+      "sha256": "e5e106abda25923f8cf9d6974fb825f1250835bf787e38f3bf44305b9621b98d"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/bank/BankView.kt",
+      "sha256": "cf7d8338d564bc3aa4d5b5c8d0f0598988e3a5c931d4e61cc551f04e86015054"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/ui/ForcedEntryScreen.kt",
+      "sha256": "9758088656e7d2813f017431a839a9a1d8e722167cd2f7d4cd2deebd961f523f"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/viewmodel/LauncherViewModel.kt",
+      "sha256": "e9bee0fb668f1aeadf7ca9af912be7f6d7d5e2490ebeb328584863cc1057fbdb"
+    }
+  ],
+  "requiredChecks": [
+    {
+      "id": "native-flows",
+      "kind": "interaction"
+    }
+  ],
+  "checks": [
+    {
+      "id": "native-flows",
+      "status": "blocked",
+      "observed": "emulator-5554 reports boot completed but APK installation and subsequent reboot each timed out. No final native screen capture or interaction validation was possible. Physical phone was not modified.",
+      "steps": [
+        "Read ADB device inventory",
+        "Attempt APK installation on emulator-5554 (15 seconds timeout)",
+        "Attempt emulator-only reboot (10 seconds timeout)"
+      ]
+    }
+  ],
+  "unresolved": [
+    "Native screenshots and end-to-end interaction checks",
+    "Large text and keyboard layouts",
+    "Pending payment save failure recovery remains unverified"
+  ]
+}

@@ -56,7 +56,7 @@ import com.adrian.minimallauncher.data.LauncherApp
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.Space
 import com.adrian.minimallauncher.feature.CardLine
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.components.LocalReactions
 import com.adrian.minimallauncher.ui.components.animationsOff
@@ -287,7 +287,7 @@ private fun frameDots(app: AiApp, frame: Int, gray: Boolean): List<Dot> {
     return when (app) {
         AiApp.CLAUDE -> {
             val kind = CLAUDE_FRAMES.getOrNull(frame) ?: "base"
-            cells(claudeGrid(kind)).map { (r, c, ch) -> Dot(r, c, when (ch) { 'w' -> White; 'g' -> Gray; else -> LauncherRed }) }
+            cells(claudeGrid(kind)).map { (r, c, ch) -> Dot(r, c, when (ch) { 'w' -> White; 'g' -> Gray; else -> Color(0xFFD71921) }) }
         }
         AiApp.CHATGPT -> {
             val all = cells(app.grid)
@@ -295,19 +295,19 @@ private fun frameDots(app: AiApp, frame: Int, gray: Boolean): List<Dot> {
             val t = (frame + 1f) / GPT_STEPS
             all.map { (r, c) ->
                 val a = angleOf(r, c)
-                Dot(r, c, if (a > t) Dim else if (a > t - 1f / GPT_STEPS) LauncherRed else White)
+                Dot(r, c, if (a > t) Dim else if (a > t - 1f / GPT_STEPS) Color(0xFFD71921) else White)
             }
         }
         AiApp.GEMINI -> {
             val all = cells(app.grid)
             when (val f = GEM_FRAMES.getOrNull(frame) ?: "base") {
                 is Float -> all.filter { (r, c) -> starDist(r, c) <= f * 1.05f }
-                    .map { (r, c) -> Dot(r, c, if (f < 1f && starDist(r, c) > f * 1.05f - 0.22f) LauncherRed else White) }
+                    .map { (r, c) -> Dot(r, c, if (f < 1f && starDist(r, c) > f * 1.05f - 0.22f) Color(0xFFD71921) else White) }
                 else -> {
                     val base = all.map { (r, c) -> Dot(r, c, White) }
                     when (f) {
-                        "spark" -> base + listOf(0 to 8, 16 to 8, 8 to 0, 8 to 16).map { (r, c) -> Dot(r, c, LauncherRed) }
-                        "spark2" -> base + listOf(3 to 3, 3 to 13, 13 to 3, 13 to 13).map { (r, c) -> Dot(r, c, LauncherRed) }
+                        "spark" -> base + listOf(0 to 8, 16 to 8, 8 to 0, 8 to 16).map { (r, c) -> Dot(r, c, Color(0xFFD71921)) }
+                        "spark2" -> base + listOf(3 to 3, 3 to 13, 13 to 3, 13 to 13).map { (r, c) -> Dot(r, c, Color(0xFFD71921)) }
                         else -> base
                     }
                 }
@@ -592,7 +592,7 @@ private fun ShortcutGlyph(glyph: Glyph, modifier: Modifier) {
 private fun StatusLabel(state: AiAppState, modifier: Modifier = Modifier) {
     when {
         !state.installed -> SmallLabel("INSTALAR", modifier, color = Color.White)
-        !state.allowed -> SmallLabel(state.backAt?.let { "VUELVE ${it.format(hhmm)}" } ?: "EN PAUSA", modifier, color = LauncherRed)
+        !state.allowed -> SmallLabel(state.backAt?.let { "VUELVE ${it.format(hhmm)}" } ?: "EN PAUSA", modifier, color = LauncherAccent)
     }
 }
 

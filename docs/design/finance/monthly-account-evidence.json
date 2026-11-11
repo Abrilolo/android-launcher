@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "platform": "android",
+  "scope": "Sequential monthly budget account and separate plan editor",
+  "comparison": "existing-system",
+  "baseline": "cool-budget.png (historical baseline inspected; not current render)",
+  "sources": [
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceSettings.kt",
+      "sha256": "7edbedbc0ee5b7b23bfb0c08196eae2791c11c7f71f9c4a22257a9c93c3cf982"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/Budget.kt",
+      "sha256": "6f19fcf1344f844810ce65582875bb92c48ddc8d875149cc093c8fec74cc89d7"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/BudgetPlanner.kt",
+      "sha256": "8b5afa67b7cc8624fab76cc87613445eae21d703bf4082b5829e185d382ef09f"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/MonthlyBudgetAccount.kt",
+      "sha256": "452c91eb91f78ca07102313a9221cd1f72931d22435d9795a8265744ba449e8b"
+    }
+  ],
+  "requiredChecks": [
+    {
+      "id": "monthly-account",
+      "kind": "interaction"
+    }
+  ],
+  "checks": [
+    {
+      "id": "monthly-account",
+      "status": "blocked",
+      "observed": "ADB lists emulator-5554 as offline; UI Automator cannot inspect. No final native screenshot or interaction pass claimed.",
+      "steps": [
+        "Read device inventory",
+        "Attempt UI Automator dump on emulator-5554; device offline"
+      ]
+    }
+  ],
+  "unresolved": [
+    "Native layout, large text, keyboard and save/back interaction checks require a working emulator."
+  ]
+}

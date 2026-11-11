@@ -142,7 +142,8 @@ val LocalSelectedStack = compositionLocalOf { mutableStateOf<String?>(null) }
 
 /**
  * The home screen as a row of pages, Samsung style. The main page is shown first and the
- * home button returns to it. Swiping up on any page opens the full-screen App Drawer.
+ * home button returns to it. Swiping up on any page pulls up the App Drawer, once the page
+ * can't scroll any further down.
  * Long press on empty space enters full-page edit mode: pages shrink, each gets a house
  * (make it the main page) and a trash can, both ends get a "+" to add a widget page,
  * and a bottom bar offers Widgets and Ajustes. Long-pressing a widget opens its in-place menu.
@@ -160,7 +161,7 @@ fun HomePagesHost(
     onRestoreWeek: () -> Unit,
     onAddWidget: (pageId: String, widgetId: String, stackId: String?, size: GridSize, at: Pair<Int, Int>?) -> Unit,
     onSettings: () -> Unit,
-    onOpenApps: () -> Unit = {},
+    drawer: AppsDrawerState? = null,
     overlayOpen: Boolean = false,
     pageContent: @Composable (HomePage, PageScope) -> Unit,
 ) {
@@ -178,8 +179,6 @@ fun HomePagesHost(
     var hostWidth by remember { mutableStateOf(0) }
     val density = LocalDensity.current
     val pageCount by rememberUpdatedState(list.size)
-    val latestOpenApps by rememberUpdatedState(onOpenApps)
-    val swipeUpThresholdPx = with(density) { 56.dp.toPx() }
 
     // Times each page was landed on; its assistant widgets animate on every arrival.
     val arrivals = remember { mutableStateMapOf<String, Int>() }
@@ -238,38 +237,15 @@ fun HomePagesHost(
     }
     val goToMain: () -> Unit = { scope.launch { pagerState.animateScrollToPage(pages.mainIndex + offset) } }
 
-    var unconsumedUpDrag by remember { mutableFloatStateOf(0f) }
-    val swipeUpNestedScroll = remember(atRootHome, swipeUpThresholdPx) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y > 0f) unconsumedUpDrag = 0f
-                return Offset.Zero
-            }
-
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                if (atRootHome && source == NestedScrollSource.UserInput && available.y < 0f) {
-                    unconsumedUpDrag += -available.y
-                    if (unconsumedUpDrag >= swipeUpThresholdPx) {
-                        unconsumedUpDrag = 0f
-                        latestOpenApps()
-                    }
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                unconsumedUpDrag = 0f
-                return Velocity.Zero
-            }
-        }
-    }
+    val latestAtRoot by rememberUpdatedState(atRootHome)
+    val drawerPull = remember(drawer) { drawer?.let { DrawerPull(it, upward = true) { latestAtRoot } } }
 
     Box(
         Modifier
             .fillMaxSize()
             .then(if (atRootHome) Modifier.systemGestureExclusion() else Modifier)
             .background(MaterialTheme.colorScheme.background)
-            .nestedScroll(swipeUpNestedScroll)
+            .then(if (drawerPull != null) Modifier.nestedScroll(drawerPull) else Modifier)
             .onGloballyPositioned { hostCoords = it }
             .onSizeChanged { hostWidth = it.width },
     ) {
@@ -316,12 +292,10 @@ fun HomePagesHost(
                             else -> Box(
                                 Modifier
                                     .fillMaxSize()
-                                    .longPressOrSwipeUpOnPage(
+                                    .longPressOnPage(
                                         touchOnWidget = touchOnWidget,
-                                        swipeUpThresholdPx = swipeUpThresholdPx,
                                         onTouchEmpty = { selectedStack.value = null },
                                         onLongPress = enterEdit,
-                                        onSwipeUp = { if (atRootHome) latestOpenApps() },
                                     ),
                             ) {
                                 pageContent(page, PageScope(false, enterEdit, { stack -> catalogTarget = CatalogTarget(page.id, stack) }, goToMain, { editMode = false }))
@@ -413,40 +387,25 @@ fun HomePagesHost(
 
 private data class CatalogTarget(val pageId: String, val stackId: String?)
 
-/**
- * Long press on any empty space of the page (not when the finger goes down on a widget),
- * or upward swipe gesture to open the App Drawer (Samsung One UI / Android style).
- */
-fun Modifier.longPressOrSwipeUpOnPage(
+/** Long press on any empty space of the page (not when the finger goes down on a widget). */
+fun Modifier.longPressOnPage(
     touchOnWidget: BooleanArray,
-    swipeUpThresholdPx: Float,
     onTouchEmpty: () -> Unit,
     onLongPress: () -> Unit,
-    onSwipeUp: () -> Unit,
-): Modifier = pointerInput(touchOnWidget, swipeUpThresholdPx) {
+): Modifier = pointerInput(touchOnWidget) {
     val latestEmpty = onTouchEmpty
     val latestLongPress = onLongPress
-    val latestSwipeUp = onSwipeUp
     awaitEachGesture {
         touchOnWidget[0] = false
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
         // Wait for the Main pass of the down event so child widgets have set touchOnWidget[0] = true if touched.
         awaitPointerEvent(PointerEventPass.Main)
         if (!touchOnWidget[0]) latestEmpty()
-        var movedPastSlop = false
         val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
             var ended = false
             while (!ended) {
                 val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) {
-                    ended = true
-                } else {
-                    val delta = change.position - down.position
-                    if (delta.getDistance() > viewConfiguration.touchSlop) {
-                        movedPastSlop = true
-                        ended = true
-                    }
-                }
+                ended = change == null || !change.pressed || (change.position - down.position).getDistance() > viewConfiguration.touchSlop
             }
             true
         }
@@ -455,19 +414,6 @@ fun Modifier.longPressOrSwipeUpOnPage(
             do {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 event.changes.forEach { it.consume() }
-            } while (event.changes.any { it.pressed })
-        } else if (movedPastSlop) {
-            var swipedUp = false
-            do {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
-                val change = event.changes.firstOrNull { it.id == down.id }
-                if (change != null && !swipedUp) {
-                    val delta = change.position - down.position
-                    if (delta.y <= -swipeUpThresholdPx && abs(delta.y) > abs(delta.x) * 1.35f) {
-                        swipedUp = true
-                        latestSwipeUp()
-                    }
-                }
             } while (event.changes.any { it.pressed })
         }
     }

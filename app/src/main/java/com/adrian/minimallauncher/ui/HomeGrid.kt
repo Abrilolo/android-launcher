@@ -1,5 +1,8 @@
 package com.adrian.minimallauncher.ui
 
+import com.adrian.minimallauncher.feature.finance.*
+import com.adrian.minimallauncher.data.FinanceRecord
+
 import android.app.AlarmManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -48,12 +51,14 @@ import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.data.PersonalRecords
 import com.adrian.minimallauncher.data.WidgetStackConfig
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.SmallLabel
+import com.adrian.minimallauncher.feature.StatusDot
 import com.adrian.minimallauncher.feature.ai.AiApp
 import com.adrian.minimallauncher.feature.ai.AiAppState
 import com.adrian.minimallauncher.feature.exercise.ExerciseDay
 import com.adrian.minimallauncher.feature.finance.formatPesos
+import com.adrian.minimallauncher.sync.BridgeStatus
 import com.adrian.minimallauncher.ui.components.AppTextItem
 import com.adrian.minimallauncher.ui.components.DotActivation
 import com.adrian.minimallauncher.ui.components.DotIcon
@@ -97,7 +102,8 @@ fun waterKey(date: LocalDate, glass: Int) = "$date|water_$glass"
 val HOME_TILES = listOf("alarms", "exercise", "finance", "diet", "world", "vault", "notes")
 
 /** Everything the widget catalog offers: the module tiles plus the big clock and the water glasses (part of Dieta). */
-val WIDGET_IDS = listOf("clock", "water") + HOME_TILES + "ai" + "routine"
+val WIDGET_IDS = listOf("clock", "water") + HOME_TILES + "ai" + "routine" +
+    com.adrian.minimallauncher.feature.finance.FinanceWidgets.ids.drop(1)
 
 /**
  * Big dot-matrix clock and date, drawn bare (no card) like a native clock widget.
@@ -128,6 +134,13 @@ data class HomeData(
     val ai: Map<AiApp, AiAppState> = emptyMap(),
     /** The current routine phase, its reminders and the most urgent thing, for the Rutinas widget. */
     val routine: RoutineWidgetData? = null,
+    /** Live status of the Nook desktop bridge (`:8765`). */
+    val bridge: BridgeStatus = BridgeStatus(),
+    val finance: FinanceSummary = FinanceSummary(),
+    val money: List<FinanceRecord> = emptyList(),
+    /** Bank receivables (Finanzas → Banco), for the Por cobrar widget. */
+    val receivables: List<com.adrian.minimallauncher.feature.bank.BankReceivable> = emptyList(),
+    val accounts: List<com.adrian.minimallauncher.feature.bank.BankAccount> = emptyList(),
 )
 
 /**
@@ -170,8 +183,28 @@ fun HomeGrid(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            val connectedPc = data.bridge.isConnected
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .combinedClickable(role = Role.Button, onClick = { onOpenModule("bridge") })
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                StatusDot(
+                    filled = connectedPc,
+                    next = false,
+                    size = 8.dp,
+                )
+                SmallLabel(
+                    "PC",
+                    color = if (connectedPc) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
             Spacer(Modifier.weight(1f))
-            // U+FE0E keeps the gear as a monochrome text glyph instead of a color emoji.
+            // U+FE0E keeps the gear as a monochrome text gl}yph instead of a color emoji.
             IconButton(onClick = onSettings) { Text("⚙︎", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
 
@@ -246,7 +279,7 @@ private fun IconHeader(icon: List<String>, name: String, trailing: String? = nul
         DotIcon(icon, done = true, contentDescription = name, size = 26.dp)
         Spacer(Modifier.weight(1f))
         if (trailing != null) SmallLabel(trailing, color = trailingColor, maxLines = 1)
-        if (dot) Box(Modifier.size(6.dp).background(LauncherRed, CircleShape))
+        if (dot) Box(Modifier.size(6.dp).background(LauncherAccent, CircleShape))
     }
 }
 
@@ -256,11 +289,11 @@ fun AlarmTile(now: LocalDateTime, modifier: Modifier, onClick: () -> Unit, onLon
     val left = next?.let { Duration.between(now, it) }
     val lastHour = left != null && !left.isNegative && left.toMinutes() < 60
     Tile(modifier, onClick, onLongClick) {
-        IconHeader(DotIcons.campana, "Alarma", trailing = next?.let { untilText(now, it) } ?: "SIN ALARMA", trailingColor = if (lastHour) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant)
+        IconHeader(DotIcons.campana, "Alarma", trailing = next?.let { untilText(now, it) } ?: "SIN ALARMA", trailingColor = if (lastHour) LauncherAccent else MaterialTheme.colorScheme.onSurfaceVariant)
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
             val d = minOf(maxWidth, maxHeight)
             AlarmRing(left, Modifier.size(d))
-            DotMatrixText(next?.format(hhmm) ?: "--:--", cell = d * 0.55f / 30, color = if (lastHour) LauncherRed else MaterialTheme.colorScheme.onSurface)
+            DotMatrixText(next?.format(hhmm) ?: "--:--", cell = d * 0.55f / 30, color = if (lastHour) LauncherAccent else MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -278,7 +311,7 @@ private fun AlarmRing(left: Duration?, modifier: Modifier) {
         lastHour -> ((left.toMinutes() + 4) / 5).toInt().coerceIn(1, 12)
         else -> ((left.toMinutes() + 59) / 60).toInt().coerceAtMost(24)
     }
-    val on = if (lastHour) LauncherRed else MaterialTheme.colorScheme.onSurface
+    val on = if (lastHour) LauncherAccent else MaterialTheme.colorScheme.onSurface
     Canvas(modifier) {
         val dot = size.minDimension * 0.028f
         val radius = size.minDimension / 2 - dot
@@ -289,40 +322,6 @@ private fun AlarmRing(left: Duration?, modifier: Modifier) {
                 if (i < lit) on else Color(0xFF3A3A3A), dot,
                 Offset(center.x + (radius * cos(angle)).toFloat(), center.y + (radius * sin(angle)).toFloat()),
             )
-        }
-    }
-}
-
-@Composable
-fun ExpensesTile(records: PersonalRecords, today: LocalDate, budgetCents: Long, modifier: Modifier, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
-    val byDay = (6 downTo 0).map { back ->
-        val date = today.minusDays(back.toLong())
-        records.finances.filter { it.createdAt.toLocalDate() == date }.sumOf { it.amountCents }
-    }
-    val max = byDay.maxOrNull()?.takeIf { it > 0 } ?: 1L
-    val over = budgetCents > 0 && byDay.last() > budgetCents
-    Tile(modifier, onClick, onLongClick) {
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            SmallLabel("GASTO HOY", color = LauncherRed, maxLines = 1)
-            if (budgetCents > 0) SmallLabel("DE ${formatPesos(budgetCents)}", color = if (over) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        }
-        // Past the budget the total turns red; it redraws when it changes, like on the page.
-        DotMatrixText("$${byDay.last() / 100}", cell = 4.dp, color = if (over) LauncherRed else MaterialTheme.colorScheme.onSurface, reveal = byDay.last())
-        // The week as small dot columns, today white: the same picture as the page.
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Bottom) {
-            byDay.forEachIndexed { i, cents ->
-                val filled = if (cents == 0L) 0 else ((cents * 4 + max - 1) / max).toInt()
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    for (row in 4 downTo 1) {
-                        val color = when {
-                            row > filled -> Color(0xFF4A4A4A)
-                            i == byDay.lastIndex -> MaterialTheme.colorScheme.onSurface
-                            else -> Color(0xFFA8A8A8)
-                        }
-                        Box(Modifier.size(5.dp).background(color, CircleShape))
-                    }
-                }
-            }
         }
     }
 }
@@ -368,7 +367,7 @@ fun MealsTile(habits: Set<String>, now: LocalDateTime, meals: List<MealSlot>, on
                                 meal.time.format(hhmm),
                                 color = when {
                                     done[i] -> MaterialTheme.colorScheme.onSurface
-                                    i == next -> LauncherRed
+                                    i == next -> LauncherAccent
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                                 },
                             )
@@ -386,7 +385,7 @@ fun MealsTile(habits: Set<String>, now: LocalDateTime, meals: List<MealSlot>, on
                         size = if (meal.kind == MealKind.MAIN) big else big * 0.78f,
                         activation = mealActivation(meal.icon),
                     )
-                    SmallLabel(meal.time.format(hhmm), color = if (done[i]) MaterialTheme.colorScheme.onSurface else LauncherRed)
+                    SmallLabel(meal.time.format(hhmm), color = if (done[i]) MaterialTheme.colorScheme.onSurface else LauncherAccent)
                 }
             }
         }

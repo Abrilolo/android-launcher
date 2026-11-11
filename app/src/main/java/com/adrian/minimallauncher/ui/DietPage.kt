@@ -2,9 +2,7 @@ package com.adrian.minimallauncher.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -21,8 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,11 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -54,10 +46,10 @@ import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecordActions
 import com.adrian.minimallauncher.data.PersonalRecords
 import com.adrian.minimallauncher.feature.DockItem
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
+import com.adrian.minimallauncher.feature.LauncherDanger
 import com.adrian.minimallauncher.feature.ModuleDock
 import com.adrian.minimallauncher.feature.ModuleTitle
-import com.adrian.minimallauncher.feature.ShineLink
 import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.food.CheckButton
@@ -77,7 +69,6 @@ import com.adrian.minimallauncher.feature.food.mealStrokeIcon
 import com.adrian.minimallauncher.feature.food.recipeNutrition
 import com.adrian.minimallauncher.feature.food.whole
 import com.adrian.minimallauncher.ui.components.DotActivation
-import com.adrian.minimallauncher.ui.components.DotMatrixText
 import com.adrian.minimallauncher.ui.components.LocalReactions
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
@@ -260,13 +251,16 @@ private fun TodayView(
 ) {
     val reactions = LocalReactions.current
     val eaten = todayMeals.fold(Nutrition()) { acc, m -> acc + Nutrition(m.kcal, m.proteinG, m.carbsG, m.fatG, m.fiberG) }
-    KcalRing(eaten.kcal, settings.kcalGoal)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-        MacroBar("huevo", "Proteína", eaten.proteinG, settings.proteinGoalG, Modifier.weight(1f))
-        MacroBar("hoja", "Fibra", eaten.fiberG, settings.fiberGoalG, Modifier.weight(1f))
-    }
+    NutrientTable(eaten, settings)
     val upcoming = settings.meals.firstOrNull { mealKey(date, it.id) !in records.completedHabits }
-    ShineLink("Registrar comida", upcoming?.let { "${it.name} · ${it.time.format(hhmm)}" }, { onOpenSlot(null) })
+    Row(
+        Modifier.fillMaxWidth().clickable(role = Role.Button) { onOpenSlot(null) }.padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("REGISTRAR COMIDA", style = MaterialTheme.typography.labelLarge, color = LauncherAccent)
+        Spacer(Modifier.weight(1f))
+        upcoming?.let { Text("${it.name.uppercase(spanish)} ${it.time.format(hhmm)}", style = MaterialTheme.typography.labelSmall, color = Muted) }
+    }
 
     // The plan: each meal slot with what was logged near its hour; meals with no slot at all show on their own.
     val photoOf = recipes.associate { it.id to it.photoUri }
@@ -275,6 +269,12 @@ private fun TodayView(
     val next = done.indexOf(false)
     val bySlot = todayMeals.groupBy { nearestSlot(it, settings)?.id }
     Column {
+        Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("HORA", Modifier.width(52.dp), style = MaterialTheme.typography.labelSmall, color = Muted)
+            Spacer(Modifier.width(48.dp))
+            Text("COMIDA", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = Muted)
+            Text("KCAL", style = MaterialTheme.typography.labelSmall, color = Muted)
+        }
         meals.forEachIndexed { i, slot ->
             val logged = bySlot[slot.id].orEmpty()
             val time = slot.time.format(hhmm)
@@ -283,7 +283,7 @@ private fun TodayView(
                 name = slot.name,
                 detail = logged.joinToString(", ") { it.description }.takeIf { it.isNotEmpty() },
                 time = time,
-                timeColor = when { done[i] -> White; i == next -> LauncherRed; else -> Muted },
+                timeColor = when { done[i] -> White; i == next -> LauncherAccent; else -> Muted },
                 icon = { StrokeIcon(mealStrokeIcon(slot.icon), if (done[i]) StrokeState.NOW else StrokeState.OFF, if (slot.kind == MealKind.MAIN) 34.dp else 28.dp, playKey = play) },
                 photo = logged.firstNotNullOfOrNull { m -> m.recipeId?.let { photoOf[it] } },
                 hasMeal = logged.isNotEmpty(),
@@ -330,60 +330,52 @@ private fun TodayView(
     }
 }
 
-/** The kcal left out of the goal in a ring that fills white; past the goal the excess turns red and so does the number. */
+/**
+ * The day's goals as a table: one row per nutrient with its goal in the label and what is left (or what is over, in
+ * red) as words; a thin bar under each row fills toward the goal.
+ */
 @Composable
-private fun KcalRing(eaten: Float, goal: Int) {
-    val fill = remember { Animatable(0f) }
-    val extra = remember { Animatable(0f) }
-    val target = if (goal > 0) (eaten / goal).coerceIn(0f, 1f) else 0f
-    val overTarget = if (goal > 0) ((eaten - goal) / goal).coerceIn(0f, 1f) else 0f
-    LaunchedEffect(target, overTarget) {
-        fill.animateTo(target, tween(900, easing = FastOutSlowInEasing))
-        extra.animateTo(overTarget, tween(600, easing = FastOutSlowInEasing))
-    }
-    val over = goal > 0 && eaten > goal
-    Box(
-        Modifier.fillMaxWidth().height(200.dp).semantics {
-            contentDescription = if (goal > 0) "Quedan ${(goal - eaten).whole()} kcal de $goal" else "${eaten.whole()} kcal"
-        },
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.size(200.dp)) {
-            val w = 3.dp.toPx()
-            val inset = w / 2 + 6.dp.toPx()
-            val arc = androidx.compose.ui.geometry.Size(size.width - inset * 2, size.height - inset * 2)
-            val topLeft = Offset(inset, inset)
-            drawCircle(Color(0xFF1C1C1C), arc.width / 2, center, style = Stroke(w))
-            if (fill.value > 0f) drawArc(White, -90f, 360f * fill.value, false, topLeft, arc, style = Stroke(w, cap = StrokeCap.Round))
-            if (extra.value > 0f) drawArc(LauncherRed, -90f, 360f * extra.value, false, topLeft, arc, style = Stroke(w, cap = StrokeCap.Round))
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val number = when {
-                goal <= 0 -> eaten.whole()
-                over -> "+" + (eaten - goal).whole()
-                else -> (goal - eaten).whole()
-            }
-            SmallLabel(if (goal <= 0) "Comidas" else if (over) "De más" else "Quedan")
-            DotMatrixText(number, cell = 5.dp, color = if (over) LauncherRed else White, reveal = number)
-            SmallLabel(if (goal > 0) "de $goal kcal" else "kcal")
-        }
+private fun NutrientTable(eaten: Nutrition, settings: ModuleSettings) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        val kcalGoal = settings.kcalGoal
+        val over = kcalGoal > 0 && eaten.kcal > kcalGoal
+        NutrientRow(
+            label = if (kcalGoal > 0) "KCAL · META ${kcalGoal}" else "KCAL",
+            value = when {
+                kcalGoal <= 0 -> "${eaten.kcal.whole()}"
+                over -> "${(eaten.kcal - kcalGoal).whole()} DE MÁS"
+                else -> "${(kcalGoal - eaten.kcal).whole()} QUEDAN"
+            },
+            fraction = if (kcalGoal > 0) eaten.kcal / kcalGoal else 0f,
+            alert = over,
+        )
+        NutrientRow(
+            label = "PROTEÍNA · META ${settings.proteinGoalG}",
+            value = "${eaten.proteinG.whole()} g",
+            fraction = if (settings.proteinGoalG > 0) eaten.proteinG / settings.proteinGoalG else 0f,
+            alert = false,
+        )
+        NutrientRow(
+            label = "FIBRA · META ${settings.fiberGoalG}",
+            value = "${eaten.fiberG.whole()} g",
+            fraction = if (settings.fiberGoalG > 0) eaten.fiberG / settings.fiberGoalG else 0f,
+            alert = false,
+        )
     }
 }
 
-/** A nutrient against its goal: icon (with its red detail once met), a thin bar and the grams. */
+/** One nutrient line: its label on the left, its value on the right, and a bar that fills toward the goal. */
 @Composable
-private fun MacroBar(icon: String, label: String, value: Float, goal: Int, modifier: Modifier = Modifier) {
-    val met = goal > 0 && value >= goal
+private fun NutrientRow(label: String, value: String, fraction: Float, alert: Boolean) {
     val width = remember { Animatable(0f) }
-    LaunchedEffect(value, goal) { width.animateTo(if (goal > 0) (value / goal).coerceIn(0f, 1f) else 0f, tween(700)) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            StrokeIcon(icon, if (met) StrokeState.NOW else StrokeState.DONE, 20.dp)
-            SmallLabel(label, Modifier.weight(1f), maxLines = 1)
-            SmallLabel("${value.whole()} g", color = if (met) White else Muted)
+    LaunchedEffect(fraction) { width.animateTo(fraction.coerceIn(0f, 1f), tween(700)) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = Muted, maxLines = 1)
+            Text(value, style = MaterialTheme.typography.labelLarge, color = if (alert) LauncherDanger else White)
         }
-        Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF1F1F1F))) {
-            Box(Modifier.fillMaxWidth(width.value).height(3.dp).clip(RoundedCornerShape(2.dp)).background(White))
+        Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0xFF1F1F1F))) {
+            Box(Modifier.fillMaxWidth(width.value).height(3.dp).background(if (alert) LauncherDanger else White))
         }
     }
 }
@@ -518,7 +510,7 @@ private fun LogSheet(
         header = {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 IconTabs(listOf("receta" to "escuela", "ingredientes" to "tazon"), mode) { mode = it }
-                if (slotTime != null) SmallLabel(slotTime, color = if (slotDone) White else LauncherRed)
+                if (slotTime != null) SmallLabel(slotTime, color = if (slotDone) White else LauncherAccent)
             }
         },
     ) {

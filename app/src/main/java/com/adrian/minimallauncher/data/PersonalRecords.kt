@@ -38,16 +38,21 @@ data class ReminderRecord(@PrimaryKey val id: String, val title: String, val hou
  * payments for an outside service come in but are not counted on. Records saved before version 3 are [EXTRA].
  */
 enum class MoneyKind {
-    INCOME_FIXED, TRANSFER, GIFT, SERVICE, FIXED, EXTRA, SHARED;
+    INCOME_FIXED, TRANSFER, GIFT, SERVICE, FIXED, EXTRA, SHARED,
+    /** A one-off payment of the month (a card bill, a subscription): not day-to-day spending, not a topic. */
+    MONTHLY,
+    /** Transfer from a debit account to the cash wallet; neither income nor expense. */
+    WITHDRAWAL;
 
     val isIncome: Boolean get() = this == INCOME_FIXED || this == TRANSFER || this == GIFT || this == SERVICE
-    val isExpense: Boolean get() = !isIncome
+    val isExpense: Boolean get() = !isIncome && this != WITHDRAWAL
 }
 
 /**
  * One money movement; [amountCents] is always positive and [kind] says which way it went.
  * A [MoneyKind.SHARED] bill was paid in full by the user; [pendingFromOthersCents] is what the others still owe.
- * [mealId] links a food expense to the meal registered with it.
+ * [mealId] links a food expense to the meal registered with it. [account] is the bank account or card it was paid with
+ * (its id in `bank_accounts`), empty when unknown.
  */
 @Entity(tableName = "finances")
 data class FinanceRecord(
@@ -59,6 +64,7 @@ data class FinanceRecord(
     @ColumnInfo(defaultValue = "") val category: String = "",
     @ColumnInfo(defaultValue = "0") val pendingFromOthersCents: Long = 0,
     val mealId: String? = null,
+    @ColumnInfo(defaultValue = "") val account: String = "",
 )
 
 /**

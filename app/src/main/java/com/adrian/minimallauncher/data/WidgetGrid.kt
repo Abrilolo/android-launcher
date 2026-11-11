@@ -15,6 +15,9 @@ fun sizesFor(widgetId: String): List<GridSize> = when (widgetId) {
     // Asistentes IA: the strip with every assistant is 4×1; a single assistant ("ai:<app>") is 2×2 or 4×2.
     "ai" -> listOf(GridSize(4, 1))
     "routine" -> listOf(GridSize(2, 2), GridSize(4, 2), GridSize(4, 1))
+    // Finanzas widgets (feature/finance/FinanceWidgets.kt): every part in the three sizes.
+    "finance", "finance_week", "finance_budget", "finance_payments", "finance_goal", "finance_bag", "finance_owed" ->
+        listOf(GridSize(2, 2), GridSize(4, 2), GridSize(4, 1))
     else -> listOf(GridSize(2, 2), GridSize(4, 2))
 }
 

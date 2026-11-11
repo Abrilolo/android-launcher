@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "scope": "Finance progressive disclosure and readability refinement",
+  "comparison": "existing-system",
+  "baseline": {
+    "path": "before.png",
+    "width": 1080,
+    "height": 2340,
+    "environment": "Physical Android device, development fixture; pre-change Today screen only",
+    "sha256": "292c312fa809cad7ef51c9225e5677989ee919aa3f776b23599b73165f16cae7"
+  },
+  "changes": [
+    "Labeled disclosure chevrons and accessible expanded state",
+    "Finance text increased to 15/17sp and secondary color to #D0D0D0",
+    "Account totals remain visible; chart and collections collapsed",
+    "Period calendar collapsed except when selecting a custom range; ledger collapsed",
+    "Budget heading uses product language"
+  ],
+  "sources": [
+    {
+      "path": "app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceUi.kt",
+      "sha256": "54ea710b1415da3bf2a0b4ee3cf9f9214eb33edbbe5407b73f990291131d497f"
+    },
+    {
+      "path": "app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceScreen.kt",
+      "sha256": "cb39a806ce528f8773ae2c115c1a018dd4f22965a9cb6d17baddaad6d2557dd3"
+    },
+    {
+      "path": "app/src/main/java/com/adrian/minimallauncher/feature/finance/FinancePeriod.kt",
+      "sha256": "bea57f14cc289307c62a93070f51bdb06e164c9d0b3a8b16da26aee3930281b1"
+    },
+    {
+      "path": "app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceSettings.kt",
+      "sha256": "8201921530475b53de00837dec2851ab1edb81492fba2274e5574ba7305acb6d"
+    },
+    {
+      "path": "app/src/main/java/com/adrian/minimallauncher/feature/finance/SavingGoal.kt",
+      "sha256": "b6e21f66bcb83391072c486b49f9b011843719e1a8f601ff738d1680e713ef9a"
+    },
+    {
+      "path": "app/src/main/java/com/adrian/minimallauncher/feature/bank/BankView.kt",
+      "sha256": "5f4c8aceef93a42033751e5d21b7f6c8320588b27c4fd46924d9c6acea95ddf3"
+    }
+  ],
+  "checks": [
+    {
+      "id": "final-native-render",
+      "status": "blocked",
+      "reason": "Existing emulator-5554 offline; additional read-only emulator rejected because another emulator instance is running. Physical device in use; stopped interactions."
+    },
+    {
+      "id": "large-text-and-narrow-screen",
+      "status": "unverified"
+    },
+    {
+      "id": "native-expand-collapse-and-navigation",
+      "status": "unverified"
+    },
+    {
+      "id": "assembleDebug",
+      "status": "passed"
+    },
+    {
+      "id": "testDebugUnitTest",
+      "status": "passed",
+      "tests": 80,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "id": "diff-whitespace",
+      "status": "passed"
+    }
+  ],
+  "limitations": [
+    "Baseline is not a final render. No claim of pixel parity, accessibility conformance, or completed visual verification.",
+    "Existing uncommitted work preserved. No data model changes."
+  ]
+}

@@ -51,7 +51,8 @@ import com.adrian.minimallauncher.data.WidgetStackConfig
 import com.adrian.minimallauncher.data.allowedSizes
 import com.adrian.minimallauncher.data.fits
 import com.adrian.minimallauncher.data.usedRows
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
+import com.adrian.minimallauncher.feature.LauncherDanger
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.components.LocalReactions
 import com.adrian.minimallauncher.ui.components.WidgetStackTile
@@ -181,7 +182,7 @@ fun WidgetGridView(
                     Modifier
                         .offset(stepX * p.col, stepY * p.row)
                         .size(spanSize(cellW, p.w), spanSize(GRID_CELL_HEIGHT, p.h))
-                        .border(2.dp, if (p.valid) Color.White else LauncherRed, RoundedCornerShape(26.dp)),
+                        .border(2.dp, if (p.valid) Color.White else LauncherDanger, RoundedCornerShape(26.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (p.merge) SmallLabel("PILA", color = Color.White)

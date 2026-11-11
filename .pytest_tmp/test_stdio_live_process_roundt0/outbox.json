@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "cap_1_1793864640123",
+      "source": "capture",
+      "raw_text": "Pagar la luz a las 18:00",
+      "payload": {
+        "reminders": [],
+        "finances": [],
+        "meals": [],
+        "workouts": [],
+        "notes": [
+          {
+            "category": "GENERAL",
+            "text": "Pagar la luz a las 18:00"
+          }
+        ],
+        "source": "nook-desktop",
+        "sentAt": 1793864640123
+      },
+      "used_fallback": true,
+      "created_at_ms": 1793864640123,
+      "attempts": 1,
+      "last_error": "S24+ inalcanzable ([WinError 10013] Intento de acceso a un socket no permitido por sus permisos de acceso)"
+    }
+  ]
+}

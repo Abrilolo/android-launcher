@@ -33,7 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.ModuleSettings
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
@@ -58,7 +58,7 @@ internal fun ExerciseSettings(
 ) {
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 8.dp).height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-            SmallLabel("AJUSTES · EJERCICIO", Modifier.weight(1f), color = LauncherRed)
+            SmallLabel("AJUSTES · EJERCICIO", Modifier.weight(1f), color = LauncherAccent)
             IconButton("listo", StrokeState.NOW, 22.dp, "Cerrar ajustes", onClick = onClose)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -42,7 +42,8 @@ import com.adrian.minimallauncher.data.MealKind
 import com.adrian.minimallauncher.data.MealSlot
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.NoteRecord
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
+import com.adrian.minimallauncher.feature.LauncherDanger
 import com.adrian.minimallauncher.feature.ModuleChip
 import com.adrian.minimallauncher.feature.ModuleHeader
 import com.adrian.minimallauncher.feature.ModuleSwitch
@@ -85,6 +86,7 @@ fun ModulesScreen(
     modifier: Modifier = Modifier,
     /** Opened from a module's gear: show its settings right away, and back leaves instead of going to the list. */
     initialEditing: String? = null,
+    onOpenBridge: () -> Unit = {},
 ) {
     var editing by rememberSaveable { mutableStateOf(initialEditing) }
     val current = editing
@@ -93,7 +95,7 @@ fun ModulesScreen(
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp)) {
         if (current == null) {
             ModuleHeader("INICIO", onBack, Modifier.padding(top = 8.dp))
-            ModuleList(settings, onUpdate, backup.lastAt, onEdit = { editing = it }, onAppsAndSpaces)
+            ModuleList(settings, onUpdate, backup.lastAt, onEdit = { editing = it }, onAppsAndSpaces, onOpenBridge)
         } else {
             ModuleHeader("MÓDULOS", closeEditor, Modifier.padding(top = 8.dp))
             Column(
@@ -115,6 +117,7 @@ private fun ColumnScope.ModuleList(
     lastBackupAt: Long?,
     onEdit: (String) -> Unit,
     onAppsAndSpaces: () -> Unit,
+    onOpenBridge: () -> Unit = {},
 ) {
     val shown = HOME_TILES.count { it !in settings.hiddenTiles }
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 24.dp)) {
@@ -168,7 +171,18 @@ private fun ColumnScope.ModuleList(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text("Respaldo", style = MaterialTheme.typography.bodyLarge)
-                SmallLabel(lastBackupAt?.let { "ÚLTIMO · ${backupDate(it)}" } ?: "SIN RESPALDO", color = if (lastBackupAt == null) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant)
+                SmallLabel(lastBackupAt?.let { "ÚLTIMO · ${backupDate(it)}" } ?: "SIN RESPALDO", color = if (lastBackupAt == null) LauncherDanger else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            SmallLabel("›")
+        }
+        Divider()
+        Row(
+            Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onOpenBridge).padding(vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("Conexión PC · Nook", style = MaterialTheme.typography.bodyLarge)
+                SmallLabel("IP WI-FI · PUERTO 8765 · MENSAJES RÁPIDOS")
             }
             SmallLabel("›")
         }
@@ -199,7 +213,7 @@ private fun BackupEditor(backup: BackupUi) {
     SmallLabel(backup.lastAt?.let { "ÚLTIMO RESPALDO · ${backupDate(it)}" } ?: "TODAVÍA NO HAY RESPALDO", color = MaterialTheme.colorScheme.onSurface)
     ActionLabel("EXPORTAR") { exportFile.launch("launcher-respaldo-${LocalDate.now()}.json") }
     ActionLabel("IMPORTAR") { importFile.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
-    backup.message?.let { SmallLabel(it, color = if (it.startsWith("NO SE PUDO")) LauncherRed else MaterialTheme.colorScheme.onSurface) }
+    backup.message?.let { SmallLabel(it, color = if (it.startsWith("NO SE PUDO")) LauncherDanger else MaterialTheme.colorScheme.onSurface) }
     SmallLabel("IMPORTAR NO BORRA NADA: SOLO AGREGA LO QUE FALTE. LOS HORARIOS Y APARTADOS DE APPS NO VAN EN EL RESPALDO.", Modifier.padding(top = 8.dp))
 }
 
@@ -387,8 +401,8 @@ private fun MealsEditor(meals: List<MealSlot>, onSave: (List<MealSlot>) -> Unit)
     }
     val parsed = drafts.map { d -> runCatching { LocalTime.parse(d.time) }.getOrNull()?.let { MealSlot(d.id, d.name.trim(), it, d.kind, d.icon) } }
     when {
-        parsed.any { it == null } -> SmallLabel("USA EL FORMATO HH:mm", color = LauncherRed)
-        parsed.any { it!!.name.isBlank() } -> SmallLabel("CADA COMIDA NECESITA NOMBRE", color = LauncherRed)
+        parsed.any { it == null } -> SmallLabel("USA EL FORMATO HH:mm", color = LauncherAccent)
+        parsed.any { it!!.name.isBlank() } -> SmallLabel("CADA COMIDA NECESITA NOMBRE", color = LauncherAccent)
         else -> ActionLabel("GUARDAR COMIDAS") { onSave(parsed.filterNotNull().sortedBy { it.time }) }
     }
 }

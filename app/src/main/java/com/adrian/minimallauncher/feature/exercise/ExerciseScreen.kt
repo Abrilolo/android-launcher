@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.ModuleSettings
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleCard
 import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
@@ -227,7 +227,7 @@ internal fun IntervalBars() {
     Row(Modifier.fillMaxWidth().height(34.dp), Arrangement.spacedBy(2.dp), Alignment.Bottom) {
         Box(Modifier.weight(10f).height(10.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(3.dp)))
         repeat(6) {
-            Box(Modifier.weight(1f).height(34.dp).background(LauncherRed, RoundedCornerShape(3.dp)))
+            Box(Modifier.weight(1f).height(34.dp).background(LauncherAccent, RoundedCornerShape(3.dp)))
             Box(Modifier.weight(3f).height(10.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(3.dp)))
         }
         Box(Modifier.weight(10f).height(10.dp).background(Color(0xFF5C5C5C), RoundedCornerShape(3.dp)))

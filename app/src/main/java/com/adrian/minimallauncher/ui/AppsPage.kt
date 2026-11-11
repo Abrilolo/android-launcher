@@ -32,9 +32,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,17 +49,13 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.AppCategory
@@ -68,7 +64,7 @@ import com.adrian.minimallauncher.data.LauncherApp
 import com.adrian.minimallauncher.data.Space
 import com.adrian.minimallauncher.feature.CardFill
 import com.adrian.minimallauncher.feature.CardLine
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleChip
 import com.adrian.minimallauncher.feature.SearchField
 import com.adrian.minimallauncher.feature.SmallLabel
@@ -117,6 +113,7 @@ fun AppsPage(
     now: LocalDateTime,
     onSettings: () -> Unit,
     onClose: () -> Unit,
+    drawer: AppsDrawerState,
     modifier: Modifier = Modifier,
 ) {
     var tab by rememberSaveable { mutableStateOf("apps") }
@@ -125,9 +122,6 @@ fun AppsPage(
     var editingAppPkg by rememberSaveable { mutableStateOf<String?>(null) }
 
     val haptics = LocalHapticFeedback.current
-    val density = LocalDensity.current
-    val closeThresholdPx = with(density) { 72.dp.toPx() }
-
     val nonVaultApps = remember(apps) { apps.filterNot { it.isVault } }
     val categoryById = remember(categories) { categories.associateBy { it.id } }
     val shownCategories = remember(categories, editing) {
@@ -153,34 +147,9 @@ fun AppsPage(
 
     val listState = rememberLazyListState()
     val editListState = rememberLazyListState()
-    var overscrollDown by remember { mutableFloatStateOf(0f) }
-    val nestedSwipeClose = remember(listState, editListState, editing, closeThresholdPx) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < 0f) overscrollDown = 0f
-                return Offset.Zero
-            }
-
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                val activeList = if (editing) editListState else listState
-                if (!editing && source == NestedScrollSource.UserInput && available.y > 0f &&
-                    activeList.firstVisibleItemIndex == 0 && activeList.firstVisibleItemScrollOffset == 0
-                ) {
-                    overscrollDown += available.y
-                    if (overscrollDown >= closeThresholdPx) {
-                        overscrollDown = 0f
-                        onClose()
-                    }
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                overscrollDown = 0f
-                return Velocity.Zero
-            }
-        }
-    }
+    // Pulling down from the top of the list takes the drawer down with the finger.
+    val latestEditing by rememberUpdatedState(editing || editingAppPkg != null)
+    val pullClose = remember(drawer) { DrawerPull(drawer, upward = false) { !latestEditing } }
 
     BackHandler {
         when {
@@ -200,8 +169,7 @@ fun AppsPage(
     Box(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .nestedScroll(nestedSwipeClose)
+            .nestedScroll(pullClose)
             .imePadding(),
     ) {
         Column(
@@ -224,7 +192,7 @@ fun AppsPage(
                 RoundActionIcon(
                     icon = if (editing) "listo" else "lapiz",
                     description = if (editing) "Listo" else "Editar",
-                    color = if (editing) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (editing) LauncherAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { editing = !editing },
                 )
             }
@@ -283,7 +251,7 @@ fun AppsPage(
                             textStyle = MaterialTheme.typography.titleMedium.copy(
                                 color = MaterialTheme.colorScheme.onSurface,
                             ),
-                            cursorBrush = SolidColor(LauncherRed),
+                            cursorBrush = SolidColor(LauncherAccent),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(
                                 onDone = {
@@ -436,7 +404,7 @@ fun AppsPage(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         DotIcon(DotIcons.relojArena, done = true, contentDescription = null, size = 18.dp)
-                        SmallLabel(backAt.format(hhmm), color = LauncherRed)
+                        SmallLabel(backAt.format(hhmm), color = LauncherAccent)
                     }
                 }
             }
@@ -559,7 +527,7 @@ private fun AppCategorySheet(
             RoundActionIcon(
                 icon = "listo",
                 description = "Listo",
-                color = LauncherRed,
+                color = LauncherAccent,
                 onClick = onClose,
             )
         }

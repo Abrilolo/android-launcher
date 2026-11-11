@@ -17,9 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 val LauncherBlack = Color(0xFF000000)
-val LauncherWhite = Color(0xFFFFFFFF)
-// Secondary text: light enough to read without effort (raised from #8A8A8A, see docs/design/PLAN_VISUAL.md).
-val LauncherGray = Color(0xFFB0B0B0)
+// Diseño 2026-11-09: texto principal #f8f9f7; secundario #E8E8E8 (sustituye al gris #B0B0B0 que se perdía).
+val LauncherWhite = Color(0xFFF8F9F7)
+val LauncherGray = Color(0xFFE8E8E8)
 val LauncherDim = Color(0xFF4A4A4A)
 
 private val colors = darkColorScheme(
@@ -35,14 +35,24 @@ private val colors = darkColorScheme(
     outline = LauncherDim,
 )
 
+// Escala estricta (diseño 2026-11-10):
+//  Headline: vista 40 (headlineLarge), sección 24 (headlineMedium), cifra destacada 32 (headlineSmall).
+//  Title: subsección 20 (titleLarge), elemento 17 (titleMedium), elemento chico 15 (titleSmall).
+//  Body: 17 / 15 / 14.  Caption: 15 / 13 / 12 (labelLarge / labelMedium / labelSmall).
 private val typography = Typography(
     displayLarge = TextStyle(fontSize = 72.sp, fontWeight = FontWeight.Light, letterSpacing = (-2).sp),
-    titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Normal, letterSpacing = 2.sp),
-    headlineSmall = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Normal),
-    bodyLarge = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Normal),
-    bodyMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Normal),
-    bodySmall = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal),
-    labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal, letterSpacing = 1.5.sp),
+    headlineLarge = TextStyle(fontSize = 40.sp, lineHeight = 44.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp),
+    headlineMedium = TextStyle(fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold),
+    headlineSmall = TextStyle(fontSize = 32.sp, lineHeight = 36.sp, fontWeight = FontWeight.ExtraBold),
+    titleLarge = TextStyle(fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
+    titleMedium = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
+    titleSmall = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+    bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium),
+    bodyMedium = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal),
+    bodySmall = TextStyle(fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Normal),
+    labelLarge = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+    labelMedium = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold),
+    labelSmall = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp),
 )
 
 /** Suppresses Material's default rectangular ripple/press box so only dot/stroke animations react on tap. */

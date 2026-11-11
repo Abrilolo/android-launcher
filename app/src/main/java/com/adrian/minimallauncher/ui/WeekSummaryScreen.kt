@@ -28,7 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.MealSlot
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecords
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
+import com.adrian.minimallauncher.feature.LauncherDanger
 import com.adrian.minimallauncher.feature.ModuleCard
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.feature.StatusDot
@@ -99,7 +100,7 @@ private fun DayColumns(week: List<LocalDate>, today: LocalDate, cell: @Composabl
                 cell(day)
                 SmallLabel(
                     day.dayOfWeek.getDisplayName(TextStyle.NARROW, spanish).uppercase(spanish),
-                    color = if (day == today) LauncherRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (day == today) LauncherAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -146,13 +147,13 @@ private fun FinanceCard(week: List<LocalDate>, elapsed: List<LocalDate>, today: 
                 append("PROMEDIO ${formatPesos(total / elapsed.size.coerceAtLeast(1))} AL DÍA")
                 if (budgetCents > 0) append(" · $overDays ${if (overDays == 1) "DÍA" else "DÍAS"} SOBRE PRESUPUESTO")
             },
-            color = if (overDays > 0) LauncherRed else MaterialTheme.colorScheme.onSurface,
+            color = if (overDays > 0) LauncherDanger else MaterialTheme.colorScheme.onSurface,
         )
         DayColumns(week, today) { day ->
             val cents = byDay[day] ?: 0
             Box(Modifier.height(28.dp), contentAlignment = Alignment.BottomCenter) {
                 val color = when {
-                    budgetCents > 0 && cents > budgetCents -> LauncherRed
+                    budgetCents > 0 && cents > budgetCents -> LauncherAccent
                     day == today -> MaterialTheme.colorScheme.onSurface
                     else -> Color(0xFF5A5A5A)
                 }

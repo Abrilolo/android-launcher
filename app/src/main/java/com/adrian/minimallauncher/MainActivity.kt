@@ -31,6 +31,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         showRoutine = intent.getStringExtra(EXTRA_OPEN) == OPEN_ROUTINE
+        intent.getStringExtra(EXTRA_OPEN)?.takeIf { it.startsWith("finance") }?.let { viewModel.openRequest.value = it }
         setContent {
             // A pending payment or salida's registration covers the launcher until it is saved.
             val forced by viewModel.forcedState.collectAsState()
@@ -58,7 +59,9 @@ class MainActivity : FragmentActivity() {
     // Home button or gesture while the launcher is already showing: go back to the main page.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.getStringExtra(EXTRA_OPEN) == OPEN_ROUTINE) showRoutine = true
+        val open = intent.getStringExtra(EXTRA_OPEN)
+        if (open?.startsWith("finance") == true) viewModel.openRequest.value = open
+        else if (open == OPEN_ROUTINE) showRoutine = true
         else if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
             showRoutine = false
             viewModel.onHomePressed()

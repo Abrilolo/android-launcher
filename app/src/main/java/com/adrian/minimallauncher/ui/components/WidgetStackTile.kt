@@ -79,7 +79,7 @@ import com.adrian.minimallauncher.data.WidgetStackConfig
 import com.adrian.minimallauncher.data.defaultBgAlpha
 import com.adrian.minimallauncher.feature.CardFill
 import com.adrian.minimallauncher.feature.CardLine
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ai.AI_STRIP
 import com.adrian.minimallauncher.feature.ai.AiApp
 import com.adrian.minimallauncher.feature.ai.AiWidget
@@ -88,7 +88,6 @@ import com.adrian.minimallauncher.feature.exercise.ExerciseWidget
 import com.adrian.minimallauncher.feature.vault.VaultWidget
 import com.adrian.minimallauncher.ui.AlarmTile
 import com.adrian.minimallauncher.ui.ClockTile
-import com.adrian.minimallauncher.ui.ExpensesTile
 import com.adrian.minimallauncher.ui.GRID_CELL_HEIGHT
 import com.adrian.minimallauncher.ui.GRID_GAP
 import com.adrian.minimallauncher.ui.HomeData
@@ -120,7 +119,7 @@ val WIDGET_LABELS = mapOf(
     "notes" to "Nota Fijada",
     AI_STRIP to "Asistentes IA",
     "routine" to "Rutinas",
-) + AiApp.entries.associate { it.widgetId to it.label }
+) + com.adrian.minimallauncher.feature.finance.FinanceWidgets.labels + AiApp.entries.associate { it.widgetId to it.label }
 
 /**
  * A customizable tile or smart stack of tiles on the home screen.
@@ -402,7 +401,7 @@ fun MinusBadge(contentDescription: String, onClick: () -> Unit, modifier: Modifi
             Modifier
                 .width(12.dp)
                 .height(2.5.dp)
-                .background(LauncherRed, RoundedCornerShape(2.dp)),
+                .background(LauncherAccent, RoundedCornerShape(2.dp)),
         )
     }
 }
@@ -786,7 +785,14 @@ fun WidgetContent(
         "clock" -> ClockTile(now, fillMod, { onOpenModule("alarms") }, onLongClick, padded = padded)
         "alarms" -> AlarmTile(now, fillMod, onClick, onLongClick)
         "exercise" -> Tile(fillMod, onClick, onLongClick) { ExerciseWidget(data.exercise, data.settings.exerciseStart) }
-        "finance" -> ExpensesTile(data.records, now.toLocalDate(), data.settings.dailyBudgetCents, fillMod, onClick, onLongClick)
+        in com.adrian.minimallauncher.feature.finance.FinanceWidgets.ids -> com.adrian.minimallauncher.feature.finance.FinanceWidget(
+            widgetId,
+            com.adrian.minimallauncher.feature.finance.FinanceWidgetData(
+                data.finance, data.money, com.adrian.minimallauncher.feature.finance.FinancePlan.decode(data.settings.financePlan),
+                data.settings.savingGoal, data.receivables, now.toLocalDate(), data.accounts,
+            ),
+            fillMod, onOpenModule, onLongClick,
+        )
         "diet" -> MealsTile(data.records.completedHabits, now, data.settings.meals, data.onSetHabit, fillMod, onClick, onLongClick)
         "water" -> WaterTile(data.records.completedHabits, now, data.settings, data.onSetHabit, fillMod, { onOpenModule("diet") }, onLongClick)
         "world" -> WorldTile(data.settings.worldZones, fillMod, onClick, onLongClick)

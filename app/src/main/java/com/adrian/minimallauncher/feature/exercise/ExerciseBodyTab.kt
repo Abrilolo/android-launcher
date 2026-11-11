@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.ModuleSettings
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleCard
 import com.adrian.minimallauncher.ui.components.DotMatrixText
 import com.adrian.minimallauncher.ui.components.StrokeIcon
@@ -77,11 +77,11 @@ internal fun BodyTab(today: LocalDate, settings: ModuleSettings, metrics: List<B
         }
         val start = weights.firstOrNull()
         val progress = if (weight != null && start != null && goal != null && start != goal) ((start - weight) / (start - goal)).coerceIn(0f, 1f) else 0f
-        Scale(listOf(Triple(0f, progress, MaterialTheme.colorScheme.onSurface)), listOf(progress to LauncherRed))
+        Scale(listOf(Triple(0f, progress, MaterialTheme.colorScheme.onSurface)), listOf(progress to LauncherAccent))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Num(start?.let { "%.1f".format(it) } ?: "", modifier = Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-                repeat(3) { i -> Dot(if (i < mornings) MaterialTheme.colorScheme.onSurface else if (i == mornings) LauncherRed else EmptyGray, 8.dp) }
+                repeat(3) { i -> Dot(if (i < mornings) MaterialTheme.colorScheme.onSurface else if (i == mornings) LauncherAccent else EmptyGray, 8.dp) }
             }
             if (goal != null) {
                 StrokeIcon("meta", StrokeState.DONE, 16.dp)
@@ -104,7 +104,7 @@ internal fun BodyTab(today: LocalDate, settings: ModuleSettings, metrics: List<B
         }
         Scale(
             listOf(Triple(x(18.5f), x(25f), MaterialTheme.colorScheme.onSurface)),
-            listOfNotNull(goalBmi?.let { x(it) to MaterialTheme.colorScheme.onSurface }, bmi?.let { x(it) to LauncherRed }),
+            listOfNotNull(goalBmi?.let { x(it) to MaterialTheme.colorScheme.onSurface }, bmi?.let { x(it) to LauncherAccent }),
         )
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) { Num("18.5"); Num("25"); Num("30") }
     }
@@ -168,7 +168,7 @@ private fun Trend(values: List<Float>) {
     if (values.size < 2) return
     val (previous, current) = values.takeLast(2)
     when {
-        current > previous -> Num("↑", LauncherRed)
+        current > previous -> Num("↑", LauncherAccent)
         current < previous -> Num("↓", MaterialTheme.colorScheme.onSurface)
         else -> Num("·")
     }

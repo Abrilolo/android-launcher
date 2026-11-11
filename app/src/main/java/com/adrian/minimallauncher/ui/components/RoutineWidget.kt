@@ -36,7 +36,7 @@ import com.adrian.minimallauncher.data.routine.RoutinePhase
 import com.adrian.minimallauncher.data.routine.Trigger
 import com.adrian.minimallauncher.data.routine.WidgetPick
 import com.adrian.minimallauncher.data.routine.WidgetSelector
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.finance.formatPesos
 import com.adrian.minimallauncher.ui.Tile
 import com.adrian.minimallauncher.ui.phaseIcon
@@ -149,13 +149,13 @@ private fun Ring(fraction: Float) {
         val arcSize = Size(size.width - 2 * inset, size.height - 2 * inset)
         val topLeft = Offset(inset, inset)
         drawArc(Color(0xFF1C1C1C), 0f, 360f, false, topLeft, arcSize, style = Stroke(w))
-        drawArc(if (fraction > 0.75f) LauncherRed else White, -90f, 360f * fraction, false, topLeft, arcSize, style = Stroke(w, cap = StrokeCap.Round))
+        drawArc(if (fraction > 0.75f) LauncherAccent else White, -90f, 360f * fraction, false, topLeft, arcSize, style = Stroke(w, cap = StrokeCap.Round))
     }
 }
 
 @Composable
 private fun Number(text: String, red: Boolean) {
-    Text(text, style = MaterialTheme.typography.labelSmall, color = if (red) LauncherRed else White)
+    Text(text, style = MaterialTheme.typography.labelSmall, color = if (red) LauncherAccent else White)
 }
 
 /** Up to four of the phase's reminders by hour, from the last one done; the next one's hour is red. */
@@ -177,7 +177,7 @@ private fun Reminders(list: List<PhaseReminder>) {
                     r.at.format(hhmm), style = MaterialTheme.typography.labelSmall,
                     color = when {
                         r.done -> White
-                        isNext -> LauncherRed
+                        isNext -> LauncherAccent
                         else -> Muted
                     },
                 )
@@ -195,7 +195,7 @@ private fun Chain(data: RoutineWidgetData) {
         steps.forEachIndexed { i, s ->
             if (i > 0) Box(Modifier.width(8.dp).height(1.5.dp).background(if (steps[i - 1].done && s.done) White else Color(0xFF333333)))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(5.dp).background(if (s == next) LauncherRed else Color.Transparent, CircleShape))
+                Box(Modifier.size(5.dp).background(if (s == next) LauncherAccent else Color.Transparent, CircleShape))
                 Spacer(Modifier.height(4.dp))
                 StrokeIcon(s.action.kind.icon, if (s.done) StrokeState.NOW else StrokeState.OFF, 24.dp, playKey = s.done)
             }

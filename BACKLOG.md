@@ -105,6 +105,13 @@ Pedido: "no me gustó mucho que el ejercicio guiado sea como la función princip
 - [ ] Plan editado: el widget, la página Semana y la sugerencia por exceso de kcal ya leen Tu rutina, no la guía Tokio. **Por validar.**
 - [ ] Falta: la rutina sin guía no tiene calentamiento (sigue solo en la guiada).
 
+#### Cajón de apps que sigue al dedo (2026-11-04)
+
+Pedido: "cuando no se alcanzan ver en la pantalla e intentas el scroll, se muestran todas las apps, no quiero eso... con el swipe hacia arriba el mismo efecto que tenemos en ejercicio como lo del fondo se pone como blur y con el deslizamiento de mi dedo se va subiendo o bajando". **Por validar en el S24+.**
+
+- [ ] Desplazar la página de inicio ya no abre el cajón. Solo se abre si la página ya está hasta abajo (o no se desplaza) cuando empieza el gesto. **Por validar.**
+- [ ] El cajón sube y baja con el dedo; al soltar queda abierto o cerrado según cuánto y qué tan rápido se movió. El inicio de atrás se desenfoca y oscurece poco a poco, como en Ejercicio. Se cierra jalando hacia abajo desde arriba de la lista, o con atrás. **Por validar.**
+
 #### Barra de abajo de Ejercicio en las demás vistas (2026-11-04)
 
 Pedido: "el estilo de la barra que tenemos para los menus en el apartado de ejercicio, hazla tambien para las demás vistas". **Por validar en el S24+.**
@@ -208,14 +215,32 @@ Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
 - [ ] Tocar el monto abre un teclado numérico propio para corregirlo; ✓ confirma. **Por validar.**
 - [ ] Toque 2 (comida): recetas en círculos con foto (inicial si no tiene), las más usadas primero; la hoja abre ingredientes (buscar, tocar, los gramos suben de 50 en 50); ✓ la marca como comida sin detalle. **Por validar.**
 - [ ] Salida: las comidas que ya pasaron con su hora (la siguiente en rojo); tocarlas las marca y ✓ termina. **Por validar.**
-- [ ] Falta: la lectura real de notificaciones del banco (hoy solo el mosaico); transferencia, regalo y servicio se guardan como gasto extra con su categoría (la app los cuenta como ingreso cuando son entradas); la bolsa usa la categoría "antojo"; receta siempre 1 porción; los gramos solo de 50 a 300; sin cuenta compartida ni "paga otro"; sin deshacer después de guardar.
+- [ ] Avisos del banco (2026-11-04): el launcher lee las notificaciones de Nu, BBVA, Mercado Pago, Google Wallet, Stori, Plata y Revolut (`BankNotificationService.kt`, reglas en `data/BankParser.kt`). Un pago abre el registro; un ingreso abre su propio paso: el monto y un toque (estabilidad arriba → ingreso fijo; transferencia, regalo o servicio abajo). Si Wallet y el banco avisan el mismo monto en 3 min, cuenta una vez; dos pagos iguales en la misma app cuentan como dos. Se activa en el engrane de Finanzas → AVISOS DEL BANCO → PERMITIR. En Pruebas de Rutinas hay "Ingreso de prueba". **Por validar.**
+- [ ] Reglas probadas con 24 avisos de ejemplo de Nu, Revolut, Mercado Pago, BBVA, Stori y Plata (2026-11-04, `BankParserTest`); todos caben en la regla general, sin reglas por banco. Avisos reales del teléfono (Nu "Transferencia exitosa", Revolut "Has recibido MXN…" y "Pagado MXN… en …") también. Un traspaso entre tus cuentas (sale de un banco y entra el mismo monto a otro, sin importar cuánto tarde, mientras el primero siga pendiente) no cuenta como pago ni como ingreso: el dinero sigue siendo tuyo. Falta: ejemplos de Google Wallet; avisos con otro texto se afinan cuando aparezcan; transferencia, regalo y servicio (en un pago) se guardan como gasto extra con su categoría; la bolsa usa la categoría "antojo"; receta siempre 1 porción; los gramos solo de 50 a 300; sin cuenta compartida ni "paga otro"; sin deshacer después de guardar.
 
 ### Comida y Finanzas · estilo de Ejercicio (2026-10-31)
 
 Componentes nativos en `feature/ModuleStyle.kt`: Dock, título con brillo, enlace rojo, filas de registro, selector de rango y gráfica apilada.
 
 - [ ] Comida: Dock (Hoy con las comidas que faltan, Semana, Recetas, Ajustes); mantener Recetas: Nueva receta. Registrar comida reemplaza al botón +. Etiquetas cortas en kcal, macros, comidas, agua y hábitos. Semana: kcal por día o semana (rojo: lo que pasó la meta), peso, IMC y registros. **Por validar.**
-- [ ] Finanzas: separada en Hoy, Semana y Mes con Dock (Hoy con las cuentas por cobrar). Registrar reemplaza al botón +. Semana: columnas de puntos y movimientos. Mes: ingreso, gasto por día o semana (rojo: lo que pasó lo permitido) y movimientos. **Por validar.**
+- [ ] Finanzas: Dock con Hoy, Resumen (semana o mes), Presupuesto y Ajustes. Hoy con las cuentas por cobrar. Registrar es un círculo rojo con + arriba del Dock, a la derecha, en Hoy y Resumen. **Por validar.**
+- [ ] Gastos fijos al registrar (2026-11-04): en FIJO salen los conceptos del plan de Ajustes como botones; elegir uno llena el monto planeado y guarda el pago con ese concepto. Debajo se ve lo que queda (lo de hoy para diarios y semanales, el resto del mes para mensuales), en rojo si te pasas, y "Próximos días" con lo que toca cada día que falta: pagar de más hoy baja los días que siguen de ese mismo gasto. En Hoy, cada gasto fijo con sus puntos y lo que queda; un mensual pagado sale con ✓. **Por validar.**
+- [ ] Registro obligatorio con nombres (2026-11-04): bajo cada ícono va su nombre (Comida, Antojo, Transferencia, Regalo, Servicio; en un ingreso: Ingreso fijo, Transferencia, Regalo, Servicio). Montos con comas. **Por validar.**
+- [ ] Ingreso que cuenta (2026-11-04): lo detectado o registrado como ingreso fijo este mes es el ingreso de Ajustes; el que fijas con el lápiz es un mínimo (para un sueldo que aún no llega o que el banco no avisa). Presupuesto es aparte: empieza vacío y nada detectado entra ahí. **Por validar.**
+- [ ] Gasto con presupuesto propio (2026-11-04): lo que tiene su tema (comida…) se descuenta solo de ese tema; "Queda hoy" y la semana solo cuentan lo que no tiene tema, y la semana libre ya descuenta lo que apartan los temas. La bolsa del mes sigue contando todo. **Por validar.**
+- [ ] Hoy más claro (2026-11-04): "Queda hoy" grande y "Gastado" a la derecha; debajo, "+$X de días anteriores" (o en rojo con − si se gastó de más). **Por validar.**
+- [ ] Meta de ahorro (2026-11-05): apartado dentro de Ajustes ("Meta de ahorro ›", con el monto a la derecha). Eliges cuánto y en cuánto tiempo (1, 3, 6 meses, 1 o 2 años); muestra cuánto toca por mes y hasta cuándo. Abonas o sacas dinero y la alcancía se llena: rojo en camino, ámbar si vas atrás del tiempo, verde al llegar. **Por validar.**
+- [ ] Pastel del presupuesto (2026-11-05): en Hoy y en Resumen, el pastel ya viene partido por apartado (Libre en rojo, cada tema en tono cálido, cada gasto fijo en tono frío, Ahorro en verde en el mes), cada uno del tamaño de su % del presupuesto y apagado; lo que gastas en un apartado lo va prendiendo del centro hacia afuera, con borde rojo si te pasas. Tocar una rebanada o su fila lleva a su anillo; deslizando se pasa por el anillo de cada apartado (Queda, Gastado, Presupuesto). Hoy usa lo del día, Resumen la semana, el mes o el día elegido; los gastos fijos mensuales solo salen en el mes. Debajo, los últimos 5 movimientos de esa página con "Ver más". Números en tipografía normal. **Por validar.**
+- [ ] Colores de estado del dinero (2026-11-05): en todo Finanzas el dinero se pinta por cómo va: verde (te queda bastante, menos de la mitad gastado), amarillo (vas, hasta 80%), naranja (te queda poco) y rojo solo cuando te pasas. Aplica a los anillos, Queda, Mes y Semana, puntos de gastos fijos, puntos de la tira de días y la gráfica. El pastel ya no usa rojo: Libre en verde azulado, temas en violeta/rosa, fijos en azules, ahorro en verde. Meta: amarillo en camino, naranja si vas atrás, verde al llegar. **Por validar.**
+- [ ] Día elegido como Hoy (2026-11-05): en Resumen, tocar un día muestra la misma vista que Hoy con los datos de ese día (pastel, anillos y sus movimientos), sin la gráfica de barras. **Por validar.**
+- [ ] Cada apartado en su periodo (2026-11-05): un tema o gasto fijo contado por semana ya no sale en el día; el día solo muestra los diarios, la semana los diarios y semanales (primero los semanales) y el mes todos (primero los mensuales). **Por validar.**
+- [ ] Abajo de Hoy: Ahorro, Gastado y Te queda (2026-11-05): en lugar de Mes, Semana y Bolsa. Te queda = ingreso − ahorro − fijos − extras del mes. **Por validar.**
+- [ ] Insights del pastel (2026-11-05): tocar una rebanada la marca (las demás se apagan) y en lugar de los totales sale una tarjeta con su nombre y frases: cómo vas, si gastas más rápido que el tiempo, cuánto te toca por día lo que resta, lo más grande, cuántos movimientos y su promedio, y su % del presupuesto. Tocarla otra vez o el centro la suelta; tocar la fila lleva a su anillo. **Por validar.**
+- [ ] Ajustes se queda guardado (2026-11-05): al guardar, el plan y el % de ahorro se pisaban entre sí y se perdía el plan; ahora cada cambio se escribe sobre el último. **Por validar.**
+- [ ] Ajustes de Finanzas (2026-11-04): el mismo tablero que Presupuesto, pero de verdad: ingreso fijo al mes (en $0 hasta editarlo con el lápiz), tabla de gastos fijos, ahorro y la barra fijos / ahorro / libre. Solo se guarda con el botón Guardar de abajo. Ese plan manda sobre lo registrado para calcular ahorro y bolsa (sin plan, cuenta lo registrado). Avisos del banco, bolsa y aparte, límite diario, presupuestos por tema y movimientos van en "Avanzado". **Por validar.**
+- [ ] Resumen (2026-11-04): Semana y Mes en una sola pestaña con selector. Semana: tira de días como en Ejercicio (inicial y número; hoy con anillo rojo). Mes: los mismos días en calendario. Un punto marca si gastaste (rojo si pasaste lo del día); tocar un día lo rellena de rojo y filtra los movimientos a ese día. Abajo, la gráfica de barras por día y, en Mes, la barra del ingreso. **Por validar.**
+- [ ] Presupuesto (2026-11-04): pestaña del Dock, tablero de simulación que no se guarda (dura mientras Finanzas está abierta). 1) Ingreso al mes; 2) gastos fijos en una sola tabla: por fila concepto y monto, abajo Día · Semana · Mes y lo que suma al mes; al pie el total al mes y qué % del ingreso se lleva (rojo si lo pasa); 3) ahorro %. Resultado: barra fijos / ahorro / libre y lo libre al mes, semana y día. **Por validar.**
+- [ ] Montos con formato de moneda (2026-11-04): al escribir se ve "$12,345.50" en Presupuesto, Ajustes y Registrar; todas las cifras de Finanzas (y los números de puntos) llevan comas de miles. **Por validar.**
 
 ### Comida (recetas y metas)
 
@@ -304,6 +329,93 @@ Lenguaje visual (2026-10-22), probado en el S24+; por validar contigo:
 - [~] "N REGISTROS · SEMANA $X" pasa a ícono de cartera + "SEMANA $X".
 - [~] Widget: "GASTO HOY" en rojo, total en rojo al pasarte del presupuesto, y la semana en columnas de puntos como en la página (antes eran barras).
 
+### Finanzas · paleta del diseño (2026-11-09)
+
+Pedido: "Sí, aplicar" a la paleta del diseño `Rediseño de datos, iconos y títulos` (Artifact). Paleta: fondo `#000000`, texto `#f8f9f7`, acción/acento `#1a77b5`; alertas `#4dd402` (éxito), `#ffcf7d` (aviso), `#ff2962` (peligro); acentos para fechas, etiquetas y configuración: `#f2f0c4`, `#e21f25`, `#c2d806`. Se aplicó solo a Finanzas, por ahora.
+
+- [x] Estados de dinero (`MoneyColors.kt`): sobra = verde `#4dd402`; en uso = azul `#1a77b5`; poco = ámbar `#ffcf7d`; pasado = rosa `#ff2962`. **Por validar en el S24+.**
+- [x] Blanco y gris de Finanzas (`FinanceUi.kt`): texto `#f8f9f7`; el gris secundario pasa a `#E8E8E8`. **Por validar.**
+- [x] Acción principal en toda la app (2026-11-09, pedido "Sí, en toda la app"): `LauncherRed` pasó a `LauncherAccent` = `#1a77b5` en todas las pantallas. Pasado, error y fuera de rango usan `LauncherDanger` = `#ff2962` (comida de más e IMC fuera de rango, respaldo con error, día con exceso, widget mal colocado). Los logos de IA conservan su rojo `#D71921`. Compila (`:app:compileDebugKotlin`). **Por validar en el S24+.**
+- [ ] Pendiente: colores de categorías (`FinanceChartColors`) siguen con su paleta anterior.
+- [x] Escala de texto en el tema (`ui/theme/LauncherTheme.kt`, 2026-11-09): título de vista 40 (headlineLarge), sección 24 (headlineMedium), elemento 17 (titleMedium y bodyLarge), dato de apoyo 14, etiquetas 12. Blanco `#F8F9F7` y secundario `#E8E8E8` en toda la app. **Por validar en el S24+:** los títulos cambian de tamaño en todas las vistas.
+- [x] Gráficas (`ui/components/DataCharts.kt`): dona, columnas verticales, barras horizontales y línea continua suave. En Finanzas → Resumen, la vista "Gráficas" en cuadrícula 2×2 como el diseño (`feature/finance/FinanceCharts.kt`): distribución con leyenda, gasto semanal en columnas (por día si el período es corto, por semana si es largo), gasto por categoría y saldo del mes con línea suave. **Por validar.** Falta decidir si también va en Hoy o en una pestaña propia.
+
+### Finanzas · Hoy como el diseño y vectores (2026-11-10)
+
+Pedido: "no veo el main como lo diseñamos", y que las gráficas y el calendario sigan la paleta, los vectores estándar y la vista de calendario.
+
+- [x] Iconos en lugar de texto: el botón de registrar es un círculo azul con + (sin "Registrar"); "Ver más" y "Leer más" son chevrones; la fila de pagos vinculados muestra el monto o un chevron. **Por validar.**
+- [x] Calendario de Resumen abierto por defecto. **Por validar.**
+- [x] Gráficas: azul en tonos; rosa solo en las columnas que superan el gasto del día (o de la semana). **Por validar.**
+- [x] Hoy como el Main del tablero (2026-11-10, `feature/finance/FinanceHoy.kt`): saldo del mes grande, gasto semanal en columnas (rosa solo al pasarte del día), pagos de hoy con ojo (detalle) y lápiz (editar), y pagos vinculados con chevron. Quitados de Hoy: el resumen de Día, la tarjeta de meta de ahorro y la fecha de cabecera; siguen en Presupuesto y Ajustes. **Por validar en el S24+.**
+- [x] Acciones sin palabras en Finanzas (2026-11-10, `ui/components/IconAction.kt`): editar, eliminar, registrar cargo, guardar, cancelar y permitir son íconos de trazo; el texto queda solo para accesibilidad. Pendiente: "Guardar meta" (botón ancho), "Ver/Editar" del Banco, "Ocultar movimientos". **Por validar.**
+- [x] Escala tipográfica en Finanzas: se quitó el ajuste local que redefinía los estilos; ahora usa la escala global del tema (headline 40/24, title 17, body 17/15/14, caption 12). **Por validar.**
+- [ ] Pendiente en el resto de la app: 106 textos de acción (Dieta, Notas, Rutinas, Apps, Ajustes, Pausa de apps) y 33 tamaños de letra fijos fuera del tema.
+- [x] Gestos en movimientos (2026-11-10): deslizar a la derecha elimina (fondo rosa muy tenue, con confirmación); a la izquierda edita o categoriza (fondo azul muy tenue). Hoy ya no muestra ojo ni lápiz; tocar la fila despliega categoría y cuenta. **Por validar.**
+- [x] Banco: tarjetas en cuadrícula como las cuentas; el día de corte va en amarillo pálido. **Por validar.**
+- [x] Resumen: la gráfica de gasto por día es tocable (un toque selecciona el día y muestra su monto); el rosa marca los días que pasan el gasto diario. El selector Semana / Mes / Rango se mantiene. **Por validar.**
+- [x] Escala tipográfica estricta en el tema (2026-11-10): vista 40 (headlineLarge, también el título de cada módulo), sección 24 (headlineMedium), cifra destacada 32 (headlineSmall), subsección 20 (titleLarge), elemento 17/15 (titleMedium/titleSmall), cuerpo 17/15/14 y caption 15/13/12. Volver es solo "‹". **Por validar.**
+- [x] Resumen en orden de importancia (2026-11-10): selector Semana / Mes / Rango (igual que antes), luego lo gastado en grande con el color de cómo va y lo que queda, los días (fila o calendario, siempre a la vista), las gráficas una a la vez que se cambian deslizando (gasto por día, por categoría, por concepto, acumulado; puntos abajo; columnas y categorías se tocan) y los movimientos con gestos. "Gastos por tipo" queda cerrado al final. **Por validar.**
+- [x] Resumen reordenado (2026-11-10, pedido "no tiene sentido que me separes la fecha de los días"): arriba el selector, luego el nombre del período junto con los días (deslizar a los lados cambia de semana o mes; tocar un día lo abre), después lo gastado. **Por validar.**
+- [x] Gráficas con paleta variada (`ChartPalette`: azul, crema, lima, ámbar, azul claro, verde; el rosa solo al pasarte) y datos al tocar: el día (pagos, promedio, el más grande, lo que quedó o te pasaste), la categoría (% del gasto, pagos, promedio, el más grande), el concepto (% del gasto, tipo, pagos) y en Acumulado el promedio, el día más alto y los días sin gasto. **Por validar.**
+- [x] Líneas de separación más visibles (`FinanceRule` #3B4C5C). **Por validar.**
+- [x] Vista individual de cada banco (2026-11-10, `feature/bank/BankAccountScreen.kt`): al tocar un cuadro de la cuadrícula de Banco se abre su vista, en orden: nombre y tipo (lápiz para editar, "‹" o atrás para volver), saldo en grande (azul disponible; ámbar lo que se debe en tarjeta, con lo que te deben), en tarjetas las fechas de corte y pago con los días que faltan (rosa si faltan 3 o menos), "Este mes" con entradas contra salidas, "Últimas semanas" en columnas tocables, "En qué se fue" por categoría (tocar muestra su %) y sus movimientos con gestos. **Por validar.**
+- [x] Hoy arriba (2026-11-10, pedido "que se vea el gasto ese día y abajito la diferencia entre ingreso y el gasto"): "Gastado hoy" en grande (color según lo que tocaba al día) y debajo solo la cifra de ingreso menos gasto del mes, sin etiqueta (verde con + si sobra, rosa si falta). No descuenta ni muestra lo ahorrado (pendiente: módulo de ahorro). Reemplaza "Saldo del mes". **Por validar.**
+- [x] Hoy: "Pagos de hoy" pasa a "Movimientos recientes" (2026-11-10): los 5 más recientes con la misma lista y gestos de Resumen; el chevron muestra el resto. **Por validar.**
+- [x] Pulido de contención (2026-11-10, /ui-taste: "definir qué tarjetas son necesarias"): tarjeta solo para lo que se toca como bloque (gráficas de Resumen y gasto semanal de Hoy) y lo editable (Plan de Presupuesto). Sin tarjeta, con espacio entre secciones (32) y encabezado: cifras principales (con su barra de color), listas (líneas entre filas) y las cuadrículas de Banco (sus celdas ya son tarjetas). **Por validar.**
+- [x] Recuadro de datos al tocar (2026-11-10): cada gráfica abre un recuadro flotante justo donde se tocó y otro toque lo cierra; ya no hay espacio reservado debajo. Columnas: pagos, promedio, el más grande y lo que quedó o te pasaste. Dona (se toca el anillo o la leyenda): % del gasto, pagos, promedio y el más grande. Conceptos: % del gasto, tipo y pagos. Acumulado (se toca la línea): ese día, promedio al día y si vas bajo o arriba del ritmo. **Por validar.**
+- [x] Tarjetas por sección (2026-11-10, pedido "usa tarjetas para separar bien las cosas"; reemplaza el "no todo en tarjetas" anterior): `FinanceCard` (fondo #0D141B, borde #22313F, radio 20). Resumen: días, lo gastado, gráficas, movimientos y gastos por tipo. Hoy: saldo, gasto semanal y pagos de hoy. Presupuesto: ingreso con la barra, gastos fijos, ahorro, libre y el plan. Banco: cuentas, tarjetas y por cobrar. **Por validar.**
+- [x] Presupuesto como el diseño (2026-11-10): arriba, solo lectura, el ingreso grande, la barra fijos / ahorro / libre que se toca, y las secciones Gastos fijos, Ahorro y Libre. Abajo "Plan": lo editable cerrado (ingreso, fijos y ahorro; categorías; meta; avanzado; simular) que se abre al tocar y se cierra al guardar. Sin textos explicativos. **Por validar.**
+- [x] Banco: títulos de sección a 24 con su total en color; sin subtítulos explicativos. **Por validar.**
+- [x] Diseño "Resumen, Banco y Presupuesto" (Artifact, 2026-11-10), aplicado en parte: Hoy centra la semana en hoy (3 días antes, hoy y 3 que vienen); Banco muestra las cuentas de débito y efectivo en cuadrícula de 2 columnas, y la cuenta abierta muestra su detalle debajo. **Por validar.** Pendiente: gráficas tocables y "Resumen" con secciones nuevas; "Presupuesto" con secciones; gestos de deslizar (derecha archivar o eliminar, izquierda categorizar o duplicar) en movimientos.
+- [x] Jerarquía en Hoy (2026-11-10): el saldo del mes es lo más grande y va en azul (rojo si está negativo); el ingreso va en verde; el gasto semanal en 24 en azul, rosa si pasa el presupuesto de la semana; los montos de cada pago en azul; nombres y títulos en blanco; etiquetas y datos secundarios en gris. **Por validar.**
+- [ ] Pendiente: puntos rojos de fechas importantes y hoy en amarillo en el calendario.
+
+### Finanzas · planeado vs. real (2026-11-11)
+
+Boceto aprobado: lienzo "Finanzas: planeado vs. real" (Artifact). Pedido: "Implementalo… si le picas a algo que sea interactivo… swipes horizontales… tarjetas transparentes… vectores para acciones… (i) para contexto… secuencial y con jerarquía". Modelo en `feature/finance/FinanceMoney.kt`; piezas en `FinanceKit.kt`.
+
+- [ ] Tres capas: real (cuentas, movimientos, deuda), planeado (pagos de tarjeta, pagos programados, ingreso con día) y topes (guía por tema, no se restan). Dinero disponible = en cuentas − por pagar este mes. **Por validar.**
+- [ ] Hoy: Dinero disponible (toque = la cuenta), Por pagar y Gastado hoy (toque = lista), Viene en tarjetas que se deslizan (toque = fecha y ✓ / banco), Topes y Semana en páginas que se deslizan, movimientos. **Por validar.**
+- [ ] Presupuesto (pestaña): Planeado (ingreso, pagos programados, tarjetas) y Topes, cada fila abre su cuadro con íconos (✓, lápiz, papelera); se editan en una hoja. Aviso si los topes pasan lo disponible. El engrane sigue abriendo los ajustes avanzados. **Por validar.**
+- [ ] Banco: arriba En cuentas y Por pagar (toque = desglose); cuadrícula translúcida con punto por tipo, en tarjetas lo que toca y la barra del límite; "+" con ícono. **Por validar.**
+- [ ] Registro: si el cobro se parece a un pago programado (monto ±10 % y ±7 días), lo propone primero para marcarlo hecho. **Por validar.**
+- [ ] Resumen: Pasó / Viene arriba; se quitó "de $X · quedan" de la bolsa vieja. Widgets: "Disponible" y Pagos con estados. **Por validar.**
+- [x] Tarjetas de Finanzas translúcidas (gris sobre negro), sin azul oscuro. Revisado en el teléfono con capturas.
+- Falta: la Bolsa y la Semana del widget siguen con la cuenta vieja; el ingreso se marca hecho solo al registrar un ingreso fijo.
+- [ ] Pulido (2026-11-11, /ui-taste): colores por jerarquía (título blanco grande, subtítulos en crema en mayúsculas, contenido blanco); tarjetas teñidas por lo que muestran (por pagar ámbar, gastado azul, ingreso verde, planeado punteado); íconos por acción (agregar azul, hecho verde, borrar rosa); tarjetas de crédito teñidas por cómo van contra su límite y "Por pagar" con la barra del límite total; nombre del banco en el color de su tipo; gráficas vacías con barras tenues y "Sin gastos"; desenfoque al deslizar páginas y tarjetas; se quitó el "Movimientos" repetido. **Por validar.**
+- [ ] Presupuesto como reparto (pedido: "debería de ver mi dinero disponible"): En cuentas − Planeado (+ Por entrar) = Disponible − Topes por gastar = Para ahorro (o "Te pasas" en rosa). Tocar una fila abre su hoja para editar; borrar y marcar hecho están en la hoja. **Por validar.**
+- [ ] Presupuesto con dos páginas para deslizar (2026-11-11): "Este mes" (el reparto, con "Ya apartado") y "Siguiente mes" (ingreso planeado, lo que ya toca pagar de tarjetas y pagos fijos, topes y "Te quedaría"/"Te faltarían"). **Por validar.**
+- [ ] Ahorro en el momento: tocar "Para ahorro" abre "Apartar para ahorro" (cuánto y de qué cuenta sale); baja esa cuenta y suma a la meta. **Por validar.**
+- [ ] Engrane de Finanzas simplificado: solo Avisos del banco y Meta de ahorro, cada uno con su (i). El plan viejo, categorías, límite diario y simulador salieron (viven en Presupuesto). **Por validar.**
+- [ ] Vista de una cuenta: sin flecha de regreso (atrás del teléfono); el lápiz (y el + de Banco) abren el editor en un cuadro encima, no al final de la página. **Por validar.**
+
+### Finanzas · bancos unificados y limpieza (2026-11-11)
+
+Pedido: "elimines todos los movimientos y todos los datos de gastos" y que cada crédito y débito tenga los últimos 4 dígitos de sus tarjetas para reconocer las notificaciones. Base de datos versión 11; copia previa en `.local-backups/2026-11-11-antes-de-limpiar/` (fuera de git).
+
+- [x] Limpieza: movimientos, pendientes por registrar, presupuestos por tema, plan de Ajustes (ingreso, fijos, pagos programados, % de ahorro), límite diario y meta. Se quedan Por cobrar y lo que otros deben de Nu ($6,530.72). Revisado en el teléfono.
+- [x] Cuentas cargadas: Revolut (crédito $14,140.67 de $15,000, corte 3, pago 23: $9,888.19 el 23 nov y $3,822.09 el 23 dic; débito $23,366.25), Nu (crédito $9,877.41 de $37,400, corte 14, pago 24; débito $0.88), Stori (crédito $2,110.96 de $8,000, corte 12, pago 2 dic; débito $0), Plata (crédito $1,344.79 de $6,000, corte 27, pago 26: $262.86 el 26 nov y $1,081.93 después), Mercado Pago (crédito $0 de $3,300, corte 13, pago 3; débito $3.72), efectivo $0.
+- [ ] Cada cuenta (crédito y débito) tiene "Tarjetas · últimos 4"; la tarjeta además Límite, A pagar y Siguiente. La vista de la cuenta muestra las tarjetas, lo que toca pagar, lo siguiente y lo disponible. **Por validar.**
+- [ ] Notificaciones por banco (Revolut, Nu, Stori, Plata, Mercado Pago): compra y transferencia recibida piden registro con la cuenta ya elegida; retiro de efectivo se registra solo (débito → efectivo, o la tarjeta si es disposición); "Recibimos tu pago" baja la deuda de la tarjeta; el aviso de pago actualiza lo que toca pagar (el pago mínimo se ignora). Si la notificación trae los 4 dígitos, mandan; si no, compra = crédito del banco (Revolut con "Balance actual" = débito), ingreso y retiro = débito. Probado con los 20 textos de ejemplo. **Por validar con notificaciones reales.**
+- [ ] Una compra con tarjeta cae en el pago que le toca según corte y pago; al pasar el día de pago, "Siguiente" pasa a "A pagar". **Por validar.**
+- [ ] Widget Pagos: además de los pagos programados, lo que toca pagar de cada tarjeta. **Por validar.**
+- [ ] Pagar una tarjeta desde el débito no cuenta como gasto (pedido 2026-11-11: "Sí, arréglalo"). Si la tarjeta avisa "Recibimos tu pago", se empareja sola con la salida del mismo monto en otro banco (antes o después, hasta 3 días): baja el débito y la deuda, sin registro. Si no avisa, en la pantalla de registro está "Tarjeta": eliges cuál pagaste (viene elegida la que tiene ese monto a pagar) y baja el débito y lo que debes. **Por validar.**
+
+### Finanzas · widgets (2026-11-11)
+
+Boceto: lienzo "Widgets de finanzas" (Artifact). Pedido: "todos". Programado en `feature/finance/FinanceWidgets.kt`; cada uno en 4×2, 2×2 y 4×1, sin texto ni contadores, pintado por cómo va el dinero. Instalado en el S24+.
+
+- [ ] Hoy (reemplaza el widget de Finanzas con texto): anillo con lo que queda hoy; en 4×2 la semana por día, el último gasto y el + que abre Finanzas con el registro. **Por validar.**
+- [ ] Semana y mes: lo que queda de la semana con una barra por día; en 4×2 la línea del saldo del mes (punteada hasta fin de mes al mismo ritmo); en 4×1 el mes como barra con marca de hoy. **Por validar.**
+- [ ] Presupuesto: Libre y temas del mes; dona con los colores de cada tema, filas con barra y lo que queda, o íconos con barra. **Por validar.**
+- [ ] Pagos programados: el siguiente pago con su día; rosa si toca hoy o ya pasó. En 4×1 el mes con un punto por pago. **Por validar.**
+- [ ] Meta de ahorro: arco de avance, barra con marca de dónde deberías ir y un punto por mes. Colores de la meta como en la app. **Por validar.**
+- [ ] Bolsa de extras: frasco que se vacía con lo gastado; en 4×2 los últimos extras, en 4×1 la línea del mes. **Por validar.**
+- [ ] Por cobrar: cuentas por cobrar del Banco y cuentas compartidas; puntos por semana esperando (ámbar desde 3). **Por validar.**
+- [ ] Pedido (2026-11-11): "una etiqueta para que sepa qué estoy viendo, lo más corta y simple". Cada widget lleva una etiqueta chica en gris: HOY, SEMANA, PRESUPUESTO, PAGOS, META, BOLSA, POR COBRAR (arriba a la izquierda; en 4×1 al inicio de la fila). **Por validar.**
+- Cambio frente al boceto: el + usa el acento azul de la app (no rojo); la Bolsa se pinta por lo que queda y muestra los últimos extras, no entradas.
+
 ### Finanzas (modelo nuevo)
 
 Boceto `docs/design/concept/FinanzasVisual.html`; código en `feature/finance/` (`FinanceScreen.kt`, `EntrySheet.kt`, `FinanceSettings.kt`). Reemplaza la vista de arriba.
@@ -368,6 +480,15 @@ Pedido (2026-10-22): menos gris difícil de ver, más rojo para lo importante, i
 - [~] Widget "Agua" aparte (los vasos ya no van en el widget de Dieta). Tocarlo abre Dieta.
 - [~] Engrane arriba en Dieta y Finanzas que abre los ajustes de ese módulo (atrás regresa al módulo). **Regla: toda vista lleva su engrane.**
 - [ ] Vistas, una por una: Dieta, Finanzas, Inicio, Alarmas, Reloj mundial, Notas, Ejercicio, Bancos, Semana, Módulos/ajustes/pausa.
+
+### Rutinas, Notas y Comida · más claro (2026-11-04)
+
+Pedido: "hacer todo más claro, no solo con iconos, texto que señalen (no explicar)… no tarjetas y más tablas… los gestos y botones que ya tenemos, más claros". Sin boceto nuevo; sigue el criterio de Ejercicio y Finanzas. Compila. **Por validar en el S24+.**
+
+- [ ] Rutinas: sin tarjeta; el título RUTINAS, REINICIAR y EDITAR en texto. Las fases llevan su nombre bajo el ícono (la abierta, subrayada) y su hora o LUGAR. Las acciones son una tabla: ícono, nombre, hora y HECHO o SIGUE. Editar: ACTIVA/APAGADA, QUITAR, AGREGAR ACCIÓN, y el catálogo también en tabla. **Por validar.**
+- [ ] Notas: sin tarjeta; el título NOTAS. Cada aspecto con su nombre bajo el ícono. La lista es una tabla; EDITAR → FIJAR / QUITAR FIJA y BORRAR en texto; FIJA en rojo cuando está fijada. **Por validar.**
+- [ ] Comida: metas en tabla (KCAL · META, PROTEÍNA, FIBRA) con lo que queda o lo que sobra en texto; el anillo se quitó. REGISTRAR COMIDA es un enlace rojo. La lista de comidas tiene encabezado HORA · COMIDA · KCAL. **Por validar.**
+- [ ] Falta: la vista Semana de Comida y el catálogo de recetas siguen con el estilo anterior.
 
 ## Por validar en el teléfono
 

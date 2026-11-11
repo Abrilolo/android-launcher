@@ -1,5 +1,6 @@
 package com.adrian.minimallauncher.data
 
+import com.adrian.minimallauncher.feature.bank.applyMovement
 import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
@@ -22,6 +23,8 @@ enum class ForcedStep {
     EXPENSE,
     /** It was food: register the meal it paid for. */
     MEAL,
+    /** Money came in: one tap says what kind of income it was. */
+    INCOME,
     /** No payments left, but salida asked to register the day's meals that are still unmarked. */
     ROUTINE_MEALS,
 }
@@ -43,6 +46,7 @@ object ForcedMode {
     fun state(open: List<PendingPayment>, foodAnswers: Map<String, Boolean>, routinePending: Boolean): ForcedState? {
         val payment = open.firstOrNull() ?: return if (routinePending) ForcedState(ForcedStep.ROUTINE_MEALS) else null
         val answer = foodAnswers[payment.id]
+        if (payment.isIncome) return ForcedState(ForcedStep.INCOME, payment, false, open.size)
         val step = when {
             payment.financeId != null -> ForcedStep.MEAL
             answer == null -> ForcedStep.ASK_FOOD
@@ -78,15 +82,46 @@ class ForcedRepository(context: Context, private val db: LauncherDatabase = Laun
 
     private fun newId() = UUID.randomUUID().toString()
 
-    /** A payment seen outside the launcher; the bank notification parser will call this later. */
-    suspend fun addPayment(amountCents: Long, source: String, merchant: String = ""): String {
-        val id = newId()
-        pending.insert(listOf(PendingPayment(id, amountCents, source, merchant)))
-        return id
+    /**
+     * A payment or income seen outside the launcher (see [com.adrian.minimallauncher.BankNotificationService]).
+     * A fixed [id] makes a re-posted notification a no-op. Returns false when nothing was added: the same amount
+     * in the same direction already came from another app in the last [DUPLICATE_WINDOW_MS] (wallet and bank both
+     * notify), or it is the other half of an open transfer between the user's own accounts.
+     */
+    suspend fun addPayment(amountCents: Long, source: String, merchant: String = "", direction: String = PendingPayment.OUT, id: String = newId(), account: String = ""): Boolean {
+        val now = System.currentTimeMillis()
+        if (source != PendingPayment.SOURCE_DEBUG) {
+            if (pending.countSimilar(amountCents, direction, source, now - DUPLICATE_WINDOW_MS) > 0) return false
+            // The money that left the debit to pay a card that already said it got paid: not spending.
+            if (direction == PendingPayment.OUT) pending.unmatchedCardPayment(amountCents, source, now - PendingPayment.CARD_MATCH_MS)?.let { card ->
+                pending.tag(card.id, "matched:$id")
+                takeFromDebit(account, amountCents)
+                return false
+            }
+            // Sent from one bank and received in another, however long it took: money moved between own accounts,
+            // still the user's, so neither spent nor earned. The open first half closes without a movement.
+            pending.mirror(amountCents, direction, source)?.let { other ->
+                pending.resolve(other.id, other.financeId, now)
+                return false
+            }
+        }
+        pending.insert(listOf(PendingPayment(id, amountCents, source, merchant, now, direction = direction, account = account)))
+        return true
     }
 
     /** Debug stand-in for a bank notification. */
-    suspend fun addTestPayment(amountCents: Long = 8500, merchant: String = "OXXO") = addPayment(amountCents, PendingPayment.SOURCE_DEBUG, merchant)
+    suspend fun addTestPayment(amountCents: Long = 8500, merchant: String = "OXXO", direction: String = PendingPayment.OUT) =
+        addPayment(amountCents, PendingPayment.SOURCE_DEBUG, merchant, direction)
+
+    /** Saves a pending income as [kind] (fixed income, transfer, gift or service) and closes it. */
+    suspend fun saveIncome(payment: PendingPayment, amountCents: Long, kind: MoneyKind): String = db.withTransaction {
+        val financeId = newId()
+        val row = FinanceRecord(financeId, amountCents, payment.merchant, System.currentTimeMillis(), kind, account = payment.account.ifBlank { BankApps.accountOf(payment.source) })
+        personal.insertFinances(listOf(row))
+        db.bank().applyMovement(row, 1)
+        pending.resolve(payment.id, financeId, System.currentTimeMillis())
+        financeId
+    }
 
     /**
      * Saves the payment's expense. Not food: the payment is done. Food: it stays open with the expense linked
@@ -95,7 +130,9 @@ class ForcedRepository(context: Context, private val db: LauncherDatabase = Laun
     suspend fun saveExpense(payment: PendingPayment, amountCents: Long, description: String, category: String, isFood: Boolean, kind: MoneyKind = MoneyKind.EXTRA): String =
         db.withTransaction {
             val financeId = newId()
-            personal.insertFinances(listOf(FinanceRecord(financeId, amountCents, description.ifBlank { payment.merchant }, System.currentTimeMillis(), kind, category.trim().lowercase())))
+            val row = FinanceRecord(financeId, amountCents, description.ifBlank { payment.merchant }, System.currentTimeMillis(), kind, category.trim().lowercase(), account = payment.account.ifBlank { BankApps.accountOf(payment.source) })
+            personal.insertFinances(listOf(row))
+            db.bank().applyMovement(row, 1)
             // A food payment keeps resolvedAt empty: it stays open, now with its expense, until the meal is saved.
             pending.resolve(payment.id, financeId, if (isFood) null else System.currentTimeMillis())
             financeId
@@ -105,6 +142,66 @@ class ForcedRepository(context: Context, private val db: LauncherDatabase = Laun
     suspend fun saveMeal(payment: PendingPayment, mealId: String) = db.withTransaction {
         payment.financeId?.let { id -> personal.finance(id)?.let { personal.upsertFinance(it.copy(mealId = mealId)) } }
         pending.resolve(payment.id, payment.financeId, System.currentTimeMillis())
+    }
+
+    /** Cash taken out (a bank notice): recorded at once, from [account] into the cash wallet; nothing to ask. */
+    suspend fun saveWithdrawal(amountCents: Long, account: String, merchant: String, id: String) = db.withTransaction {
+        if (personal.finance(id) != null) return@withTransaction
+        val row = FinanceRecord(id, amountCents, merchant.ifBlank { "Retiro" }, System.currentTimeMillis(), MoneyKind.WITHDRAWAL, account = account)
+        personal.insertFinances(listOf(row))
+        db.bank().applyMovement(row, 1)
+    }
+
+    /**
+     * A card said it got paid (Plata "Recibimos tu pago"): its debt and coming payment go down. The debit's notice of
+     * the same amount, before or after this one (up to [PendingPayment.CARD_MATCH_MS]), is that payment's other half:
+     * it is closed without spending and only lowers the debit.
+     */
+    suspend fun payCard(account: String, amountCents: Long, source: String, id: String) = db.withTransaction {
+        val bank = db.bank()
+        val card = bank.account(account)?.takeIf { it.kind == com.adrian.minimallauncher.feature.bank.BankKind.CARD } ?: return@withTransaction
+        if (pending.all().any { it.id == id }) return@withTransaction
+        bank.upsertAccount(com.adrian.minimallauncher.feature.bank.Bank.paid(card, amountCents))
+        val now = System.currentTimeMillis()
+        val debitSide = pending.openOut(amountCents, source, now - PendingPayment.CARD_MATCH_MS)
+        if (debitSide != null) {
+            pending.resolve(debitSide.id, null, now)
+            takeFromDebit(debitSide.account, amountCents)
+        }
+        pending.insert(listOf(PendingPayment(id, amountCents, source, "", now, resolvedAt = now, financeId = debitSide?.let { "matched:${it.id}" }, direction = PendingPayment.CARD, account = account)))
+    }
+
+    /**
+     * The register flow's "Tarjeta": the money that left [payment]'s debit account paid [cardId]. Money between the
+     * user's own accounts, so no movement: the debit goes down, the card's debt and coming payment too.
+     */
+    suspend fun saveCardPayment(payment: PendingPayment, amountCents: Long, cardId: String) = db.withTransaction {
+        val bank = db.bank()
+        bank.account(cardId)?.takeIf { it.kind == com.adrian.minimallauncher.feature.bank.BankKind.CARD }?.let {
+            bank.upsertAccount(com.adrian.minimallauncher.feature.bank.Bank.paid(it, amountCents))
+        }
+        takeFromDebit(payment.account, amountCents)
+        pending.resolve(payment.id, null, System.currentTimeMillis())
+    }
+
+    private suspend fun takeFromDebit(account: String, amountCents: Long) {
+        val bank = db.bank()
+        bank.account(account)?.takeIf { it.kind == com.adrian.minimallauncher.feature.bank.BankKind.DEBIT }?.let {
+            bank.upsertAccount(it.copy(balanceCents = it.balanceCents - amountCents))
+        }
+    }
+
+    /** The card's payment reminder: what it says is owed by [dueDay] becomes the coming payment. */
+    suspend fun setStatement(account: String, amountCents: Long, dueDay: Int?) {
+        val bank = db.bank()
+        val card = bank.account(account)?.takeIf { it.kind == com.adrian.minimallauncher.feature.bank.BankKind.CARD } ?: return
+        val day = dueDay ?: card.payDay
+        val due = com.adrian.minimallauncher.feature.bank.Bank.nextDate(day, LocalDate.now())
+        bank.upsertAccount(card.copy(dueCents = amountCents, dueDate = due?.toString() ?: card.dueDate, payDay = if (card.payDay == 0) day else card.payDay))
+    }
+
+    companion object {
+        const val DUPLICATE_WINDOW_MS = 3 * 60_000L
     }
 
     suspend fun setRoutinePending(on: Boolean) {

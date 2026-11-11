@@ -7,6 +7,9 @@ import com.adrian.minimallauncher.data.routine.RoutineRepository
 import com.adrian.minimallauncher.feature.exercise.SetLog
 import com.adrian.minimallauncher.feature.exercise.GuidedExerciseRecord
 import com.adrian.minimallauncher.feature.exercise.StackExercise
+import com.adrian.minimallauncher.feature.bank.BankAccount
+import com.adrian.minimallauncher.feature.bank.BankKind
+import com.adrian.minimallauncher.feature.bank.BankReceivable
 import com.adrian.minimallauncher.feature.finance.BudgetLimit
 import com.adrian.minimallauncher.feature.finance.BudgetPeriod
 import com.adrian.minimallauncher.feature.food.Ingredient
@@ -37,6 +40,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
     private val exercise = db.exercise()
     private val food = db.food()
     private val budgets = db.budgets()
+    private val bank = db.bank()
     private val pending = db.pending()
     private val stack = db.stack()
     private val routine = RoutineRepository(context, settings)
@@ -66,7 +70,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             .put("reminders", JSONArray(reminders.map { JSONObject().put("id", it.id).put("title", it.title).put("hour", it.hour).put("minute", it.minute).put("phaseId", it.phaseId) }))
             .put("finances", JSONArray(finances.map {
                 JSONObject().put("id", it.id).put("amountCents", it.amountCents).put("description", it.description).put("createdAt", it.createdAt)
-                    .put("kind", it.kind.name).put("category", it.category).put("pendingFromOthersCents", it.pendingFromOthersCents).put("mealId", it.mealId.orNull())
+                    .put("kind", it.kind.name).put("category", it.category).put("pendingFromOthersCents", it.pendingFromOthersCents).put("mealId", it.mealId.orNull()).put("account", it.account)
             }))
             .put("meals", JSONArray(meals.map {
                 JSONObject().put("id", it.id).put("description", it.description).put("createdAt", it.createdAt).put("recipeId", it.recipeId.orNull())
@@ -86,9 +90,12 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             .put("recipeItems", JSONArray(food.allRecipeItems().map { JSONObject().put("recipeId", it.recipeId).put("ingredientId", it.ingredientId).put("grams", it.grams.toDouble()) }))
             .put("mealItems", JSONArray(food.allMealItems().map { JSONObject().put("mealId", it.mealId).put("ingredientId", it.ingredientId).put("grams", it.grams.toDouble()) }))
             .put("budgets", JSONArray(budgets.all().map { JSONObject().put("id", it.id).put("topic", it.topic).put("period", it.period.name).put("limitCents", it.limitCents) }))
+            .put("bankAccounts", JSONArray(bank.allAccounts().map { JSONObject().put("id", it.id).put("name", it.name).put("kind", it.kind.name).put("balanceCents", it.balanceCents).put("owedByOthersCents", it.owedByOthersCents).put("cutDay", it.cutDay).put("payDay", it.payDay)
+                .put("cards", it.cards).put("limitCents", it.limitCents).put("dueCents", it.dueCents).put("dueDate", it.dueDate).put("nextDueCents", it.nextDueCents) }))
+            .put("bankReceivables", JSONArray(bank.allReceivables().map { JSONObject().put("id", it.id).put("concept", it.concept).put("amountCents", it.amountCents).put("createdAt", it.createdAt) }))
             .put("pendingPayments", JSONArray(pending.all().map {
                 JSONObject().put("id", it.id).put("amountCents", it.amountCents).put("source", it.source).put("merchant", it.merchant).put("createdAt", it.createdAt)
-                    .put("resolvedAt", it.resolvedAt ?: JSONObject.NULL).put("financeId", it.financeId.orNull())
+                    .put("resolvedAt", it.resolvedAt ?: JSONObject.NULL).put("financeId", it.financeId.orNull()).put("direction", it.direction)
             }))
             .put("exerciseStack", JSONArray(stack.all().map { JSONObject().put("id", it.id).put("name", it.name).put("muscleGroup", it.muscleGroup).put("met", it.met.toDouble()).put("minutes", it.minutes).put("sortOrder", it.sortOrder).put("placeholder", it.placeholder) }))
             .put("moduleSettings", settings.moduleSettings.first().toJson())
@@ -125,6 +132,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
                     it.getString("id"), it.getLong("amountCents"), it.getString("description"), it.getLong("createdAt"),
                     kind = runCatching { MoneyKind.valueOf(it.getString("kind")) }.getOrDefault(MoneyKind.EXTRA),
                     category = it.optString("category"), pendingFromOthersCents = it.optLong("pendingFromOthersCents"), mealId = it.stringOrNull("mealId"),
+                    account = it.optString("account"),
                 )
             })
             personal.insertMeals(root.array("meals").map {
@@ -152,11 +160,15 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             }.forEach { row -> if ((localIngredients[row.id]?.updatedAt ?: Long.MIN_VALUE) < row.updatedAt) food.upsertIngredient(row) }
             food.insertRecipeItems(root.array("recipeItems").map { RecipeItem(it.getString("recipeId"), it.getString("ingredientId"), it.getDouble("grams").toFloat()) })
             food.insertMealItems(root.array("mealItems").map { MealItem(it.getString("mealId"), it.getString("ingredientId"), it.getDouble("grams").toFloat()) })
+            bank.insertAccounts(root.array("bankAccounts").mapNotNull { runCatching { BankAccount(it.getString("id"), it.getString("name"), BankKind.valueOf(it.getString("kind")), it.getLong("balanceCents"), it.optLong("owedByOthersCents"), cutDay = it.optInt("cutDay"), payDay = it.optInt("payDay"),
+                cards = it.optString("cards"), limitCents = it.optLong("limitCents"), dueCents = it.optLong("dueCents"), dueDate = it.optString("dueDate"), nextDueCents = it.optLong("nextDueCents")) }.getOrNull() })
+            bank.insertReceivables(root.array("bankReceivables").map { BankReceivable(it.getString("id"), it.getString("concept"), it.getLong("amountCents"), it.getLong("createdAt")) })
             budgets.insert(root.array("budgets").mapNotNull { runCatching { BudgetLimit(it.getString("id"), it.getString("topic"), BudgetPeriod.valueOf(it.getString("period")), it.getLong("limitCents")) }.getOrNull() })
             pending.insert(root.array("pendingPayments").map {
                 PendingPayment(
                     it.getString("id"), it.getLong("amountCents"), it.optString("source"), it.optString("merchant"), it.optLong("createdAt"),
                     if (it.isNull("resolvedAt")) null else it.optLong("resolvedAt"), it.stringOrNull("financeId"),
+                    it.optString("direction", PendingPayment.OUT),
                 )
             })
             stack.insert(root.array("exerciseStack").map { StackExercise(it.getString("id"), it.getString("name"), it.getString("muscleGroup"), it.getDouble("met").toFloat(), it.getInt("minutes"), it.optInt("sortOrder"), it.optBoolean("placeholder")) })
@@ -193,7 +205,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
     private suspend fun count(): Int = personal.allNotes().size + personal.allReminders().size + personal.allFinances().size +
         personal.allMeals().size + personal.allBodyMetrics().size + personal.allChecks().size + exercise.allSets().size +
         food.allRecipes().size + food.allIngredients().size + food.allRecipeItems().size + food.allMealItems().size +
-        budgets.all().size + pending.all().size + stack.all().size + db.guidedExercise().all().size
+        budgets.all().size + bank.allAccounts().size + bank.allReceivables().size + pending.all().size + stack.all().size + db.guidedExercise().all().size
 
     private fun String?.orNull(): Any = this ?: JSONObject.NULL
     private fun JSONObject.stringOrNull(name: String): String? = if (!has(name) || isNull(name)) null else optString(name)
@@ -219,6 +231,8 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
         .put("haptics", haptics)
         .put("aiApps", JSONArray(aiApps))
         .put("savingPct", savingPct)
+        .put("financePlan", financePlan)
+        .put("savingGoal", savingGoal)
         .put("kcalGoal", kcalGoal)
         .put("proteinGoalG", proteinGoalG)
         .put("carbsGoalG", carbsGoalG)
@@ -253,6 +267,8 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
             haptics = optBoolean("haptics", default.haptics),
             aiApps = strings("aiApps") ?: default.aiApps,
             savingPct = optInt("savingPct", default.savingPct),
+            financePlan = optString("financePlan", default.financePlan),
+            savingGoal = optString("savingGoal", default.savingGoal),
             kcalGoal = optInt("kcalGoal", default.kcalGoal),
             proteinGoalG = optInt("proteinGoalG", default.proteinGoalG),
             carbsGoalG = optInt("carbsGoalG", default.carbsGoalG),
@@ -271,7 +287,7 @@ class BackupRepository(private val context: Context, private val db: LauncherDat
         /** The arrays that hold records, for the counts shown after an export or import. */
         private val RECORD_ARRAYS = listOf(
             "notes", "reminders", "finances", "meals", "bodyMetrics", "dayChecks", "setLogs",
-            "recipes", "ingredients", "recipeItems", "mealItems", "budgets", "pendingPayments", "exerciseStack", "guidedExercise",
+            "recipes", "ingredients", "recipeItems", "mealItems", "budgets", "bankAccounts", "bankReceivables", "pendingPayments", "exerciseStack", "guidedExercise",
         )
     }
 }

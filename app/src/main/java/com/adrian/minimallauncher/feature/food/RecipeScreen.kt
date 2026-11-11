@@ -34,7 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleTextField
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.components.LocalReactions
@@ -104,7 +104,7 @@ fun RecipeScreen(recipeId: String?, actions: FoodActions, onClose: () -> Unit, m
             if (editing) {
                 if (recipeId != null) IconButton("Borrar receta", { actions.deleteRecipe(recipeId); onClose() }) { StrokeIcon("papelera", StrokeState.OFF, 20.dp) }
                 IconButton("Cambiar foto", { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) { StrokeIcon("camara", StrokeState.OFF, 22.dp) }
-                IconButton("Listo", save) { StrokeIcon("listo", StrokeState.DONE, 22.dp, color = LauncherRed) }
+                IconButton("Listo", save) { StrokeIcon("listo", StrokeState.DONE, 22.dp, color = LauncherAccent) }
             } else {
                 IconButton("Editar receta", { editing = true }) { StrokeIcon("lapiz", StrokeState.OFF, 20.dp) }
             }
@@ -161,7 +161,7 @@ fun RecipeScreen(recipeId: String?, actions: FoodActions, onClose: () -> Unit, m
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     recipe.steps.lines().filter { it.isNotBlank() }.forEachIndexed { i, step ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            SmallLabel("${i + 1}", color = LauncherRed)
+                            SmallLabel("${i + 1}", color = LauncherAccent)
                             Text(step.trim(), style = MaterialTheme.typography.bodyMedium, color = Color(0xFFDDDDDD))
                         }
                     }

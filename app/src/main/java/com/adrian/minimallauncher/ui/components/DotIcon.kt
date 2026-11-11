@@ -16,7 +16,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -216,7 +216,7 @@ private const val BITE_GONE_MS = 300
 private fun isRed(c: Char) = c == 'r' || c == 's'
 private fun marked(c: Char) = when {
     c == 'b' -> null
-    isRed(c) -> LauncherRed
+    isRed(c) -> LauncherAccent
     else -> DotWhite
 }
 private fun pending(c: Char) = if (c == 'o' || c == 'k') null else DotPending

@@ -74,9 +74,13 @@ object StrokeIcons {
         "otro" to StrokeGlyph("M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0", "M8 12h.01M12 12h.01M16 12h.01"),
         "no" to StrokeGlyph("M6 6l12 12", "M18 6 6 18"),
         "aviso" to StrokeGlyph("M12 3 2 20h20L12 3", "M12 10v4M12 17h.01"),
+        "presupuesto" to StrokeGlyph("M8 6Q12 4.6 16 6M8 6L5.5 11Q3.5 15 4.5 18.5Q5.5 21 9 21H13M16 6L18 11M11 9.8V11.2M11 17.6V19.2M12.6 12.6H9.6Q8.4 12.6 8.4 13.9Q8.4 15.2 9.6 15.2H10.6Q11.8 15.2 11.8 16.5Q11.8 17.8 10.6 17.8H8.6M14 12.5H20Q21 12.5 21 13.5V20.5Q21 21.5 20 21.5H14Q13 21.5 13 20.5V13.5Q13 12.5 14 12.5ZM14.8 15.3H19.2M14.8 17.8h.01M17.6 17.8h.01M14.8 19.8h.01M17.6 19.8h.01"),
+        "banco" to StrokeGlyph("M3 9.5L12 4.2L21 9.5ZM3.5 9.5H20.5M6.5 12.5V17.5M12 12.5V17.5M17.5 12.5V17.5M3.5 17.5H20.5M3 20.5H21M9.5 8a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M12 6.6V9.4M12.8 7.1Q12.8 6.6 12 6.6Q11.2 6.6 11.2 7.3Q11.2 7.9 12 8Q12.8 8.1 12.8 8.7Q12.8 9.4 12 9.4Q11.2 9.4 11.2 8.9"),
+        "limite" to StrokeGlyph("M3 17a9 9 0 0 1 18 0", "M12 17l4-5"),
         // Registro obligatorio (docs/design/concept/RegistroVisual.html).
         "bolsa" to StrokeGlyph("M5 8h14l-1 12H6L5 8M9 8V6a3 3 0 0 1 6 0v2", "M10 13l2 2 2-2"),
         "transferencia" to StrokeGlyph("M4 8h15l-3-3M20 16H5l3 3", "M19 8l-3 3M5 16l3-3"),
+        "estabilidad" to StrokeGlyph("M3 10l9-6 9 6H3M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18", "M12 7h.01"),
         "regalo" to StrokeGlyph("M4 11h16v9H4v-9M3 7h18v4H3V7M12 7v13", "M12 7C10 3 6 4 8 7M12 7c2-4 6-3 4 0"),
         "servicio" to StrokeGlyph("M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0V8", "M12 17v4"),
         "borrar" to StrokeGlyph("M9 6h11v12H9l-6-6 6-6", "M12 10l4 4M16 10l-4 4"),

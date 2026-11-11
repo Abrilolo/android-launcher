@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,9 +17,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -47,14 +46,16 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.NoteCategory
 import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.data.routine.WidgetSelector
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleTextField
-import com.adrian.minimallauncher.feature.SettingsGear
-import com.adrian.minimallauncher.feature.SmallLabel
+import com.adrian.minimallauncher.feature.ModuleTitle
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
 import com.adrian.minimallauncher.ui.components.rememberReactions
@@ -66,8 +67,7 @@ private val spanish = Locale.forLanguageTag("es")
 private val White = Color(0xFFF5F5F5)
 private val Muted = Color(0xFFB0B0B0)
 private val Gray = Color(0xFF5C5C5C)
-private val Line = Color(0xFF222222)
-private val Card = Color(0xFF0B0B0B)
+private val Rule = Color(0xFF161616)
 
 /** One column of the strip: an aspect, or (null category) every note outside the five aspects. */
 private class Aspect(val category: NoteCategory?, val icon: String, val name: String) {
@@ -82,9 +82,9 @@ private val aspects = NoteCategory.ASPECTS.map { Aspect(it, aspectIcons.getValue
 private val others = Aspect(null, "pendientes", "Otras")
 
 /**
- * Quick notes by aspect (concept: docs/design/concept/NotasRecordatoriosVisual.html). Above each aspect icon
- * one dot per pending note, so the tallest column is the aspect with most; the current phase's aspect is red.
- * No counters and no labels while in use; the pencil shows names and lets the user pin or delete a note.
+ * Notas. The aspects are a row of icons with their names under them; the open one is underlined. Above each icon,
+ * one dot per pending note; the current phase's aspect is red. The open aspect is a table of its notes (tap the
+ * circle to mark it). EDITAR turns the table into FIJAR and BORRAR words per note.
  */
 @Composable
 fun NotesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -117,21 +117,21 @@ fun NotesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: ()
 
     Column(
         modifier.fillMaxSize().background(Color.Black).safeDrawingPadding().verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), Arrangement.End) { SettingsGear(onSettings) }
+        ModuleTitle("Notas", onSettings)
 
         Column {
             var offset = 0
-            Row(Modifier.fillMaxWidth().heightIn(min = 92.dp), verticalAlignment = Alignment.Bottom) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 80.dp), verticalAlignment = Alignment.Bottom) {
                 columns.forEach { a ->
                     val pending = notes.count { a.holds(it) && !it.done }
-                    PipStack(pending, if (a.category != null && a.category == focus) LauncherRed else White, if (opening) offset else -1, Modifier.weight(1f))
+                    PipStack(pending, if (a.category != null && a.category == focus) LauncherAccent else White, if (opening) offset else -1, Modifier.weight(1f))
                     offset += pending
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth()) {
                 columns.forEach { a ->
                     val key = a.category?.name ?: "OTHER"
@@ -141,29 +141,34 @@ fun NotesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: ()
                         a.category != null && a.category == focus -> StrokeState.NOW
                         else -> StrokeState.DONE
                     }
+                    val open = a === selected
                     Column(
                         Modifier.weight(1f).clickable(role = Role.Tab) {
                             selectedKey = key
                             iconPlays = iconPlays + (key to (iconPlays[key] ?: 0) + 1)
                         }.semantics { contentDescription = a.name },
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        StrokeIcon(a.icon, state, 36.dp, playKey = iconPlays[key])
-                        if (editing) SmallLabel(a.name.uppercase(spanish), maxLines = 1)
-                        Box(Modifier.size(4.dp).background(if (a === selected) White else Color.Transparent, CircleShape))
+                        StrokeIcon(a.icon, state, 34.dp, playKey = iconPlays[key])
+                        Text(
+                            a.name.uppercase(spanish),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = if (open) White else Muted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                        )
+                        Box(Modifier.width(20.dp).height(2.dp).background(if (open) White else Color.Transparent))
                     }
                 }
             }
         }
 
-        Column(
-            Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).border(1.dp, Line, RoundedCornerShape(24.dp)).padding(18.dp),
-        ) {
+        Column(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { if (editing) SmallLabel(selected.name.uppercase(spanish)) }
-                if (editing) ToolIcon("listo", "Listo", LauncherRed) { editing = false }
-                else ToolIcon("lapiz", "Editar notas", Muted) { editing = true }
+                Text(selected.name.uppercase(spanish), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = LauncherAccent)
+                TextAction(if (editing) "LISTO" else "EDITAR", if (editing) LauncherAccent else Muted) { editing = !editing }
             }
             val shown = notes.filter { selected.holds(it) }
                 .sortedWith(compareBy<NoteRecord> { it.done }.thenByDescending { it.pinned }.thenByDescending { it.createdAt })
@@ -179,10 +184,9 @@ fun NotesScreen(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: ()
                     onDelete = { viewModel.deleteNote(note.id) },
                 )
             }
-            Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StrokeIcon(selected.icon, StrokeState.OFF, 20.dp)
+            Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ModuleTextField(
-                    draft, { draft = it }, "Nueva nota", Modifier.weight(1f),
+                    draft, { draft = it }, "Nueva nota en ${selected.name}", Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { if (draft.isNotBlank()) reactions.tick(); saveDraft() }),
                 )
@@ -218,34 +222,42 @@ private fun Pip(visible: Boolean, color: Color, delayMs: Int) {
     Box(Modifier.size(6.dp).scale(scale).background(color, CircleShape))
 }
 
-/** A note: its circle marks it done (the check draws once), the text, and in edit mode pin and delete. */
+/**
+ * A note as a table row: its circle marks it done (the check draws once), the text. In edit mode the row says
+ * FIJAR (or QUITAR FIJA) and BORRAR; a pinned note not in edit mode says FIJA.
+ */
 @Composable
 private fun NoteLine(note: NoteRecord, editing: Boolean, play: Int?, onToggle: () -> Unit, onPin: () -> Unit, onDelete: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(
-            Modifier.clip(CircleShape).clickable(role = Role.Checkbox, onClick = onToggle)
-                .semantics { contentDescription = if (note.done) "Marcar pendiente" else "Marcar hecha" },
-        ) {
-            if (note.done) StrokeIcon("nota_hecha", StrokeState.OFF, 22.dp, playKey = play)
-            else StrokeIcon("circulo", StrokeState.DONE, 22.dp, color = if (note.pinned) White else Muted)
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.clip(CircleShape).clickable(role = Role.Checkbox, onClick = onToggle)
+                    .semantics { contentDescription = if (note.done) "Marcar pendiente" else "Marcar hecha" },
+            ) {
+                if (note.done) StrokeIcon("nota_hecha", StrokeState.OFF, 22.dp, playKey = play)
+                else StrokeIcon("circulo", StrokeState.DONE, 22.dp, color = if (note.pinned) White else Muted)
+            }
+            Text(note.text, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = if (note.done) Gray else White)
+            if (editing) {
+                TextAction(if (note.pinned) "QUITAR FIJA" else "FIJAR", if (note.pinned) LauncherAccent else White, onPin)
+                TextAction("BORRAR", Muted, onDelete)
+            } else if (note.pinned) {
+                Text("FIJA", style = MaterialTheme.typography.labelSmall, color = LauncherAccent)
+            }
         }
-        Text(note.text, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = if (note.done) Gray else White)
-        if (editing) {
-            ToolIcon("pin", if (note.pinned) "Quitar de arriba" else "Fijar arriba", if (note.pinned) LauncherRed else Gray, onPin)
-            ToolIcon("borrar", "Borrar nota", Muted, onDelete)
-        } else if (note.pinned) {
-            StrokeIcon("pin", StrokeState.NOW, 14.dp)
-        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Rule))
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF161616)))
 }
 
+/** A plain text button: the words are the control. */
 @Composable
-private fun ToolIcon(icon: String, description: String, color: Color, onClick: () -> Unit) {
-    Box(
-        Modifier.size(36.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) { StrokeIcon(icon, StrokeState.DONE, 20.dp, color = color) }
+private fun TextAction(label: String, color: Color, onClick: () -> Unit) {
+    Text(
+        label,
+        Modifier.clickable(role = Role.Button, onClick = onClick).padding(horizontal = 4.dp, vertical = 6.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = color,
+    )
 }
 
 private const val PIP_MS = 280

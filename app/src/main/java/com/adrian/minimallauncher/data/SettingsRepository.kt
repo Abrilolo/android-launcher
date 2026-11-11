@@ -44,6 +44,10 @@ data class ModuleSettings(
     val aiApps: List<String> = listOf("claude", "chatgpt", "gemini"),
     /** Share of stability income (after fixed costs) kept as savings; the rest is the extras bag. */
     val savingPct: Int = 10,
+    /** Finanzas plan from Ajustes (fixed income and fixed costs) as JSON; empty until saved. */
+    val financePlan: String = "",
+    /** The saving goal (amount, dates, what is in the piggy bank) as JSON; blank when there is none. */
+    val savingGoal: String = "",
     /** Daily food goals; 0 means no goal. */
     val kcalGoal: Int = 0,
     val proteinGoalG: Int = 0,
@@ -168,6 +172,9 @@ class SettingsRepository(context: Context) {
     private val hapticsKey = booleanPreferencesKey("haptics")
     private val aiAppsKey = stringPreferencesKey("ai_apps")
     private val savingPctKey = intPreferencesKey("saving_pct")
+    private val financePlanKey = stringPreferencesKey("finance_plan")
+    private val savingGoalKey = stringPreferencesKey("saving_goal")
+    private val financeResetKey = stringPreferencesKey("finance_reset")
     private val kcalGoalKey = intPreferencesKey("kcal_goal")
     private val proteinGoalKey = intPreferencesKey("protein_goal_g")
     private val carbsGoalKey = intPreferencesKey("carbs_goal_g")
@@ -261,6 +268,8 @@ class SettingsRepository(context: Context) {
             haptics = prefs[hapticsKey] ?: default.haptics,
             aiApps = prefs[aiAppsKey]?.split(',')?.filter(String::isNotBlank) ?: default.aiApps,
             savingPct = prefs[savingPctKey] ?: default.savingPct,
+            financePlan = prefs[financePlanKey] ?: default.financePlan,
+            savingGoal = prefs[savingGoalKey] ?: default.savingGoal,
             kcalGoal = prefs[kcalGoalKey] ?: default.kcalGoal,
             proteinGoalG = prefs[proteinGoalKey] ?: default.proteinGoalG,
             carbsGoalG = prefs[carbsGoalKey] ?: default.carbsGoalG,
@@ -501,6 +510,22 @@ class SettingsRepository(context: Context) {
 
     suspend fun setPauseSeconds(seconds: Int) { context.settings.edit { it[pauseSecondsKey] = seconds.coerceIn(0, 300) } }
 
+    /**
+     * The clean finance start the user asked for (2026-11-11), done once per [tag]: the plan (income, fixed costs,
+     * scheduled payments, saving %), the saving goal and the daily limit go back to empty. The database side is
+     * LauncherDatabase's version 11.
+     */
+    suspend fun resetFinanceOnce(tag: String) {
+        context.settings.edit {
+            if (it[financeResetKey] == tag) return@edit
+            it.remove(financePlanKey)
+            it.remove(savingGoalKey)
+            it.remove(savingPctKey)
+            it.remove(dailyBudgetKey)
+            it[financeResetKey] = tag
+        }
+    }
+
     suspend fun setLastBackupAt(millis: Long) { context.settings.edit { it[lastBackupKey] = millis } }
 
     suspend fun setModuleSettings(value: ModuleSettings) {
@@ -520,6 +545,8 @@ class SettingsRepository(context: Context) {
             it[hapticsKey] = value.haptics
             it[aiAppsKey] = value.aiApps.joinToString(",")
             it[savingPctKey] = value.savingPct.coerceIn(0, 100)
+            it[financePlanKey] = value.financePlan
+            it[savingGoalKey] = value.savingGoal
             it[kcalGoalKey] = value.kcalGoal
             it[proteinGoalKey] = value.proteinGoalG
             it[carbsGoalKey] = value.carbsGoalG

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "scope": "Finance registration: movement direction, explicit budget choice, optional sharing, labeled categories and direct income kinds",
+  "platform": "android",
+  "sources": [
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/EntrySheet.kt",
+      "sha256": "d31bbb161d78bd04fd5034a019e845f8e88166cf0df5b295e88abb827b430154"
+    }
+  ],
+  "comparison": "existing-system",
+  "baseline": "entry-keyboard.png (historical incumbent capture, 922 x 2048)",
+  "requiredChecks": [
+    {
+      "id": "native-registration",
+      "kind": "interaction"
+    }
+  ],
+  "checks": [
+    {
+      "id": "native-registration",
+      "status": "blocked",
+      "observed": "APK installed in emulator-5554; native preview could not be inspected because Android System UI stopped responding, then UI Automator returned null root. No visual or interaction pass claimed.",
+      "steps": [
+        "Install debug APK on emulator",
+        "Launch DebugFinancePreview (in-memory fixture)",
+        "Attempt UI Automator inspection; System UI ANR dialog observed",
+        "Select Wait and reopen preview; UI Automator returns null root"
+      ]
+    }
+  ],
+  "unresolved": [
+    "Native visual inspection, keyboard layout, narrow/large text, save/edit interaction and TalkBack traversal remain unverified."
+  ]
+}

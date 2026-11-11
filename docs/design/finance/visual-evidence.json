@@ -1,0 +1,234 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "scope": "Cool, desaturated finance data palette. Existing grayscale captures are the layout baseline; visual comparison covers Today, Summary, Bank, Budget top and narrow/large-text Today. No pixel-exact match claimed.",
+  "platform": "android",
+  "comparison": "existing-system",
+  "sources": [
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/Budget.kt",
+      "sha256": "cd6dd4e38bdf5b93a1b256f44eb669cc27a56116cf0e2d56ef1ed675f6406d75"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/BudgetPlanner.kt",
+      "sha256": "2f9ab6f735b14ae5772dd20c781e4798f1a43c67eeff92f81813143673ce5181"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/BudgetSections.kt",
+      "sha256": "d41d3001801bb99ebeb8e97507b0affb8f110bfeed3e372fdc269aba60a6103b"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/EntrySheet.kt",
+      "sha256": "3894a1d39b9ceff791cffc74d6b9dba6a1da12c6413575cdf8cfa5408e4bf860"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinancePeriod.kt",
+      "sha256": "21fc41af7f0acc0dca04d1c2af32c8793fbc1078a901af3350ccba9c70896b19"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceScreen.kt",
+      "sha256": "1d8829d006ad8aef572e4c2b5bf49e9f705433a61c305a11be1ed6c6175b6262"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceSettings.kt",
+      "sha256": "7bdd0d2742800dd4490514d0fb533da045d72671b38d8ae87fdd486cf522e02c"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceToday.kt",
+      "sha256": "93f135b42cde0490d6b3e057d51377f3143a690c9332eb7332954be4106acaad"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceUi.kt",
+      "sha256": "47dc5025e0aa9c70c5d3f72c0a6d9764c7413c7c699a7e1d22194f182c2982b0"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/MoneyColors.kt",
+      "sha256": "5769461dba6330508e9445ca8008d3cf2cd59d1ac5ccf9b699857d2c0eb7d639"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/PiggyBank.kt",
+      "sha256": "e2ea16dde025c8f9515bf01a1712f0ff3225c364beda736ccea8b0671377cdc7"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/SavingGoal.kt",
+      "sha256": "6c02899d2fbd8fc995520773ba1151dc52e5c00d8352189e74cfa5014c8cfd07"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/bank/Bank.kt",
+      "sha256": "4f92fb5828276b02546374094e2e5f906f53ea2485b2abeb907d9b0837738fe4"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/bank/BankView.kt",
+      "sha256": "fc75147ff468be9aab2ed66165921785dd7d858ce04e1d3589fd854d9b28ccab"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/ModuleUi.kt",
+      "sha256": "0f94106672874a0f25d6048e78061e3ade2b544b340a1281ffdfada5d5e3c2ca"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/ModuleStyle.kt",
+      "sha256": "d26542b6c0e1d6dc82d9c17dc83aa9b10555ceb17c4694074cbb26a2e724cb31"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/ui/theme/LauncherTheme.kt",
+      "sha256": "fe2b25d3b3917134bbf21e891088b0c3e492d550d053baab15e0faa4b294d51e"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/ui/components/StrokeIcon.kt",
+      "sha256": "fb338641f15cfef37e1eabd0e37a4aa9236851e66c1c1bf949d56e84a86c0f66"
+    },
+    {
+      "path": "../../../app/src/debug/java/com/adrian/minimallauncher/DebugFinancePreview.kt",
+      "sha256": "1603d8d356634cebec03c596972ff63ba79488196bb474295f60ba95244a861d"
+    },
+    {
+      "path": "../../../app/src/debug/AndroidManifest.xml",
+      "sha256": "43c8a7c810c9aebfa42413de25447f4063e8f8a881eea4d0238a8606819cd7b2"
+    }
+  ],
+  "requiredChecks": [
+    {
+      "id": "cool-today",
+      "kind": "visual"
+    },
+    {
+      "id": "cool-summary",
+      "kind": "visual"
+    },
+    {
+      "id": "cool-bank",
+      "kind": "visual"
+    },
+    {
+      "id": "cool-budget",
+      "kind": "visual"
+    },
+    {
+      "id": "cool-narrow-today",
+      "kind": "visual"
+    }
+  ],
+  "checks": [
+    {
+      "id": "cool-today",
+      "status": "pass",
+      "state": "Daily overview",
+      "observed": "Teal free allowance, steel blue food and lavender transport match the ring and row markers. Neutral amounts, typography and navigation retain the baseline layout.",
+      "environment": {
+        "kind": "simulator",
+        "name": "Medium_Phone_API_37.0 / Android Emulator, SwiftShader / Skia GL",
+        "width": 1080,
+        "height": 2400,
+        "densityDpi": 420,
+        "fontScale": 1.0
+      },
+      "artifacts": [
+        {
+          "path": "cool-today.png",
+          "sha256": "97b01373d0f993e5ae179163c8ec8dc470981607cf8a4f51885e6570c4d832c3",
+          "kind": "image"
+        }
+      ]
+    },
+    {
+      "id": "cool-summary",
+      "status": "pass",
+      "state": "Current week",
+      "observed": "Food and transport retain the daily hues in both stacked columns and allocation ring. Controls, labels and amounts remain readable.",
+      "environment": {
+        "kind": "simulator",
+        "name": "Medium_Phone_API_37.0 / Android Emulator, SwiftShader / Skia GL",
+        "width": 1080,
+        "height": 2400,
+        "densityDpi": 420,
+        "fontScale": 1.0
+      },
+      "artifacts": [
+        {
+          "path": "cool-summary.png",
+          "sha256": "ddc9b2734188186c0839e95266258f867e2df294d2176edab6b439dbbc395216",
+          "kind": "image"
+        }
+      ]
+    },
+    {
+      "id": "cool-bank",
+      "status": "pass",
+      "state": "Bank accounts and allocation",
+      "observed": "Lavender debt, steel blue fixed costs and teal availability are visible with matching labeled markers. Debt amount uses lavender; the black panel remains neutral.",
+      "environment": {
+        "kind": "simulator",
+        "name": "Medium_Phone_API_37.0 / Android Emulator, SwiftShader / Skia GL",
+        "width": 1080,
+        "height": 2400,
+        "densityDpi": 420,
+        "fontScale": 1.0
+      },
+      "artifacts": [
+        {
+          "path": "cool-bank.png",
+          "sha256": "b3073951641b2fcb1c8feb704f43f1f4e303e93c3fa0f3dc9b5bd543f00c3b81",
+          "kind": "image"
+        }
+      ]
+    },
+    {
+      "id": "cool-budget",
+      "status": "pass",
+      "state": "Budget top",
+      "observed": "Allocation colors match Bank. Neutral fields, frequency selector, spacing and labeled actions remain consistent with the baseline.",
+      "environment": {
+        "kind": "simulator",
+        "name": "Medium_Phone_API_37.0 / Android Emulator, SwiftShader / Skia GL",
+        "width": 1080,
+        "height": 2400,
+        "densityDpi": 420,
+        "fontScale": 1.0
+      },
+      "artifacts": [
+        {
+          "path": "cool-budget.png",
+          "sha256": "4c708d6f148d2edebbd2209860486ad4944138ae361344764ad044408bd34735",
+          "kind": "image"
+        }
+      ]
+    },
+    {
+      "id": "cool-narrow-today",
+      "status": "pass",
+      "state": "Daily overview at 360 dp and font scale 1.3",
+      "observed": "The chart stacks below the amount. Teal, blue and lavender remain distinguishable with readable labels; lower rows continue within the scroll area.",
+      "environment": {
+        "kind": "simulator",
+        "name": "Medium_Phone_API_37.0 / Android Emulator, SwiftShader / Skia GL",
+        "width": 945,
+        "height": 2100,
+        "densityDpi": 420,
+        "fontScale": 1.3
+      },
+      "artifacts": [
+        {
+          "path": "cool-narrow-today.png",
+          "sha256": "70025a93516f58ff0eee29a97719670e56ef0e738277e8c0c755e8445d57ccc7",
+          "kind": "image"
+        }
+      ]
+    }
+  ],
+  "unresolved": [],
+  "comparisonMethod": "Inspected native captures against the incumbent layout and the constrained color change. Retained black surfaces, white amounts, typography, controls and red action/navigation accents. Category hues remain stable across periods.",
+  "buildValidation": {
+    "command": "gradlew.bat :app:assembleDebug :app:testDebugUnitTest --offline --console=plain",
+    "status": "pass",
+    "tests": 60,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "limitations": [
+    "Physical Galaxy S24+ display and performance were not tested; the connected phone was not changed.",
+    "This color pass does not repeat the earlier transaction, empty-state, TalkBack or exhaustive secondary-flow checks.",
+    "Some emulator captures omitted static regions. The five listed captures were refreshed and inspected; cool-budget-bottom.png is diagnostic only and is not accepted full-screen evidence.",
+    "Over-budget shades and secondary saving-goal variants were source-reviewed; a complete visual state matrix was not captured.",
+    "Sample data lives in the debug fixture only; no production persistence was changed."
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "scope": "Debit, credit, cash expenses and debit-to-cash withdrawal registration",
+  "platform": "android",
+  "comparison": "existing-system",
+  "sources": [
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/data/PersonalRecords.kt",
+      "sha256": "31b9c7b02fbeac871adfd43e65c2b0c597dd808c38430fca9455fe202ba0d9ee"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/data/PersonalRepository.kt",
+      "sha256": "5ad60f086592abd113baeca0ae92b5af11eebaa129213deeca75f740e3046f61"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/bank/Bank.kt",
+      "sha256": "ab285a3027f2c6aa369875d7add98ab2f83f11f42b5369766f9dabaad3677a60"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/bank/BankView.kt",
+      "sha256": "29758dc95acd08d84a13018f59429b530329f7488542c136d187c1cab3e5a864"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/EntrySheet.kt",
+      "sha256": "a3054c5f78e880d51686106c5841b128d97adf0d4c365c3932f75b67e140f76b"
+    },
+    {
+      "path": "../../../app/src/main/java/com/adrian/minimallauncher/feature/finance/FinanceScreen.kt",
+      "sha256": "fa59f533699048f84f24b32862d3784ad6a2061ebe6c3003436e8004dd91d9e2"
+    }
+  ],
+  "requiredChecks": [
+    {
+      "id": "native-cash-flow",
+      "kind": "interaction"
+    }
+  ],
+  "checks": [
+    {
+      "id": "native-cash-flow",
+      "status": "blocked",
+      "observed": "ADB reports emulator-5554 offline. Native rendering and Room persistence checks could not run. Physical phone was not modified.",
+      "steps": [
+        "Query adb devices; emulator-5554 offline"
+      ]
+    }
+  ],
+  "unresolved": [
+    "Native UI save/edit/delete and large-text verification",
+    "Room reopen and rollback check is implemented in DebugFinanceChecks but was not run on device"
+  ]
+}

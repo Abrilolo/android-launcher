@@ -75,7 +75,7 @@ import com.adrian.minimallauncher.data.routine.Places
 import com.adrian.minimallauncher.data.routine.RoutineAction
 import com.adrian.minimallauncher.data.routine.RoutinePhase
 import com.adrian.minimallauncher.data.routine.Trigger
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
 import com.adrian.minimallauncher.viewmodel.LauncherViewModel
@@ -133,7 +133,7 @@ fun RoutineSettingsScreen(viewModel: LauncherViewModel, onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("AJUSTES · RUTINAS", style = MaterialTheme.typography.labelSmall, color = LauncherRed)
+                Text("AJUSTES · RUTINAS", style = MaterialTheme.typography.labelSmall, color = LauncherAccent)
                 Spacer(Modifier.weight(1f))
                 CloseMark("Cerrar", onClose)
             }
@@ -144,7 +144,7 @@ fun RoutineSettingsScreen(viewModel: LauncherViewModel, onClose: () -> Unit) {
                 if (!granted) Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (Places.hasForeground(context)) "UBICACIÓN: FALTA “TODO EL TIEMPO”" else "SIN PERMISO DE UBICACIÓN",
-                        Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = LauncherRed,
+                        Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = LauncherAccent,
                     )
                     SettingsChip("PERMITIR", on = false, red = true) {
                         if (Places.hasForeground(context)) askBackground.launch(Places.BACKGROUND_PERMISSION)
@@ -226,7 +226,7 @@ private fun PlaceRow(place: Place, play: Int?, onRename: (String) -> Unit, onFix
                 },
                 textStyle = MaterialTheme.typography.titleMedium.copy(color = White),
                 singleLine = true,
-                cursorBrush = SolidColor(LauncherRed),
+                cursorBrush = SolidColor(LauncherAccent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank() && name != place.name) onRename(name) }),
             )
@@ -302,7 +302,7 @@ private fun PhaseDetail(phase: RoutinePhase, apps: List<LauncherApp>, viewModel:
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     StrokeIcon("candado", StrokeState.NOW, 14.dp)
-                    Text("${grouped.size - open}", style = MaterialTheme.typography.labelSmall, color = LauncherRed)
+                    Text("${grouped.size - open}", style = MaterialTheme.typography.labelSmall, color = LauncherAccent)
                 }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -406,6 +406,7 @@ private fun DebugSection(open: Boolean, places: List<Place>, viewModel: Launcher
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SettingsChip("REINICIAR RUTINA", on = false, icon = "reiniciar") { viewModel.resetRoutine(); onMessage("Rutina reiniciada") }
             SettingsChip("PAGO DE PRUEBA", on = false, icon = "pago") { viewModel.debugAddPendingPayment(); onMessage("Pago de prueba") }
+            SettingsChip("INGRESO DE PRUEBA", on = false, icon = "estabilidad") { viewModel.debugAddPendingPayment(1_200_000, "Prueba", income = true); onMessage("Ingreso de prueba") }
             SettingsChip("PROBAR WHATSAPP", on = false, icon = "whatsapp") { if (!viewModel.openWhatsAppLeft()) onMessage("Falta el teléfono") }
             val active = refresh.let { viewModel.forcedServiceEnabled() }
             SettingsChip("ACCESIBILIDAD · ${if (active) "ACTIVO" else "APAGADO"}", on = active, onClick = onAccessibility)
@@ -422,7 +423,7 @@ private fun AppSheet(title: String, apps: List<LauncherApp>, selected: String, o
             .padding(start = 24.dp, end = 24.dp, top = 18.dp, bottom = 32.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = LauncherRed)
+            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = LauncherAccent)
             CloseMark("Cerrar", onClose)
         }
         LazyColumn(Modifier.padding(top = 12.dp)) {
@@ -432,7 +433,7 @@ private fun AppSheet(title: String, apps: List<LauncherApp>, selected: String, o
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(app.label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = White)
-                    if (app.packageName == selected) Box(Modifier.size(6.dp).background(LauncherRed, CircleShape))
+                    if (app.packageName == selected) Box(Modifier.size(6.dp).background(LauncherAccent, CircleShape))
                 }
             }
         }
@@ -459,14 +460,14 @@ private fun Divider() = Box(Modifier.padding(vertical = 14.dp).fillMaxWidth().si
 @Composable
 private fun SettingsChip(label: String, on: Boolean, red: Boolean = false, icon: String? = null, onClick: () -> Unit) {
     Row(
-        Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, if (red) LauncherRed else Border, RoundedCornerShape(10.dp))
+        Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, if (red) LauncherAccent else Border, RoundedCornerShape(10.dp))
             .background(if (on) Raised else Color.Transparent)
             .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon != null) StrokeIcon(icon, if (on) StrokeState.DONE else StrokeState.OFF, 14.dp)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = if (red) LauncherRed else if (on) White else Muted)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = if (red) LauncherAccent else if (on) White else Muted)
     }
 }
 
@@ -495,7 +496,7 @@ private fun TextField(value: String, onValue: (String) -> Unit, hint: String, mo
         modifier.semantics { contentDescription = hint },
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = White),
         singleLine = true,
-        cursorBrush = SolidColor(LauncherRed),
+        cursorBrush = SolidColor(LauncherAccent),
         keyboardOptions = KeyboardOptions(keyboardType = keyboard, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
         decorationBox = { inner ->

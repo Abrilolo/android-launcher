@@ -18,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.components.DotMatrixText
 import java.time.LocalTime
@@ -50,7 +50,7 @@ fun ExerciseWidget(day: ExerciseDay, start: LocalTime) {
                 repeat(session.totalSets) { i ->
                     val color = when {
                         i < done -> MaterialTheme.colorScheme.onSurface
-                        i == done && !day.completed -> LauncherRed
+                        i == done && !day.completed -> LauncherAccent
                         else -> Color(0xFF2A2A2A)
                     }
                     Box(Modifier.weight(1f).height(4.dp).background(color, RoundedCornerShape(2.dp)))

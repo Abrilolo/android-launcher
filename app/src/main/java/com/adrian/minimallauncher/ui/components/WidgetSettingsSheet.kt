@@ -34,7 +34,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.adrian.minimallauncher.data.GRID_COLUMNS
 import com.adrian.minimallauncher.data.WidgetStackConfig
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.GRID_CELL_HEIGHT
 import com.adrian.minimallauncher.ui.GRID_GAP
@@ -103,7 +103,7 @@ fun WidgetSettingsSheet(
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     SmallLabel("TRANSPARENCIA", Modifier.weight(1f))
-                    SmallLabel("${(alpha * 100).roundToInt()}%", color = if (alpha == 0f) LauncherRed else MaterialTheme.colorScheme.onSurface)
+                    SmallLabel("${(alpha * 100).roundToInt()}%", color = if (alpha == 0f) LauncherAccent else MaterialTheme.colorScheme.onSurface)
                 }
                 Slider(
                     value = alpha,

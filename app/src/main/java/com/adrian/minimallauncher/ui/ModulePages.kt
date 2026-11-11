@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.PersonalRecordActions
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecords
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleCard
 import com.adrian.minimallauncher.feature.ModuleHeader
 import com.adrian.minimallauncher.feature.SmallLabel
@@ -154,7 +154,7 @@ fun AlarmsPage(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: () 
                         of(phase.id).forEach { r ->
                             val color = when {
                                 r.id in doneToday -> Color(0xFFF5F5F5)
-                                r.id == nextId -> LauncherRed
+                                r.id == nextId -> LauncherAccent
                                 else -> Color(0xFF5C5C5C)
                             }
                             Box(Modifier.size(4.dp).background(color, CircleShape))
@@ -184,7 +184,7 @@ fun AlarmsPage(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: () 
                     Modifier.size(36.dp).clip(CircleShape).clickable(role = Role.Button) { editing = !editing }
                         .semantics { contentDescription = if (editing) "Listo" else "Editar recordatorios" },
                     contentAlignment = Alignment.Center,
-                ) { StrokeIcon(if (editing) "listo" else "lapiz", StrokeState.DONE, 20.dp, color = if (editing) LauncherRed else Color(0xFFB0B0B0)) }
+                ) { StrokeIcon(if (editing) "listo" else "lapiz", StrokeState.DONE, 20.dp, color = if (editing) LauncherAccent else Color(0xFFB0B0B0)) }
             }
             Box(Modifier.fillMaxWidth().padding(top = 16.dp).height(1.dp).background(Color(0xFF222222)))
 
@@ -225,7 +225,7 @@ fun AlarmsPage(viewModel: LauncherViewModel, onSettings: () -> Unit, onBack: () 
                                     LocalTime.of(r.hour, r.minute).format(hhmm),
                                     color = when {
                                         done -> Color(0xFFF5F5F5)
-                                        r.id == nextId -> LauncherRed
+                                        r.id == nextId -> LauncherAccent
                                         else -> Color(0xFFB0B0B0)
                                     },
                                 )
@@ -310,7 +310,7 @@ fun WorldClockPage(now: LocalDateTime, zones: List<String>, onBack: () -> Unit, 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     repeat(24) { hour ->
                         val color = when {
-                            hour == time.hour -> LauncherRed
+                            hour == time.hour -> LauncherAccent
                             hour in 7..19 -> Color(0xFFCFCFCF)
                             else -> Color(0xFF262626)
                         }

@@ -26,6 +26,7 @@ import com.adrian.minimallauncher.data.NoteRecord
 import com.adrian.minimallauncher.data.ReminderRecord
 import com.adrian.minimallauncher.data.FinanceRecord
 import com.adrian.minimallauncher.data.MoneyKind
+import com.adrian.minimallauncher.data.PendingPayment
 import com.adrian.minimallauncher.feature.exercise.ExerciseBurn
 import com.adrian.minimallauncher.feature.exercise.RoutinePlans
 import com.adrian.minimallauncher.feature.exercise.StackChoice
@@ -42,6 +43,7 @@ import com.adrian.minimallauncher.feature.finance.Budget
 import com.adrian.minimallauncher.feature.finance.BudgetLimit
 import com.adrian.minimallauncher.feature.finance.BudgetPeriod
 import com.adrian.minimallauncher.feature.finance.FinanceSummary
+import com.adrian.minimallauncher.feature.finance.FinancePlan
 import com.adrian.minimallauncher.data.MealRecord
 import com.adrian.minimallauncher.data.SettingsRepository
 import com.adrian.minimallauncher.data.fits
@@ -52,6 +54,10 @@ import com.adrian.minimallauncher.data.DayCheck
 import com.adrian.minimallauncher.data.LauncherDatabase
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRepository
+import com.adrian.minimallauncher.feature.bank.BankAccount
+import com.adrian.minimallauncher.feature.bank.Bank
+import com.adrian.minimallauncher.feature.bank.BankKind
+import com.adrian.minimallauncher.feature.bank.BankReceivable
 import com.adrian.minimallauncher.data.Space
 import com.adrian.minimallauncher.data.ReminderScheduler
 import com.adrian.minimallauncher.data.ForcedMode
@@ -84,6 +90,9 @@ import com.adrian.minimallauncher.data.routine.RoutineRepository
 import com.adrian.minimallauncher.data.routine.Trigger
 import com.adrian.minimallauncher.feature.ai.AiApp
 import com.adrian.minimallauncher.feature.ai.AppShortcut
+import com.adrian.minimallauncher.sync.BridgeMessage
+import com.adrian.minimallauncher.sync.BridgeStatus
+import com.adrian.minimallauncher.sync.DesktopIngestServer
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -100,6 +109,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AppRepository(application)
@@ -114,6 +124,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // Answers to "¿comida?" by payment id; kept in memory (a saved food expense resumes at the meal step).
     private val foodAnswers = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     private val stackDao = LauncherDatabase.get(application).stack()
+    private val ingestServer = DesktopIngestServer(
+        db = LauncherDatabase.get(application),
+        reminderScheduler = reminderScheduler,
+        currentPhaseIdProvider = { currentPhase.value.id },
+        context = application,
+    )
+    val bridgeStatus: StateFlow<BridgeStatus> = ingestServer.status
+    val bridgeMessages: StateFlow<List<BridgeMessage>> = ingestServer.messages
     private val _rawApps = MutableStateFlow<List<LauncherApp>>(emptyList())
 
     val appCategories: StateFlow<List<AppCategory>> = settings.appCategories
@@ -263,16 +281,27 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** Budget, savings, extras bag, today's allowance (lowered by overspending this week), limits per topic and shared bills. */
-    val financeSummary: StateFlow<FinanceSummary> = combine(money, budgets, moduleSettings, currentTime.map { it.toLocalDate() }.distinctUntilChanged()) { rows, limits, s, date ->
-        Budget.summary(rows, limits, s.savingPct, s.dailyBudgetCents, date)
+    // Explicit income estimates lead. Bank net is a fallback; Budget restores linked outflows before allocating it.
+    /** Live bank net, separate from budget estimates. */
+    private val myMoney: StateFlow<Long> = combine(personal.bankAccounts, personal.bankReceivables) { accounts, receivables -> Bank.netMoney(accounts, receivables) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0L)
+    val financeSummary: StateFlow<FinanceSummary> = combine(money, budgets, moduleSettings, currentTime.map { it.toLocalDate() }.distinctUntilChanged(), myMoney) { rows, limits, s, date, mine ->
+        Budget.summary(rows, limits, s.savingPct, s.dailyBudgetCents, date, FinancePlan.decode(s.financePlan), moneyCents = mine)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, FinanceSummary())
     val lastBackupAt: StateFlow<Long?> = settings.lastBackupAt.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val _backupMessage = MutableStateFlow<String?>(null)
     /** Outcome of the last export or import, shown on the backup page. */
     val backupMessage: StateFlow<String?> = _backupMessage
 
+    /** A module the launcher was asked to open from outside ("finance:banco"), until the screen takes it. */
+    val openRequest = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
     init {
         refreshApps()
+        ingestServer.start()
+        viewModelScope.launch { settings.resetFinanceOnce("2026-11-11") }
+        // A card whose payment day went by moves what was gathering into its coming payment.
+        viewModelScope.launch { personal.rollCardDues(java.time.LocalDate.now()) }
         viewModelScope.launch {
             settings.legacyRecords()?.let { legacy ->
                 personal.importLegacy(legacy)
@@ -367,9 +396,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun addFinance(amountCents: Long, description: String) { viewModelScope.launch { personal.addFinance(amountCents, description) } }
     fun deleteFinance(id: String) { viewModelScope.launch { personal.deleteFinance(id) } }
     /** Any movement: incomes (fixed, transfer, gift, service), fixed costs, extras, or a shared bill with what others owe. */
-    fun addMoney(kind: MoneyKind, amountCents: Long, description: String, category: String = "", pendingFromOthersCents: Long = 0) {
-        viewModelScope.launch { personal.addMoney(kind, amountCents, description, category, pendingFromOthersCents) }
+    fun addMoney(kind: MoneyKind, amountCents: Long, description: String, category: String = "", pendingFromOthersCents: Long = 0, account: String = "") {
+        viewModelScope.launch { personal.addMoney(kind, amountCents, description, category, pendingFromOthersCents, account = account) }
     }
+    /** An edited movement, saved as it now is. */
+    fun updateMoney(record: FinanceRecord) { viewModelScope.launch { personal.updateMoney(record) } }
+    /** The bank: cards and accounts, and the money still to come in. */
+    val bankAccounts: StateFlow<List<BankAccount>> = personal.bankAccounts.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val bankReceivables: StateFlow<List<BankReceivable>> = personal.bankReceivables.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    fun saveBankAccount(account: BankAccount) { viewModelScope.launch { personal.saveAccount(account) } }
+    fun deleteBankAccount(id: String) { viewModelScope.launch { personal.deleteAccount(id) } }
+    fun saveBankReceivable(receivable: BankReceivable) { viewModelScope.launch { personal.saveReceivable(receivable) } }
+    fun deleteBankReceivable(id: String) { viewModelScope.launch { personal.deleteReceivable(id) } }
+    fun collectBankReceivable(receivable: BankReceivable) { viewModelScope.launch { personal.collectReceivable(receivable) } }
     fun settleShared(id: String, paidCents: Long) { viewModelScope.launch { personal.settle(id, paidCents) } }
     /** Editable limit per topic ("comida", "transporte"… or [BudgetLimit.TOTAL]) and period; 0 removes it. */
     fun setBudget(topic: String, period: BudgetPeriod, limitCents: Long) { viewModelScope.launch { personal.setBudget(topic, period, limitCents) } }
@@ -457,12 +496,30 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         foodAnswers.value = foodAnswers.value + (payment.id to isFood)
     }
 
+    /** Forced flow, money received: saves it as [kind] and closes it. */
+    fun forcedSaveIncome(amountCents: Long, kind: MoneyKind) {
+        val payment = forcedState.value?.payment ?: return
+        viewModelScope.launch { forced.saveIncome(payment, amountCents, kind) }
+    }
+
     /** Forced flow, step gasto: saves the expense (category "comida" when it was food). */
-    fun forcedSaveExpense(amountCents: Long, description: String, category: String = "") {
+    fun forcedSaveExpense(amountCents: Long, description: String, category: String = "", kind: MoneyKind = MoneyKind.EXTRA) {
         val state = forcedState.value ?: return
         val payment = state.payment ?: return
-        val isFood = state.isFood == true
-        viewModelScope.launch { forced.saveExpense(payment, amountCents, description, category.ifBlank { if (isFood) "comida" else "" }, isFood) }
+        val isFood = state.isFood == true && kind == MoneyKind.EXTRA
+        viewModelScope.launch { forced.saveExpense(payment, amountCents, description, category.ifBlank { if (isFood) "comida" else "" }, isFood, kind) }
+    }
+
+    /** Forced flow: the charge is a scheduled payment ([category] "recurring:<id>"); saved as that fixed payment. */
+    fun forcedSavePlanned(amountCents: Long, name: String, category: String) {
+        val payment = forcedState.value?.payment ?: return
+        viewModelScope.launch { forced.saveExpense(payment, amountCents, payment.merchant.ifBlank { name }, category, false, MoneyKind.FIXED) }
+    }
+
+    /** Forced flow: the payment was to one of the user's cards ([cardId]); no spending, the card's debt goes down. */
+    fun forcedSaveCardPayment(amountCents: Long, cardId: String) {
+        val payment = forcedState.value?.payment ?: return
+        viewModelScope.launch { forced.saveCardPayment(payment, amountCents, cardId) }
     }
 
     /** Forced flow, step comida: a quick meal by description, or made of ingredients (id to grams). */
@@ -480,7 +537,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun finishRoutineRegistration() { viewModelScope.launch { forced.setRoutinePending(false) } }
 
     /** Debug stand-in for a bank notification: a $85.00 OXXO payment. */
-    fun debugAddPendingPayment(amountCents: Long = 8500, merchant: String = "OXXO") { viewModelScope.launch { forced.addTestPayment(amountCents, merchant) } }
+    fun debugAddPendingPayment(amountCents: Long = 8500, merchant: String = "OXXO", income: Boolean = false) {
+        viewModelScope.launch { forced.addTestPayment(amountCents, merchant, if (income) PendingPayment.IN else PendingPayment.OUT) }
+    }
 
     /** Whether the accessibility service that covers the whole phone is on. */
     fun forcedServiceEnabled(): Boolean = ForcedMode.serviceEnabled(getApplication())
@@ -620,7 +679,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setAppDistraction(packageName: String, isDistraction: Boolean) { viewModelScope.launch { settings.setAppDistraction(packageName, isDistraction) } }
 
     fun setVaultLockSeconds(seconds: Int) = updateModuleSettings { it.copy(vaultLockSeconds = seconds) }
-    fun updateModuleSettings(change: (ModuleSettings) -> ModuleSettings) { viewModelScope.launch { settings.setModuleSettings(change(moduleSettings.value)) } }
+    // One change at a time, each on top of what was last written: two quick changes (Guardar sends the plan and the
+    // saving together) used to start from the same old copy, and the second one wiped out the first.
+    private val settingsLock = kotlinx.coroutines.sync.Mutex()
+    fun updateModuleSettings(change: (ModuleSettings) -> ModuleSettings) {
+        viewModelScope.launch { settingsLock.withLock { settings.setModuleSettings(change(settings.moduleSettings.first())) } }
+    }
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
             _backupMessage.value = runCatching { backup.export(uri) }
@@ -753,4 +817,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     /** Emits when the home button or gesture is used while the launcher is already open. */
     val homePressed: SharedFlow<Unit> = _homePressed
     fun onHomePressed() { _homePressed.tryEmit(Unit) }
+
+    override fun onCleared() {
+        ingestServer.stop()
+        super.onCleared()
+    }
+
+    fun refreshBridgeIps() = ingestServer.refreshNetworkInterfaces()
+    fun runBridgeSelfTest() = ingestServer.runSelfTest()
+    fun sendBridgeMessageToPc(text: String) = ingestServer.sendMessageToPc(text)
+    fun setBridgePcUrl(url: String) = ingestServer.setPcTargetUrl(url)
 }

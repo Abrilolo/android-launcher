@@ -17,6 +17,10 @@ import com.adrian.minimallauncher.feature.exercise.GuidedExerciseRecord
 import com.adrian.minimallauncher.feature.exercise.SetLog
 import com.adrian.minimallauncher.feature.exercise.StackDao
 import com.adrian.minimallauncher.feature.exercise.StackExercise
+import com.adrian.minimallauncher.feature.bank.BankAccount
+import com.adrian.minimallauncher.feature.bank.BankDao
+import com.adrian.minimallauncher.feature.bank.BankReceivable
+import com.adrian.minimallauncher.feature.bank.Bank
 import com.adrian.minimallauncher.feature.finance.BudgetDao
 import com.adrian.minimallauncher.feature.finance.BudgetLimit
 import com.adrian.minimallauncher.feature.food.FoodDao
@@ -31,9 +35,9 @@ import kotlinx.coroutines.flow.Flow
     entities = [
         NoteRecord::class, ReminderRecord::class, FinanceRecord::class, MealRecord::class, BodyMetricRecord::class, DayCheck::class, SetLog::class,
         Recipe::class, Ingredient::class, RecipeItem::class, MealItem::class, BudgetLimit::class, PendingPayment::class, StackExercise::class,
-        GuidedExerciseRecord::class,
+        GuidedExerciseRecord::class, BankAccount::class, BankReceivable::class,
     ],
-    version = 6,
+    version = 11,
     exportSchema = true,
 )
 abstract class LauncherDatabase : RoomDatabase() {
@@ -44,15 +48,76 @@ abstract class LauncherDatabase : RoomDatabase() {
     abstract fun pending(): PendingDao
     abstract fun stack(): StackDao
     abstract fun guidedExercise(): GuidedExerciseDao
+    abstract fun bank(): BankDao
 
     companion object {
         @Volatile private var instance: LauncherDatabase? = null
 
         fun get(context: Context): LauncherDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context.applicationContext, LauncherDatabase::class.java, "launcher.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .build()
                 .also { instance = it }
+        }
+
+        /**
+         * Version 8: every movement remembers the card or account it was paid with, and the bank has its accounts and
+         * the money still to come in. The first balances the user had are seeded here, once.
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `finances` ADD COLUMN `account` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `bank_accounts` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `kind` TEXT NOT NULL, `balanceCents` INTEGER NOT NULL, `owedByOthersCents` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `bank_receivables` (`id` TEXT NOT NULL, `concept` TEXT NOT NULL, `amountCents` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+                Bank.SEED_SQL.forEach(db::execSQL)
+            }
+        }
+
+        /**
+         * Version 9: cards and accounts have their cut and payment days. The movements recorded before the bank was
+         * tied to each notice are cleared once; the balances the bank holds stay as they are.
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `cutDay` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `payDay` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("DELETE FROM `finances`")
+            }
+        }
+
+        /** Version 10: the money in debit is held in Revolut, so that account carries its name. */
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE `bank_accounts` SET `name` = 'Revolut' WHERE `id` = 'debito'")
+            }
+        }
+
+        /**
+         * Version 11 (2026-11-11): every card and account keeps its cards' last 4 digits, a card its limit and what it
+         * must pay now and next; a pending notice keeps the account it was matched to. The user asked to start the
+         * finances clean: movements, pending notices and topic budgets are cleared, the accounts are set to the
+         * balances they gave, and the receivables (and what others owe the cards) stay.
+         */
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `cards` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `limitCents` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `dueCents` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `dueDate` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `bank_accounts` ADD COLUMN `nextDueCents` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `pending_payments` ADD COLUMN `account` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("DELETE FROM `finances`")
+                db.execSQL("DELETE FROM `pending_payments`")
+                db.execSQL("DELETE FROM `budgets`")
+                Bank.RESET_2026_11_SQL.forEach(db::execSQL)
+            }
+        }
+
+        /** Version 7 tells a pending payment from a pending income (bank notifications); old rows were payments. */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `pending_payments` ADD COLUMN `direction` TEXT NOT NULL DEFAULT 'OUT'")
+            }
         }
 
         /** Version 6 stores resumable guided sessions and editable exercise choices. */

@@ -28,6 +28,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -47,6 +50,7 @@ import com.adrian.minimallauncher.feature.finance.FinanceScreen
 import com.adrian.minimallauncher.feature.notes.NotesScreen
 import com.adrian.minimallauncher.feature.vault.VaultScreen
 import com.adrian.minimallauncher.feature.vault.unlockVault
+import com.adrian.minimallauncher.sync.NookBridgeScreen
 import com.adrian.minimallauncher.ui.components.LocalReactions
 import com.adrian.minimallauncher.ui.components.RoutineWidgetData
 import com.adrian.minimallauncher.ui.components.rememberReactions
@@ -83,10 +87,16 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     val moduleSettings by viewModel.moduleSettings.collectAsState()
     val exerciseDay by exerciseViewModel.day.collectAsState()
     val aiShortcuts by viewModel.aiShortcuts.collectAsState()
+    val bridgeStatus by viewModel.bridgeStatus.collectAsState()
+    val bridgeMessages by viewModel.bridgeMessages.collectAsState()
     // Which module page is open; never saved, so Bancos is always locked after the app restarts.
     var openModule by remember { mutableStateOf<String?>(null) }
+    // Set by the + on the Finanzas Hoy widget: Finanzas opens with the register up.
+    var financeEntry by remember { mutableStateOf(false) }
+    // The tab Finanzas opens on when a route names one ("finance:banco").
+    var financeTab by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
-    var showAppsDrawer by rememberSaveable { mutableStateOf(false) }
+    val drawer = rememberAppsDrawerState()
     // A widget just placed that asks for its setup (Mundo, Notas, which assistant).
     var setupWidget by remember { mutableStateOf<WidgetSetup?>(null) }
     var restrictedApp by remember { mutableStateOf<com.adrian.minimallauncher.data.LauncherApp?>(null) }
@@ -148,6 +158,8 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
     }
     val openModuleById: (String) -> Unit = { id ->
         when {
+            id == com.adrian.minimallauncher.feature.finance.FinanceWidgets.ADD_ROUTE -> { financeEntry = true; openModule = "finance" }
+            id.startsWith("finance:") -> { financeTab = id.removePrefix("finance:"); openModule = "finance" }
             id == "vault" -> (context as? FragmentActivity)?.let { activity -> unlockVault(activity) { openModule = "vault" } }
             id.startsWith("app:") -> id.removePrefix("app:").let { pkg -> openAppRoute(pkg) { viewModel.openApp(pkg) } }
             id.startsWith("install:") -> viewModel.openStore(id.removePrefix("install:"))
@@ -171,6 +183,14 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             else -> openModule = id
         }
     }
+    val openRequest by viewModel.openRequest.collectAsState()
+    LaunchedEffect(openRequest) {
+        openRequest?.let { route -> openModuleById(route); viewModel.openRequest.value = null }
+    }
+    val homeFinance by viewModel.financeSummary.collectAsState()
+    val homeMoney by viewModel.money.collectAsState()
+    val homeReceivables by viewModel.bankReceivables.collectAsState()
+    val homeAccounts by viewModel.bankAccounts.collectAsState()
     val homeData = HomeData(
         personalRecords, exerciseDay, moduleSettings, vaultApps.size, viewModel::setHabit,
         ai = aiStates(apps, space, spaces, now, aiShortcuts),
@@ -184,6 +204,11 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             onMarkAction = viewModel::markAction,
             onToggleReminder = viewModel::toggleReminderDone,
         ),
+        bridge = bridgeStatus,
+        finance = homeFinance,
+        money = homeMoney,
+        receivables = homeReceivables,
+        accounts = homeAccounts,
     )
     val closeModule = { openModule = null }
 
@@ -198,7 +223,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
 
             LaunchedEffect(Unit) {
                 viewModel.homePressed.collect {
-                    showAppsDrawer = false
+                    drawer.snapClosed()
                     showSettings = false
                     setupWidget = null
                     openModule = null
@@ -206,6 +231,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 }
             }
 
+            Box(Modifier.fillMaxSize().onSizeChanged { drawer.heightPx = (it.height * DRAWER_TRAVEL).coerceAtLeast(1f) }.drawerBackdrop(drawer)) {
             HomePagesHost(
                 pages = homePages,
                 layouts = widgetLayouts,
@@ -230,8 +256,8 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                     if (oneApp || placed in WIDGETS_WITH_SETUP) setupWidget = WidgetSetup(placed, pageId, placedIn)
                 },
                 onSettings = { openModule = "modules" },
-                onOpenApps = { showAppsDrawer = true },
-                overlayOpen = showAppsDrawer || setupWidget != null || showSettings || openModule != null || restrictedApp != null,
+                drawer = drawer,
+                overlayOpen = drawer.visible || setupWidget != null || showSettings || openModule != null || restrictedApp != null,
             ) { page, pageScope ->
                 when (page.kind) {
                     PageKind.WEEK -> WeekSummaryScreen(
@@ -269,17 +295,18 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                     )
                 }
             }
+            }
 
             // Swallows touches so nothing reaches the home pages under an open screen.
             val overlay = Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { } }
 
-            // Swipe-up App Drawer (Samsung One UI / Android native style)
-            AnimatedVisibility(
-                visible = showAppsDrawer,
-                enter = slideInVertically { it / 3 } + fadeIn(),
-                exit = slideOutVertically { it / 3 } + fadeOut(),
-            ) {
-                Box(overlay) {
+            // Swipe-up App Drawer: follows the finger, over the home blurred and dimmed as the exercise sheets.
+            if (drawer.visible) {
+                Box(
+                    overlay
+                        .graphicsLayer { alpha = drawer.value }
+                        .background(Color.Black.copy(alpha = DRAWER_DIM)),
+                ) {
                     AppsPage(
                         apps = apps,
                         categories = appCategories,
@@ -299,8 +326,12 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                         spaces = spaces,
                         now = now,
                         onSettings = { openModule = "modules" },
-                        onClose = { showAppsDrawer = false },
-                        modifier = screenModifier,
+                        onClose = drawer::close,
+                        drawer = drawer,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { translationY = (1f - drawer.value) * size.height * DRAWER_TRAVEL }
+                            .safeDrawingPadding(),
                     )
                 }
             }
@@ -331,6 +362,18 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                     BackupUi(lastBackupAt, backupMessage, viewModel::exportBackup, viewModel::importBackup),
                     { showSettings = true }, if (fromModule != null) ({ openModule = fromModule }) else closeModule, screenModifier,
                     initialEditing = fromModule,
+                    onOpenBridge = { openModule = "bridge" },
+                )
+            } else if (openModule == "bridge") Box(overlay) {
+                NookBridgeScreen(
+                    status = bridgeStatus,
+                    messages = bridgeMessages,
+                    onRefreshIps = viewModel::refreshBridgeIps,
+                    onRunSelfTest = viewModel::runBridgeSelfTest,
+                    onSendMessageToPc = viewModel::sendBridgeMessageToPc,
+                    onSetPcTargetUrl = viewModel::setBridgePcUrl,
+                    onBack = closeModule,
+                    modifier = screenModifier,
                 )
             } else if (openModule == "routine") Box(overlay) {
                 RoutineHost(viewModel, closeModule)
@@ -362,14 +405,28 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             } else if (openModule == "diet") Box(overlay) {
                 DietPage(now, personalRecords, personalActions, moduleSettings, viewModel, viewModel::setHabit, { openModule = "settings:diet" }, closeModule, screenModifier)
             } else if (openModule == "finance") Box(overlay) {
+                androidx.compose.runtime.DisposableEffect(Unit) { onDispose { financeTab = null } }
                 val financeSummary by viewModel.financeSummary.collectAsState()
                 val money by viewModel.money.collectAsState()
+                val bankAccounts by viewModel.bankAccounts.collectAsState()
+                val bankReceivables by viewModel.bankReceivables.collectAsState()
                 FinanceScreen(
                     financeSummary, money, moduleSettings.dailyBudgetCents,
+                    financePlan = moduleSettings.financePlan,
+                    onSavePlan = { plan -> viewModel.updateModuleSettings { it.copy(financePlan = plan) } },
+                    savingGoal = moduleSettings.savingGoal,
+                    onSaveGoal = { goal -> viewModel.updateModuleSettings { it.copy(savingGoal = goal) } },
                     onAdd = viewModel::addMoney, onSettle = viewModel::settleShared, onSetBudget = viewModel::setBudget,
+                    onUpdate = viewModel::updateMoney,
+                    accounts = bankAccounts, receivables = bankReceivables,
+                    onSaveAccount = viewModel::saveBankAccount, onDeleteAccount = viewModel::deleteBankAccount,
+                    onSaveReceivable = viewModel::saveBankReceivable, onDeleteReceivable = viewModel::deleteBankReceivable,
+                    onCollectReceivable = viewModel::collectBankReceivable,
                     onSavingPct = viewModel::setSavingPct,
                     onDailyLimit = { cents -> viewModel.updateModuleSettings { it.copy(dailyBudgetCents = cents) } },
                     onDelete = viewModel::deleteFinance, onBack = closeModule, modifier = screenModifier,
+                    openEntry = financeEntry, onEntryShown = { financeEntry = false },
+                    startTab = financeTab,
                 )
             } else if (openModule == "notes") Box(overlay) {
                 NotesScreen(viewModel, { openModule = "settings:notes" }, closeModule, screenModifier)

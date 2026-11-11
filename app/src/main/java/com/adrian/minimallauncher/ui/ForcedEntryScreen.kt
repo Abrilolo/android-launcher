@@ -31,6 +31,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,10 +68,13 @@ import com.adrian.minimallauncher.data.ForcedState
 import com.adrian.minimallauncher.data.ForcedStep
 import com.adrian.minimallauncher.data.MealKind
 import com.adrian.minimallauncher.data.MealSlot
+import com.adrian.minimallauncher.data.MoneyKind
 import com.adrian.minimallauncher.data.PendingPayment
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.food.Ingredient
 import com.adrian.minimallauncher.feature.food.Recipe
+import com.adrian.minimallauncher.feature.finance.formatPesos
+import com.adrian.minimallauncher.feature.finance.grouped
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
 import com.adrian.minimallauncher.ui.theme.LauncherBlack
@@ -89,18 +97,30 @@ private val hhmm = DateTimeFormatter.ofPattern("HH:mm")
 private const val DRAW_WAIT_MS = 900L
 
 /** One answer to "¿fue comida?" and where the money came from (docs/design/concept/RegistroVisual.html). */
-private enum class PaymentChoice(val icon: String, val isFood: Boolean, val category: String, val label: String) {
-    FOOD_BUDGET("plato", true, "comida", "Comida, del presupuesto de comida"),
-    EXTRAS_BAG("bolsa", true, "antojo", "Comida, de la bolsa de extras"),
-    TRANSFER("transferencia", false, "transferencia", "Transferencia"),
-    GIFT("regalo", false, "regalo", "Regalo"),
-    SERVICE("servicio", false, "servicio", "Servicio externo"),
+/** Anything shown as one icon button in the flow. */
+private interface Choice { val icon: String; val label: String; val caption: String }
+
+private enum class PaymentChoice(override val icon: String, val isFood: Boolean, val category: String, override val label: String, override val caption: String) : Choice {
+    FOOD_BUDGET("plato", true, "comida", "Comida, del presupuesto de comida", "Comida"),
+    EXTRAS_BAG("bolsa", true, "antojo", "Comida, de la bolsa de extras", "Antojo"),
+    TRANSFER("transferencia", false, "transferencia", "Transferencia", "Transferencia"),
+    GIFT("regalo", false, "regalo", "Regalo", "Regalo"),
+    SERVICE("servicio", false, "servicio", "Servicio externo", "Servicio"),
+    OTHER("extra", false, "otro", "Otro gasto", "Otro"),
+}
+
+/** What a received amount was: income for your stability (it feeds the budget) or a transfer, gift or service. */
+private enum class IncomeChoice(override val icon: String, val kind: MoneyKind, override val label: String, override val caption: String) : Choice {
+    STABLE("estabilidad", MoneyKind.INCOME_FIXED, "Ingreso habitual, como el sueldo", "Habitual"),
+    TRANSFER("transferencia", MoneyKind.TRANSFER, "Transferencia recibida", "Transferencia"),
+    GIFT("regalo", MoneyKind.GIFT, "Regalo recibido", "Regalo"),
+    SERVICE("servicio", MoneyKind.SERVICE, "Pago por un servicio", "Servicio"),
 }
 
 /**
  * The forced registration flow (docs/design/concept/RegistroVisual.html): the amount and, on one screen, whether it
  * was food (food budget or extras bag) or not (transfer, gift, service); food then asks for the meal. Without
- * payments, salida's unmarked meals. No text: icons, amounts and hours. Back does nothing; only saving leaves.
+ * payments, salida's unmarked meals. Money received skips "¿comida?" and asks what kind of income it was. Icons with a short name under each, amounts and hours. Back does nothing; only saving leaves.
  */
 @Composable
 fun ForcedEntryScreen(state: ForcedState, viewModel: LauncherViewModel) {
@@ -111,7 +131,7 @@ fun ForcedEntryScreen(state: ForcedState, viewModel: LauncherViewModel) {
                 // Pending payments as dots (the current one red), never as a count.
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.semantics { contentDescription = "Pagos pendientes" }) {
                     if (state.openPayments > 1) repeat(state.openPayments) { i ->
-                        Box(Modifier.size(6.dp).clip(CircleShape).background(if (i == 0) LauncherRed else Color(0xFF333333)))
+                        Box(Modifier.size(6.dp).clip(CircleShape).background(if (i == 0) LauncherAccent else Color(0xFF333333)))
                     }
                 }
                 StrokeIcon("candado", StrokeState.OFF, 20.dp)
@@ -120,6 +140,7 @@ fun ForcedEntryScreen(state: ForcedState, viewModel: LauncherViewModel) {
             when {
                 payment == null -> RoutineMeals(viewModel)
                 state.step == ForcedStep.MEAL -> MealStep(payment, viewModel)
+                state.step == ForcedStep.INCOME -> IncomeStep(payment, viewModel)
                 else -> PaymentStep(state, payment, viewModel)
             }
         }
@@ -131,16 +152,33 @@ private fun ColumnScope.PaymentStep(state: ForcedState, payment: PendingPayment,
     var amountCents by remember(payment.id) { mutableLongStateOf(payment.amountCents) }
     var editing by remember(payment.id) { mutableStateOf(false) }
     var choice by remember(payment.id) { mutableStateOf<PaymentChoice?>(null) }
+    var kind by remember(payment.id) { mutableStateOf(MoneyKind.EXTRA) }
+    var fixedCategory by remember(payment.id) { mutableStateOf("") }
+    var confirmed by remember(payment.id) { mutableStateOf(false) }
     val summary by viewModel.financeSummary.collectAsState()
+    // "Tarjeta": the money paid one of the user's cards, so it is not spending. The card owing this amount comes picked.
+    val accounts by viewModel.bankAccounts.collectAsState()
+    val cards = accounts.filter { it.kind == com.adrian.minimallauncher.feature.bank.BankKind.CARD }
+    var cardPayment by remember(payment.id) { mutableStateOf(false) }
+    // A charge that looks like a scheduled payment (amount and day close) is offered first: one tap marks it done.
+    val settings by viewModel.moduleSettings.collectAsState()
+    val records by viewModel.money.collectAsState()
+    val planned = remember(payment.id, settings.financePlan, records, amountCents) {
+        com.adrian.minimallauncher.feature.finance.FinanceMoney.matchPlanned(
+            com.adrian.minimallauncher.feature.finance.FinancePlan.decode(settings.financePlan), records, amountCents, java.time.LocalDate.now(),
+        )
+    }
+    var cardId by remember(payment.id) { mutableStateOf<String?>(null) }
 
     // The answer is given after the icon draws; once the flow reaches the expense step it is saved with that choice.
-    LaunchedEffect(payment.id, choice, state.step, state.isFood) {
-        val c = choice ?: return@LaunchedEffect
+    LaunchedEffect(payment.id, confirmed, state.step, state.isFood) {
+        if (!confirmed) return@LaunchedEffect
+        val c = choice ?: PaymentChoice.OTHER
         if (state.step == ForcedStep.ASK_FOOD) {
             delay(DRAW_WAIT_MS)
             viewModel.forcedAnswerFood(c.isFood)
         } else if (state.step == ForcedStep.EXPENSE) {
-            if (state.isFood != c.isFood) viewModel.forcedAnswerFood(c.isFood) else viewModel.forcedSaveExpense(amountCents, payment.merchant, c.category)
+            if (state.isFood != c.isFood) viewModel.forcedAnswerFood(c.isFood) else viewModel.forcedSaveExpense(amountCents, payment.merchant, if (kind == MoneyKind.FIXED) fixedCategory else if (kind == MoneyKind.MONTHLY) "" else c.category, kind)
         }
     }
 
@@ -148,26 +186,117 @@ private fun ColumnScope.PaymentStep(state: ForcedState, payment: PendingPayment,
         AmountKeypad(onDone = { cents -> cents?.let { amountCents = it }; editing = false })
         return
     }
-    Amount(amountCents, big = true, modifier = Modifier.fillMaxWidth().padding(top = 40.dp).clickable(role = Role.Button) { if (choice == null) editing = true }
+    Amount(amountCents, big = true, modifier = Modifier.fillMaxWidth().padding(top = 40.dp).clickable(role = Role.Button) { if (!confirmed) editing = true }
         .semantics { contentDescription = "Corregir monto" })
 
-    val foodTopic = summary.topics.firstOrNull { it.topic.equals(PaymentChoice.FOOD_BUDGET.category, ignoreCase = true) }
-    val overFood = viewModel.wouldExceedBudget(PaymentChoice.FOOD_BUDGET.category, amountCents)
-    Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterVertically)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-            // The suggested source (food budget, or the bag when the payment passes what is left of it) shows its red detail.
-            ChoiceButton(PaymentChoice.FOOD_BUDGET, choice, 72.dp, suggested = !overFood, number = foodTopic?.todayLeftCents) { choice = it }
-            ChoiceButton(PaymentChoice.EXTRAS_BAG, choice, 72.dp, suggested = overFood, number = summary.bagLeftCents) { choice = it }
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(payment.merchant.ifBlank { "Pago detectado" }, style = MaterialTheme.typography.titleLarge, color = White)
+        if (planned != null && !confirmed) {
+            Column(
+                Modifier.fillMaxWidth().border(1.dp, LauncherAccent, RoundedCornerShape(18.dp)).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.size(10.dp).border(2.dp, LauncherAccent, CircleShape))
+                    Text(planned.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = White)
+                    Text("día ${planned.day} · " + formatPesos(planned.cents), style = MaterialTheme.typography.labelLarge, color = White)
+                }
+                Button(onClick = {
+                    confirmed = true
+                    viewModel.forcedSavePlanned(amountCents, planned.name, planned.category)
+                }, modifier = Modifier.fillMaxWidth()) { Text("Es este · marcar hecho") }
+            }
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Line))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-            listOf(PaymentChoice.TRANSFER, PaymentChoice.GIFT, PaymentChoice.SERVICE).forEach { ChoiceButton(it, choice, 52.dp) { c -> choice = c } }
+        Text("¿De qué presupuesto sale?", color = Muted)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(MoneyKind.EXTRA to "Del día", MoneyKind.FIXED to "Fijo", MoneyKind.MONTHLY to "Del mes").forEach { (value, label) ->
+                FilterChip(selected = !cardPayment && kind == value, enabled = !confirmed, onClick = { kind = value; choice = null; cardPayment = false }, label = { Text(label) })
+            }
+            if (cards.isNotEmpty()) FilterChip(
+                selected = cardPayment, enabled = !confirmed,
+                onClick = {
+                    cardPayment = true
+                    if (cardId == null) cardId = (cards.firstOrNull { it.dueCents == amountCents } ?: cards.firstOrNull { it.nextDueCents == amountCents })?.id
+                },
+                label = { Text("Tarjeta") },
+            )
+        }
+        if (cardPayment) {
+            Text("¿Qué tarjeta pagaste?", color = Muted)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                cards.forEach { card ->
+                    FilterChip(selected = cardId == card.id, enabled = !confirmed, onClick = { cardId = card.id }, label = { Text(card.name) })
+                }
+            }
+            Text("No es un gasto: baja lo que debes de la tarjeta.", color = White)
+        } else if (kind == MoneyKind.EXTRA) {
+            Text("Categoría del gasto", color = Muted)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PaymentChoice.entries.forEach { option ->
+                    FilterChip(selected = choice == option, enabled = !confirmed, onClick = { choice = option }, label = { Text(option.caption) })
+                }
+            }
+            if (amountCents > summary.todayLeftCents) Text("Si es un pago fijo o una compra del mes, cambia el presupuesto arriba. El importe por sí solo no determina el tipo.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Text("Se registra en el mes y no se descuenta del límite diario.", color = White)
+            if (kind == MoneyKind.FIXED) {
+                Text("Vincular a una previsión", color = Muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = fixedCategory.isBlank(), enabled = !confirmed, onClick = { fixedCategory = "" }, label = { Text("Sin previsión") })
+                    summary.fixed.forEach { item -> FilterChip(selected = fixedCategory == item.topic, enabled = !confirmed, onClick = { fixedCategory = item.topic }, label = { Text(item.topic) }) }
+                }
+            }
+        }
+        Button(
+            onClick = {
+                if (cardPayment) cardId?.let { viewModel.forcedSaveCardPayment(amountCents, it) } else confirmed = true
+            },
+            enabled = !confirmed && amountCents > 0 && if (cardPayment) cardId != null else (kind != MoneyKind.EXTRA || choice != null),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (confirmed) "Registrando…" else "Registrar pago")
         }
     }
+
+}
+
+/**
+ * Money came in: the amount (tap to correct) and one tap on what it was. Your stability on top, alone and bigger,
+ * since it is the one that feeds the budget; transfer, gift and service below the line, as in the payment step.
+ */
+@Composable
+private fun ColumnScope.IncomeStep(payment: PendingPayment, viewModel: LauncherViewModel) {
+    var amountCents by remember(payment.id) { mutableLongStateOf(payment.amountCents) }
+    var editing by remember(payment.id) { mutableStateOf(false) }
+    var choice by remember(payment.id) { mutableStateOf<IncomeChoice?>(null) }
+    var confirmed by remember(payment.id) { mutableStateOf(false) }
+
+    LaunchedEffect(payment.id, confirmed) {
+        if (!confirmed) return@LaunchedEffect
+        val c = choice ?: return@LaunchedEffect
+        delay(DRAW_WAIT_MS)
+        viewModel.forcedSaveIncome(amountCents, c.kind)
+    }
+
+    if (editing) {
+        AmountKeypad(onDone = { cents -> cents?.let { amountCents = it }; editing = false })
+        return
+    }
+    Amount(amountCents, big = true, modifier = Modifier.fillMaxWidth().padding(top = 40.dp).clickable(role = Role.Button) { if (!confirmed) editing = true }
+        .semantics { contentDescription = "Corregir monto" })
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("Ingreso recibido", style = MaterialTheme.typography.titleLarge, color = White)
+        Text("El ingreso habitual cuenta para tu presupuesto; los demás se registran aparte.", color = Muted)
+        IncomeChoice.entries.forEach { item ->
+            FilterChip(selected = choice == item, enabled = !confirmed, onClick = { choice = item }, label = { Text(item.label) })
+        }
+        Button(onClick = { confirmed = true }, enabled = !confirmed && choice != null && amountCents > 0, modifier = Modifier.fillMaxWidth()) { Text(if (confirmed) "Registrando…" else "Registrar ingreso") }
+    }
+
 }
 
 @Composable
-private fun ChoiceButton(option: PaymentChoice, chosen: PaymentChoice?, size: Dp, suggested: Boolean = false, number: Long? = null, onPick: (PaymentChoice) -> Unit) {
+private fun <T : Choice> ChoiceButton(option: T, chosen: T?, size: Dp, suggested: Boolean = false, number: Long? = null, onPick: (T) -> Unit) {
     val iconState = when {
         chosen == option -> StrokeState.NOW
         chosen != null -> StrokeState.OFF
@@ -180,9 +309,18 @@ private fun ChoiceButton(option: PaymentChoice, chosen: PaymentChoice?, size: Dp
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         StrokeIcon(option.icon, iconState, size, playKey = chosen == option)
+        // Its name under it, so each choice is clear at a glance.
+        Text(
+            option.caption, style = MaterialTheme.typography.labelMedium,
+            color = when {
+                chosen == option -> LauncherAccent
+                chosen != null -> Muted
+                else -> White
+            },
+        )
         if (number != null) Text(
-            "${number / 100}", style = MaterialTheme.typography.labelSmall,
-            color = if (suggested && chosen == null) LauncherRed else Muted,
+            formatPesos(number), style = MaterialTheme.typography.labelSmall,
+            color = if (suggested && chosen == null) LauncherAccent else Muted,
         )
     }
 }
@@ -194,7 +332,7 @@ private fun Amount(cents: Long, big: Boolean, modifier: Modifier = Modifier) {
     val small = if (big) 28.sp else 18.sp
     Row(modifier, horizontalArrangement = Arrangement.Center) {
         Text("$", style = TextStyle(fontSize = small, color = Muted), modifier = Modifier.padding(top = 8.dp, end = 4.dp))
-        Text("${cents / 100}", style = MaterialTheme.typography.displayLarge.copy(fontSize = main), color = White)
+        Text(grouped(cents / 100), style = MaterialTheme.typography.displayLarge.copy(fontSize = main), color = White)
         Text(".%02d".format(cents % 100), style = TextStyle(fontSize = small, color = Muted), modifier = Modifier.padding(top = 8.dp))
     }
 }
@@ -205,7 +343,7 @@ private fun ColumnScope.AmountKeypad(onDone: (Long?) -> Unit) {
     BackHandler { onDone(null) }
     var typed by remember { mutableStateOf("") }
     Text(
-        typed.ifEmpty { "0" }, style = MaterialTheme.typography.displayLarge, color = LauncherRed,
+        typed.ifEmpty { "0" }, style = MaterialTheme.typography.displayLarge, color = LauncherAccent,
         modifier = Modifier.fillMaxWidth().padding(top = 40.dp), textAlign = TextAlign.Center,
     )
     Spacer(Modifier.weight(1f))
@@ -345,7 +483,7 @@ private fun ColumnScope.IngredientPicker(viewModel: LauncherViewModel, onClose: 
         }
         BasicTextField(
             query, { query = it }, Modifier.fillMaxWidth().semantics { contentDescription = "Buscar ingrediente" },
-            textStyle = TextStyle(fontSize = 20.sp, color = White), cursorBrush = SolidColor(LauncherRed), singleLine = true,
+            textStyle = TextStyle(fontSize = 20.sp, color = White), cursorBrush = SolidColor(LauncherAccent), singleLine = true,
             decorationBox = { inner -> Column { inner(); Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(1.dp).background(Color(0xFF333333))) } },
         )
         if (order.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -357,7 +495,7 @@ private fun ColumnScope.IngredientPicker(viewModel: LauncherViewModel, onClose: 
                 ) {
                     Text(ing.name, style = TextStyle(fontSize = 13.sp, color = White), maxLines = 1)
                     Text(
-                        "${picked[ing.id]?.toInt() ?: 0} g", style = MaterialTheme.typography.labelSmall, color = LauncherRed,
+                        "${picked[ing.id]?.toInt() ?: 0} g", style = MaterialTheme.typography.labelSmall, color = LauncherAccent,
                         modifier = Modifier.clickable(role = Role.Button) {
                             val g = picked[ing.id] ?: 0f
                             picked[ing.id] = if (g >= 300f) 50f else g + 50f
@@ -414,7 +552,7 @@ private fun ColumnScope.RoutineMeals(viewModel: LauncherViewModel) {
                     StrokeIcon(if (slot.kind == MealKind.SNACK) "colacion" else "plato", if (done) StrokeState.DONE else StrokeState.OFF, 64.dp, playKey = done)
                     Text(
                         slot.time.format(hhmm), style = MaterialTheme.typography.labelSmall,
-                        color = when { done -> White; slot == next -> LauncherRed; else -> Muted },
+                        color = when { done -> White; slot == next -> LauncherAccent; else -> Muted },
                     )
                 }
             }

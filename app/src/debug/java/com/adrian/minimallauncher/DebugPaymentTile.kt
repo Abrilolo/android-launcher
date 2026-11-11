@@ -6,7 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
+import android.util.Log
+import com.adrian.minimallauncher.data.BankParser
 import com.adrian.minimallauncher.data.ForcedRepository
+import com.adrian.minimallauncher.data.PendingPayment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -15,7 +18,7 @@ import kotlinx.coroutines.runBlocking
 /**
  * Debug builds only: a quick settings tile "Pago de prueba" that creates a fake pending payment ($85.00 at
  * OXXO, like a bank notification would) and opens the launcher, so the forced flow can be tried by hand.
- * Bank notification parsing comes later.
+ * Real bank notices come through [BankNotificationService].
  */
 class DebugPaymentTile : TileService() {
     override fun onClick() {
@@ -46,12 +49,24 @@ class DebugRoutineTile : TileService() {
 /**
  * Debug builds only, from adb (the DUMP permission keeps other apps out):
  * `adb shell am broadcast -a com.adrian.minimallauncher.DEBUG_PAYMENT -n com.adrian.minimallauncher/.DebugPaymentReceiver --el amount 8500 --es merchant OXXO`
+ * Add `--es direction IN` for money received. Or `--es title "..." --es text "..."` to run a bank notice through
+ * [BankParser] as if Nu had posted it (`--es pkg` picks another bank).
  */
 class DebugPaymentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            try { ForcedRepository(context).addTestPayment(intent.getLongExtra("amount", 8500), intent.getStringExtra("merchant") ?: "OXXO") }
+            try {
+                val text = intent.getStringExtra("text")
+                if (text != null) {
+                    val parsed = BankParser.parse(intent.getStringExtra("pkg") ?: "com.nu.production", intent.getStringExtra("title").orEmpty(), text)
+                    Log.i("DebugPayment", "parsed: $parsed")
+                    parsed?.let { ForcedRepository(context).addTestPayment(it.amountCents, it.merchant, it.direction) }
+                } else {
+                    val direction = if (intent.getStringExtra("direction") == PendingPayment.IN) PendingPayment.IN else PendingPayment.OUT
+                    ForcedRepository(context).addTestPayment(intent.getLongExtra("amount", 8500), intent.getStringExtra("merchant") ?: "OXXO", direction)
+                }
+            }
             finally { pending.finish() }
         }
     }

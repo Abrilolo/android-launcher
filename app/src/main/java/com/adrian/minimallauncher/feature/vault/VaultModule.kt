@@ -39,10 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.adrian.minimallauncher.data.BankApps
 import com.adrian.minimallauncher.data.LauncherApp
 import com.adrian.minimallauncher.feature.CardFill
 import com.adrian.minimallauncher.feature.CardLine
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.ModuleHeader
 import com.adrian.minimallauncher.feature.SmallLabel
 import com.adrian.minimallauncher.ui.BiometricHelper
@@ -51,15 +52,6 @@ import com.adrian.minimallauncher.ui.components.FingerprintIcon
 import kotlinx.coroutines.delay
 
 private val lockChoices = listOf(30, 45, 60, 120)
-
-/** What kind of money app each known package is; shown as the small label on its card. */
-private val kinds = mapOf(
-    "com.nu.production" to "BANCO", "com.bancomer.mbanking" to "BANCO", "com.revolut.revolut" to "BANCO",
-    "com.storicard.stori" to "BANCO", "card.plata.app" to "BANCO",
-    "com.mercadopago.wallet" to "PAGOS", "com.google.android.apps.walletnfcrel" to "TARJETAS",
-    "com.dolarapp" to "DIVISAS", "com.gbm.app" to "INVERSIÓN", "com.gbm.homebroker" to "INVERSIÓN",
-    "com.bitso.exchange" to "CRIPTO", "com.bitso.wallet" to "CRIPTO", "com.binance.dev" to "CRIPTO",
-)
 
 /**
  * Asks for fingerprint or PIN before [onUnlocked]. With no screen lock set up there is nothing to
@@ -118,7 +110,7 @@ fun VaultScreen(
             verticalAlignment = Alignment.Bottom,
         ) {
             SmallLabel("SE BLOQUEA EN")
-            DotMatrixText("%d:%02d".format(left / 60, left % 60), cell = 3.5.dp, color = LauncherRed)
+            DotMatrixText("%d:%02d".format(left / 60, left % 60), cell = 3.5.dp, color = LauncherAccent)
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(CardLine))
         LazyVerticalGrid(GridCells.Fixed(2), Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -130,9 +122,8 @@ fun VaultScreen(
                         .border(1.dp, CardLine, RoundedCornerShape(22.dp))
                         .clickable(role = Role.Button) { onOpenApp(app.packageName); onLock() }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.Bottom,
                 ) {
-                    SmallLabel(kinds[app.packageName] ?: "FINANZAS")
                     Text(app.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
                 }
             }

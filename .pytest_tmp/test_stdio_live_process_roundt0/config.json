@@ -1,0 +1,5 @@
+{
+  "phone_ingest_url": "http://127.0.0.1:2/api/v1/ingest",
+  "auto_sync_captures": true,
+  "request_timeout_sec": 3.5
+}

@@ -88,7 +88,7 @@ fun shortDay(date: LocalDate) = "${date.dayOfMonth} ${MonthNames[date.monthValue
 @Composable
 fun ModuleTitle(title: String, onSettings: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().padding(top = 12.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-        Text(title, Modifier.weight(1f), color = White, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(title, Modifier.weight(1f), color = White, style = MaterialTheme.typography.headlineLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         SettingsGear(onSettings)
     }
 }
@@ -99,7 +99,7 @@ fun Modifier.cornerGlow(corner: Dp, strength: Float) = drawBehind {
     val reach = 30.dp.toPx()
     listOf(Offset.Zero, Offset(size.width, 0f), Offset(0f, size.height), Offset(size.width, size.height)).forEach { at ->
         drawRoundRect(
-            Brush.radialGradient(listOf(LauncherRed, Color.Transparent), at, reach),
+            Brush.radialGradient(listOf(LauncherAccent, Color.Transparent), at, reach),
             Offset(line / 2, line / 2), Size(size.width - line, size.height - line), CornerRadius(corner.toPx()), strength, Stroke(line),
         )
     }
@@ -118,7 +118,7 @@ fun ShineLink(title: String, detail: String?, onClick: () -> Unit, modifier: Mod
                 if (t < 1f) {
                     val long = 60.dp.toPx()
                     val x = size.width + long - (size.width + 2 * long) * t
-                    drawLine(LauncherRed, Offset(x, 0f), Offset(x + long, 0f), 1.dp.toPx(), alpha = 1f - kotlin.math.abs(2 * t - 1))
+                    drawLine(LauncherAccent, Offset(x, 0f), Offset(x + long, 0f), 1.dp.toPx(), alpha = 1f - kotlin.math.abs(2 * t - 1))
                 }
             }
             .clickable(role = Role.Button, onClick = onClick)
@@ -126,7 +126,7 @@ fun ShineLink(title: String, detail: String?, onClick: () -> Unit, modifier: Mod
         Arrangement.SpaceBetween, Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, color = LauncherRed, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = LauncherAccent, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             detail?.let { SmallLabel(it, maxLines = 1) }
         }
         Text("→", style = MaterialTheme.typography.bodyLarge, color = White)
@@ -182,14 +182,14 @@ private val TipWidth = 172.dp
 
 /** Stacked bars in grays over a line, red under it. A tap lifts one bar and shows its detail; another tap lets go. */
 @Composable
-fun StackChart(columns: List<ChartColumn>, modifier: Modifier = Modifier) {
+fun StackChart(columns: List<ChartColumn>, modifier: Modifier = Modifier, area: Dp = BarArea, downColor: Color = LauncherAccent) {
     var selected by remember(columns) { mutableIntStateOf(-1) }
     val haptics = LocalHapticFeedback.current
     val top = columns.maxOfOrNull { c -> c.stacks.sumOf { it.value.toDouble() }.toFloat() }?.coerceAtLeast(1f) ?: 1f
     val bottom = columns.maxOfOrNull { it.down }?.coerceAtLeast(1f) ?: 1f
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        BoxWithConstraints(Modifier.fillMaxWidth().height(176.dp)) {
-            Box(Modifier.fillMaxWidth().offset(y = BarArea + 2.dp).height(1.dp).background(Color(0xFF262626)))
+        BoxWithConstraints(Modifier.fillMaxWidth().height(area + 36.dp)) {
+            Box(Modifier.fillMaxWidth().offset(y = area + 2.dp).height(1.dp).background(Color(0xFF262626)))
             Row(Modifier.fillMaxSize(), Arrangement.spacedBy(3.dp)) {
                 columns.forEachIndexed { i, column ->
                     Column(
@@ -205,12 +205,12 @@ fun StackChart(columns: List<ChartColumn>, modifier: Modifier = Modifier) {
                             .semantics { contentDescription = "${column.label}: ${column.headline}" }
                             .padding(horizontal = 1.dp),
                     ) {
-                        Column(Modifier.fillMaxWidth().height(BarArea).clipToBounds(), verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom)) {
+                        Column(Modifier.fillMaxWidth().height(area).clipToBounds(), verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom)) {
                             column.stacks.asReversed().forEach { stack ->
                                 Box(Modifier.fillMaxWidth().height((132.dp * (stack.value / top)).coerceAtLeast(4.dp)).background(stack.color, RoundedCornerShape(3.dp)))
                             }
                         }
-                        if (column.down > 0f) Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(6.dp + 20.dp * (column.down / bottom)).background(LauncherRed.copy(alpha = 0.8f), RoundedCornerShape(3.dp)))
+                        if (column.down > 0f) Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(6.dp + 20.dp * (column.down / bottom)).background(downColor.copy(alpha = 0.8f), RoundedCornerShape(3.dp)))
                     }
                 }
             }
@@ -274,7 +274,7 @@ private fun RowScope.DockTile(item: DockItem, active: Boolean, onOpen: () -> Uni
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.94f else 1f, tween(120), label = "press")
-    val tint by animateColorAsState(if (active) LauncherRed else Faint, tween(160), label = "tint")
+    val tint by animateColorAsState(if (active) LauncherAccent else Faint, tween(160), label = "tint")
     val hop = remember { Animatable(0f) }
     var hops by remember { mutableIntStateOf(0) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -300,8 +300,8 @@ private fun RowScope.DockTile(item: DockItem, active: Boolean, onOpen: () -> Uni
                 StrokeIcon(item.icon, StrokeState.OFF, 24.dp, color = tint)
                 item.badge?.let { badge ->
                     val round = Modifier.align(Alignment.TopEnd)
-                    if (badge.isEmpty()) Box(round.offset(2.dp, (-2).dp).size(10.dp).background(LauncherRed, CircleShape))
-                    else Box(round.offset(9.dp, (-5).dp).defaultMinSize(18.dp, 18.dp).background(LauncherRed, CircleShape).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
+                    if (badge.isEmpty()) Box(round.offset(2.dp, (-2).dp).size(10.dp).background(LauncherAccent, CircleShape))
+                    else Box(round.offset(9.dp, (-5).dp).defaultMinSize(18.dp, 18.dp).background(LauncherAccent, CircleShape).padding(horizontal = 4.dp), contentAlignment = Alignment.Center) {
                         Text(badge, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = Color.White)
                     }
                 }

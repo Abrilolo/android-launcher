@@ -46,7 +46,8 @@ import com.adrian.minimallauncher.feature.ChartColumn
 import com.adrian.minimallauncher.feature.ChartRow
 import com.adrian.minimallauncher.feature.ChartShades
 import com.adrian.minimallauncher.feature.ChartStack
-import com.adrian.minimallauncher.feature.LauncherRed
+import com.adrian.minimallauncher.feature.LauncherAccent
+import com.adrian.minimallauncher.feature.LauncherDanger
 import com.adrian.minimallauncher.feature.ModuleRow
 import com.adrian.minimallauncher.feature.RangeSwitch
 import com.adrian.minimallauncher.feature.SmallLabel
@@ -122,7 +123,7 @@ fun FoodWeek(today: LocalDate, meals: List<MealRecord>, metrics: List<BodyMetric
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (now != null && goal != null && Math.abs(now - goal) >= 0.05f) {
-                        SmallLabel((if (now > goal) "−" else "+") + Math.abs(now - goal).oneDecimal(), color = LauncherRed)
+                        SmallLabel((if (now > goal) "−" else "+") + Math.abs(now - goal).oneDecimal(), color = LauncherDanger)
                     }
                     IconButton("Anotar peso", { adding = !adding }) { StrokeIcon("nueva", StrokeState.OFF, 22.dp) }
                 }
@@ -133,7 +134,7 @@ fun FoodWeek(today: LocalDate, meals: List<MealRecord>, metrics: List<BodyMetric
                     SmallLabel("KG")
                     IconButton("Guardar peso", {
                         input.toAmount()?.takeIf { it in 30f..250f }?.let { onAddWeight(it); reactions.tick(); input = ""; adding = false }
-                    }) { StrokeIcon("listo", StrokeState.DONE, 22.dp, color = LauncherRed) }
+                    }) { StrokeIcon("listo", StrokeState.DONE, 22.dp, color = LauncherAccent) }
                 }
             }
             if (weights.size >= 2) WeightLine(weights, goal, grow.value)
@@ -147,7 +148,7 @@ fun FoodWeek(today: LocalDate, meals: List<MealRecord>, metrics: List<BodyMetric
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SmallLabel("IMC")
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Text(bmi.oneDecimal(), style = MaterialTheme.typography.headlineSmall, color = if (healthy) White else LauncherRed)
+                    Text(bmi.oneDecimal(), style = MaterialTheme.typography.headlineSmall, color = if (healthy) White else LauncherDanger)
                     if (goalBmi != null) SmallLabel("meta ${goalBmi.oneDecimal()}")
                 }
                 BmiScale(bmi, goalBmi, healthy)
@@ -190,7 +191,7 @@ private fun kcalColumns(meals: List<MealRecord>, range: String, today: LocalDate
                 add(ChartRow(ChartShades[0], "Proteína", "${protein.whole()} g"))
                 add(ChartRow(ChartShades[2], "Carbohidratos", "${carbs.whole()} g"))
                 add(ChartRow(ChartShades[4], "Grasa", "${fat.whole()} g"))
-                if (over > 0f) add(ChartRow(LauncherRed, "De más", "+${over.whole()}"))
+                if (over > 0f) add(ChartRow(LauncherDanger, "De más", "+${over.whole()}"))
             },
         )
     }
@@ -214,7 +215,7 @@ private fun WeightLine(weights: List<Float>, goal: Float?, progress: Float) {
         val measure = PathMeasure().apply { setPath(path, false) }
         val part = Path().also { measure.getSegment(0f, measure.length * progress, it, true) }
         drawPath(part, White, style = Stroke(1.75.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        if (progress >= 1f) drawCircle(LauncherRed, 3.5.dp.toPx(), Offset(x(weights.lastIndex), y(weights.last())))
+        if (progress >= 1f) drawCircle(LauncherAccent, 3.5.dp.toPx(), Offset(x(weights.lastIndex), y(weights.last())))
     }
 }
 
@@ -230,7 +231,7 @@ private fun BmiScale(bmi: Float, goal: Float?, healthy: Boolean) {
             drawLine(if (a == 18.5f) Gray else Track, Offset(x(a) + gap, mid), Offset(x(b) - gap, mid), w, StrokeCap.Round)
         }
         if (goal != null) drawLine(Muted, Offset(x(goal), mid - 7.dp.toPx()), Offset(x(goal), mid + 7.dp.toPx()), 1.5.dp.toPx(), StrokeCap.Round)
-        drawLine(if (healthy) White else LauncherRed, Offset(x(bmi), 3.dp.toPx()), Offset(x(bmi), size.height - 3.dp.toPx()), 2.5.dp.toPx(), StrokeCap.Round)
+        drawLine(if (healthy) White else LauncherDanger, Offset(x(bmi), 3.dp.toPx()), Offset(x(bmi), size.height - 3.dp.toPx()), 2.5.dp.toPx(), StrokeCap.Round)
     }
 }
 
@@ -243,7 +244,7 @@ private fun GoalDots(icon: String, label: String, days: List<LocalDate>, today: 
         days.forEach { d ->
             val ok = !d.isAfter(today) && met(d)
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(6.dp).background(if (ok) White else if (d == today) LauncherRed else Track, CircleShape))
+                Box(Modifier.size(6.dp).background(if (ok) White else if (d == today) LauncherAccent else Track, CircleShape))
             }
         }
     }
