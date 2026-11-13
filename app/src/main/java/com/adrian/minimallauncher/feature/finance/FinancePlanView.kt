@@ -148,6 +148,7 @@ internal fun FinancePlanView(
 
     if (saving) {
         ModalBottomSheet(
+                scrimColor = SheetScrim,
             onDismissRequest = { saving = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = CardFill,
@@ -166,6 +167,7 @@ internal fun FinancePlanView(
 
     editing?.let { edit ->
         ModalBottomSheet(
+                scrimColor = SheetScrim,
             onDismissRequest = { editing = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = CardFill,

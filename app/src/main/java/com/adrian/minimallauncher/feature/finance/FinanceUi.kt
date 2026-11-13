@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -277,16 +278,17 @@ internal fun <T> FinanceDropdown(
     }
 }
 
+/**
+ * A sub-view's title, alone (user's rule, 2026-11-13): no back mark beside it. Going back is the phone's back
+ * gesture; every screen that shows this header handles it with its own BackHandler. [onBack] stays for callers.
+ */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 internal fun FinanceBackHeader(title: String, onBack: () -> Unit) {
-    // Solo el chevron para volver (sin la palabra) y el título de vista a 40.
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(
-            Modifier.size(44.dp).clickable(role = Role.Button, onClickLabel = "Volver", onClick = onBack),
-            contentAlignment = Alignment.Center,
-        ) { Text("‹", style = MaterialTheme.typography.headlineLarge, color = FinanceMuted) }
-        Text(title, style = MaterialTheme.typography.headlineLarge, color = FinanceWhite, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
+    Text(
+        title, Modifier.padding(top = 8.dp), style = MaterialTheme.typography.headlineLarge, color = FinanceWhite,
+        maxLines = 1, overflow = TextOverflow.Ellipsis,
+    )
 }
 
 /** Equal, reachable tabs keep long period labels inside narrow screens. */

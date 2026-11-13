@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -96,6 +97,10 @@ private class AnchorBelow(private val gap: Int) : PopupPositionProvider {
 /** The box that comes out of something tapped: short rows, actions as icons. */
 @Composable
 internal fun PopBox(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    // A steady dim behind the box, so what is under it steps back instead of competing (no blur, no glow).
+    Popup(onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxSize().background(SheetScrim).clickable(remember { MutableInteractionSource() }, null, onClick = onDismiss))
+    }
     Popup(popupPositionProvider = remember { AnchorBelow(24) }, onDismissRequest = onDismiss, properties = PopupProperties(focusable = true)) {
         Column(
             Modifier
@@ -222,10 +227,13 @@ internal object ActionColor {
     val Neutral = FinanceWhite
 }
 
-/** A card tinted by what it holds: [color] faint behind, its line a little stronger; dashed when it is planned. */
-internal fun Modifier.tinted(color: Color, radius: Dp = 18.dp, dashed: Boolean = false): Modifier =
-    background(color.copy(alpha = 0.08f), RoundedCornerShape(radius)).then(
-        if (!dashed) border(1.dp, color.copy(alpha = 0.32f), RoundedCornerShape(radius))
+/**
+ * A card marked by what it holds: only its frame in [color], the background transparent (user's rule, 2026-11-12);
+ * dashed when it is planned.
+ */
+internal fun Modifier.tinted(color: Color, radius: Dp = 18.dp, dashed: Boolean = false, width: Dp = 1.dp): Modifier =
+    this.then(
+        if (!dashed) border(width, color.copy(alpha = 0.6f), RoundedCornerShape(radius))
         else drawBehind {
             drawRoundRect(
                 color.copy(alpha = 0.6f), cornerRadius = CornerRadius(radius.toPx()),
@@ -243,13 +251,33 @@ internal fun FinIcon(icon: String, description: String, color: Color = ActionCol
     ) { StrokeIcon(icon, StrokeState.DONE, 22.dp, color = color) }
 }
 
-/** While a page slides, the one leaving and the one coming are blurred and dimmed by how far they are. */
+/** The dim behind any box or sheet that comes up: one flat dark layer, the same everywhere. */
+internal val SheetScrim = Color.Black.copy(alpha = 0.68f)
+
+/** A drawn chevron, pointing left (back), right (forward or open) or down. */
+@Composable
+internal fun Chevron(direction: Char = '>', color: Color = FinanceMuted, size: Dp = 18.dp) {
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val s = 2.dp.toPx()
+        val (a, b, c) = when (direction) {
+            '<' -> Triple(Offset(w * 0.64f, h * 0.18f), Offset(w * 0.32f, h * 0.5f), Offset(w * 0.64f, h * 0.82f))
+            'v' -> Triple(Offset(w * 0.18f, h * 0.36f), Offset(w * 0.5f, h * 0.68f), Offset(w * 0.82f, h * 0.36f))
+            else -> Triple(Offset(w * 0.36f, h * 0.18f), Offset(w * 0.68f, h * 0.5f), Offset(w * 0.36f, h * 0.82f))
+        }
+        drawLine(color, a, b, s, androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(color, b, c, s, androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+/** While a page slides, the one leaving and the one coming fade, with only a light blur so nothing smears. */
 @OptIn(ExperimentalFoundationApi::class)
 internal fun Modifier.swipeBlur(state: androidx.compose.foundation.pager.PagerState, page: Int): Modifier = graphicsLayer {
     val off = kotlin.math.abs((state.currentPage - page) + state.currentPageOffsetFraction).coerceIn(0f, 1f)
-    alpha = 1f - off * 0.5f
+    alpha = 1f - off * 0.6f
     if (off > 0.01f && android.os.Build.VERSION.SDK_INT >= 31) {
-        val r = off * 18.dp.toPx()
+        val r = off * 5.dp.toPx()
         renderEffect = BlurEffect(r, r, TileMode.Decal)
     } else renderEffect = null
 }
@@ -266,7 +294,7 @@ internal fun Modifier.edgeBlur(state: androidx.compose.foundation.lazy.LazyListS
     }
     alpha = 1f - out * 0.6f
     if (out > 0.02f && android.os.Build.VERSION.SDK_INT >= 31) {
-        val r = out * 14.dp.toPx()
+        val r = out * 4.dp.toPx()
         renderEffect = BlurEffect(r, r, TileMode.Decal)
     } else renderEffect = null
 }
@@ -324,3 +352,110 @@ internal fun PopAction(icon: String, description: String, color: Color = ActionC
 
 /** The amount with its sign kept short: "$9,888", "-$1,057". */
 internal fun short(cents: Long): String = wholePesos(cents)
+
+/*
+ * Shared by every module view (Ejercicio, Comida…), so all of them look like Finanzas (2026-11-11).
+ */
+
+/** The main action of a view: a pill in the action blue with its icon and a short verb; glass when [primary] is false. */
+@Composable
+internal fun ActionPill(
+    label: String,
+    icon: String?,
+    modifier: Modifier = Modifier,
+    primary: Boolean = true,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(26.dp)
+    val haptics = LocalHapticFeedback.current
+    Row(
+        modifier
+            .height(52.dp)
+            .then(
+                if (primary) Modifier.background(if (enabled) LauncherAccent else GlassFill, shape)
+                else Modifier.background(GlassFill, shape).border(1.dp, GlassLine, shape),
+            )
+            .clickable(enabled = enabled, role = Role.Button) {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val color = if (enabled) FinanceWhite else FinanceWhite.copy(alpha = 0.4f)
+        icon?.let { StrokeIcon(it, StrokeState.DONE, 20.dp, color = color) }
+        Text(label, style = MaterialTheme.typography.labelLarge, color = color, maxLines = 1)
+    }
+}
+
+/** A number with − and +: its name in cream above, the value big in the middle. */
+@Composable
+internal fun NumberStepper(label: String, value: String, modifier: Modifier = Modifier, onMinus: () -> Unit, onPlus: () -> Unit) {
+    Column(modifier.glass().padding(horizontal = 6.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = LabelCream, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StepKey("−", "Menos $label", onMinus)
+            Text(value, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall, color = FinanceWhite, maxLines = 1,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            StepKey("+", "Más $label", onPlus)
+        }
+    }
+}
+
+@Composable
+private fun StepKey(symbol: String, description: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(44.dp).background(GlassFill, CircleShape).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) { Text(symbol, style = MaterialTheme.typography.titleLarge, color = FinanceWhite) }
+}
+
+/** A few options as chips: the chosen one lifted in blue, the rest in cream. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+internal fun OptionChips(options: List<Pair<String, String>>, selected: String?, onSelect: (String) -> Unit) {
+    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { (key, label) ->
+            val on = key == selected
+            Text(
+                label,
+                Modifier
+                    .background(if (on) LauncherAccent.copy(alpha = 0.25f) else GlassFill, RoundedCornerShape(14.dp))
+                    .clickable(role = Role.RadioButton) { onSelect(key) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (on) FinanceWhite else LabelCream,
+            )
+        }
+    }
+}
+
+/** A setting's block, as in Finanzas' gear: its heading with the (i), and what it holds in a see-through card. */
+@Composable
+internal fun GearSection(title: String, info: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHead(title, info)
+        Column(Modifier.fillMaxWidth().glass().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+    }
+}
+
+/** A thin bar of how full something is, in [color] over glass. */
+@Composable
+internal fun FillBar(fraction: Float, color: Color, modifier: Modifier = Modifier, height: Dp = 6.dp) {
+    Box(modifier.fillMaxWidth().height(height).background(GlassFill, RoundedCornerShape(height / 2))) {
+        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(color, RoundedCornerShape(height / 2)))
+    }
+}
+
+/** A figure in a tinted card: its name in [tint], a value in white and an optional line under it. */
+@Composable
+internal fun TintFigure(label: String, value: String, tint: Color, modifier: Modifier = Modifier, detail: String? = null, dashed: Boolean = false, bar: Float? = null) {
+    Column(modifier.tinted(tint, dashed = dashed).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = tint, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.titleLarge, color = FinanceWhite, maxLines = 1)
+        bar?.let { FillBar(it, tint, height = 4.dp) }
+        detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = FinanceMuted, maxLines = 2) }
+    }
+}

@@ -16,6 +16,8 @@ fun sizesFor(widgetId: String): List<GridSize> = when (widgetId) {
     "ai" -> listOf(GridSize(4, 1))
     "routine" -> listOf(GridSize(2, 2), GridSize(4, 2), GridSize(4, 1))
     // Finanzas widgets (feature/finance/FinanceWidgets.kt): every part in the three sizes.
+    // Ejercicio widgets (feature/exercise/ExerciseWidget.kt): Hoy, Constancia and Semana in the three sizes.
+    "exercise", "exercise_streak", "exercise_week" -> listOf(GridSize(2, 2), GridSize(4, 2), GridSize(4, 1))
     "finance", "finance_week", "finance_budget", "finance_payments", "finance_goal", "finance_bag", "finance_owed" ->
         listOf(GridSize(2, 2), GridSize(4, 2), GridSize(4, 1))
     else -> listOf(GridSize(2, 2), GridSize(4, 2))

@@ -28,10 +28,10 @@ Vista en curso: **Alarmas y recordatorios (lenguaje visual)**
 | Inicio y páginas | `ui/HomeGrid.kt`, `ui/LauncherScreen.kt` | Hecho | Validado en el teléfono |
 | Página de Apps (antes cajón) | `ui/AppsPage.kt` | Hecho | Página principal |
 | Semana (izquierda del inicio) | `ui/WeekSummaryScreen.kt` | Pendiente | |
-| Ejercicio · hoy / semana / cuerpo / ajustes | `feature/exercise/ExerciseScreen.kt` | Por validar | Boceto: `docs/design/concept/EjercicioVisual.html` |
+| Ejercicio · hoy / semana / cuerpo / ajustes | `feature/exercise/ExerciseScreen.kt` | Por validar | Nativo con el patrón de Finanzas (2026-11-12); la escena del muñequito quedó en `archive/exercise-scene/` |
 | Bancos | `feature/vault/VaultModule.kt` | Hecho | Funciona bien |
 | Finanzas | `feature/finance/FinanceScreen.kt` | Por validar | Boceto: `docs/design/concept/FinanzasVisual.html` (modelo nuevo) |
-| Comida (antes Dieta) | `ui/DietPage.kt`, `feature/food/` | Por validar | Boceto: `docs/design/concept/ComidaVisual.html` |
+| Comida (antes Dieta) | `ui/DietPage.kt`, `feature/food/` | Por validar | Patrón de Finanzas (2026-11-12) |
 | Notas | `feature/notes/NotesScreen.kt` | Pendiente | |
 | Alarmas y recordatorios | `ui/ModulePages.kt` (`AlarmsPage`) | Pendiente | Los recordatorios usan el formulario anterior |
 | Reloj mundial | `ui/ModulePages.kt` (`WorldClockPage`) | Pendiente | |
@@ -76,6 +76,41 @@ Funcionalidad: falta mucho trabajo (aprobación general del boceto, 2026-10-29).
 - [ ] Cada acción con solo lo que usa: hora (reloj del sistema, ✕ la quita), minutos del descanso (− +), app de música o podcast (lista de apps) y teléfono y mensaje de WhatsApp (vacío = el general). **Por validar.**
 - [ ] Pruebas, cerrado y abajo: simular llegar/salir por lugar, el WhatsApp general (teléfono y mensaje por defecto), pago de prueba, probar WhatsApp y abrir accesibilidad. **Por validar.**
 - [ ] Falta: la lista de apps de audio muestra todas las apps (no filtra las de audio); el WhatsApp general quedó en Pruebas y quizá deba ir en su propio lugar; el permiso no se vuelve a revisar al regresar de Ajustes del sistema; no se ve en mapa dónde quedó fijado un lugar ni su radio; la papelera de lugar no pide confirmar; el resumen de registros del panel viejo ya no existe.
+
+### Ejercicio · widgets (2026-11-13)
+
+Boceto aprobado ("Sí, prográmalos", 2026-11-13): canvas "Widgets de Ejercicio". Programado en `feature/exercise/ExerciseWidget.kt`; instalado en el S24+, **por validar**.
+
+- [ ] Hoy (id `exercise`, el que ya estaba en el inicio): toca (rutina, hora, cuánto falta, músculos, ▶), en curso (ejercicio actual y sus series, ▶ sigue), hecho (verde) y descanso (siguiente entreno). ▶ abre la sesión directo.
+- [ ] Constancia (`exercise_streak`): semanas seguidas, últimas 10 semanas y los entrenos de esta semana.
+- [ ] Semana (`exercise_week`): los siete días con su marca; en 4×2 tocar un día lo muestra y tocarlo otra vez abre su rutina; 2×2 el siguiente entreno.
+- [ ] Los tres en 4×2, 2×2 y 4×1, con etiqueta corta y marco de color sobre fondo transparente.
+- [ ] Falta: el anillo del descanso del boceto no sale en el widget (el descanso vive solo en la pantalla de la sesión).
+
+### Ejercicio · rediseño con mapa de músculos (2026-11-12)
+
+Boceto aprobado ("Sí, prográmalo", 2026-11-12): canvas "Ejercicio · rediseño". Programado; **por validar** en el teléfono.
+
+- [ ] Hoy dice cada cosa una vez: tarjeta con marco azul (rutina, hora y cuánto falta, qué músculos trabaja, Iniciar, "Ver y editar la rutina"). En descanso, "Hoy descansas" una sola vez y el siguiente entreno.
+- [ ] Esta semana: siete días que se tocan; el elegido dice qué tocaba, cómo quedó y abre su rutina.
+- [ ] La meta es la constancia: semanas seguidas cumpliendo los días de la rutina, columnas de las últimas 10 semanas y los entrenos de esta semana. Peso y medidas quedan en Cuerpo solo como registro (ya no "faltan X kg").
+- [ ] Plan (antes Semana): esta semana y las siguientes con ‹ ›; cada día se cambia "solo este día" o "todos los <día>"; "Solo esta vez" marca los cambiados una vez; "Copiar semana anterior".
+- [ ] Rutina: filas cortas; mapa de músculos que filtra al tocar; hoja corta para editar (series, reps, kg en una fila; repeticiones o tiempo; qué trabaja; subir/bajar; quitar). Agregar es un buscador con grupos y varios a la vez.
+- [ ] Mapa de músculos en grande (desde Rutina y desde la sesión): frente y espalda, chips por ejercicio, tocar un músculo dice con qué ejercicios se trabaja. Figura adaptada de react-body-highlighter (MIT) en `feature/exercise/BodyShapes.kt`.
+- [ ] Tarjetas de color en todo el launcher: solo el marco, fondo transparente (`tinted` en `FinanceKit.kt`).
+- [ ] Falta: la sugerencia de stack para quemar el exceso de kcal ya no se muestra en Hoy (el stack sigue en Ajustes); reordenar es con Subir/Bajar, no arrastrando.
+
+### Ejercicio y Comida · mismo ambiente que Finanzas (2026-11-12)
+
+Pedido: "Todas las vistas de este launcher se tienen que ver iguales, ya que son del mismo environment." Ejercicio y Comida usan las piezas de Finanzas (`feature/finance/FinanceKit.kt`): subtítulos crema, (i) con su cuadrito, tarjetas translúcidas y teñidas, puntos de estado, páginas para deslizar y el mismo dock. Nuevas piezas compartidas en el kit: `ActionPill`, `NumberStepper`, `OptionChips`, `GearSection`, `FillBar`, `TintFigure`. Compila e instalado; **por validar** en el teléfono.
+
+- [ ] Ejercicio: la escena del muñequito (WebView) se archivó en `archive/exercise-scene/` ("ocupamos mucho espacio con la animación del tipito"). Todo es nativo.
+- [ ] Ejercicio · Hoy: "Te toca" con la rutina en grande, su hora (azul; rosa si ya pasó sin empezar) y cuánto falta; tocarla muestra sus ejercicios. Iniciar/Seguir y Rutina. Con series hechas: Hechas y Faltan. Metas para deslizar: Tu semana (puntos por día), Peso contra la meta y, si comida se pasó, Extra con lo del stack que lo quema.
+- [ ] Ejercicio · Rutina: ver, editar (nombre, minutos y cada ejercicio plegado: series, reps o tiempo, peso, grupo, cómo se hace) e iniciar. Guardar la deja para ese día de la semana.
+- [ ] Ejercicio · Sesión: un ejercicio a la vez con sus series como puntos (tocar una hecha la deshace), peso y reps con − +, "Serie hecha", anillo de descanso que vibra al terminar, lista para saltar a otro y "Terminar por hoy". Al terminar, resumen en verde.
+- [ ] Ejercicio · Semana: hechos y faltan, y cada día con su rutina; tocar abre su rutina. Cuerpo: peso grande con barra a la meta, IMC en tarjeta, medidas en tarjetas.
+- [ ] Comida · Hoy: "Te quedan" kcal en grande con su color (verde, azul, ámbar, rosa), Proteína y Fibra con barra, Comidas con estado y hora (azul la que sigue, rosa si se pasó), + azul para registrar, y Agua / Hábitos para deslizar. Semana con el mismo estilo.
+- [ ] Ajustes de Ejercicio y Comida como el engrane de Finanzas: título "Ajustes" con ‹, secciones con su (i) en tarjeta, lo largo plegado. Ejercicio: Horario, Cuerpo, Stack. Comida: Metas del día, Comidas, Agua, Cuerpo. Módulos usa las mismas secciones.
 
 ### Ejercicio (stack y kcal)
 

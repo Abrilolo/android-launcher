@@ -240,11 +240,8 @@ private fun ModuleEditor(id: String, settings: ModuleSettings, onUpdate: ((Modul
             Text("Las alarmas se crean en el Reloj del teléfono. El inicio muestra la siguiente.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ActionLabel("ABRIR RELOJ") { runCatching { context.startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
         }
-        "exercise" -> {
-            SmallLabel("HORA DE INICIO")
-            TimeField(settings.exerciseStart) { time -> onUpdate { it.copy(exerciseStart = time) } }
-            SmallLabel("DESCANSO")
-            ChipRow(listOf(60, 90, 120), settings.exerciseRestSeconds, { "$it S" }) { seconds -> onUpdate { it.copy(exerciseRestSeconds = seconds) } }
+        "exercise" -> com.adrian.minimallauncher.feature.exercise.ExerciseScheduleSection(settings) { saved ->
+            onUpdate { it.copy(exerciseStart = saved.exerciseStart, exerciseRestSeconds = saved.exerciseRestSeconds) }
         }
         "finance" -> {
             var budget by remember(settings.dailyBudgetCents) {
@@ -265,9 +262,9 @@ private fun ModuleEditor(id: String, settings: ModuleSettings, onUpdate: ((Modul
             SmallLabel("VACÍO = SIN PRESUPUESTO. AL PASARLO, EL GASTO DE HOY SE PONE EN ROJO.")
         }
         "diet" -> {
-            MealsEditor(settings.meals) { meals -> onUpdate { it.copy(meals = meals) } }
-            WaterEditor(settings, onUpdate)
-            NutritionGoalsEditor(settings, onUpdate)
+            com.adrian.minimallauncher.feature.food.FoodGoalsSection(settings, onUpdate)
+            com.adrian.minimallauncher.feature.food.MealsSection(settings.meals) { meals -> onUpdate { it.copy(meals = meals) } }
+            com.adrian.minimallauncher.feature.food.WaterSection(settings, onUpdate)
         }
         "world" -> {
             SmallLabel("LAS DOS PRIMERAS VAN EN LA TARJETA DEL INICIO")
@@ -347,126 +344,6 @@ fun WidgetSetupScreen(
         ) {
             Text("LISTO", style = MaterialTheme.typography.labelSmall, color = Color.Black)
         }
-    }
-}
-
-/** A meal being edited; the time stays text until it is saved. */
-private data class MealDraft(val id: String, val name: String, val time: String, val kind: MealKind, val icon: String)
-
-/**
- * Every meal of the day: name, time, whether it is a main meal (drawn bigger) or a snack, and its icon (tap it to
- * change). Meals can be added and removed; saving sorts them by time.
- */
-@Composable
-private fun MealsEditor(meals: List<MealSlot>, onSave: (List<MealSlot>) -> Unit) {
-    var drafts by remember(meals) { mutableStateOf(meals.map { MealDraft(it.id, it.name, it.time.format(hhmm), it.kind, it.icon) }) }
-    val icons = DotIcons.meals.keys.toList()
-    fun change(index: Int, update: (MealDraft) -> MealDraft) {
-        drafts = drafts.toMutableList().also { it[index] = update(it[index]) }
-    }
-    SmallLabel("COMIDAS · TOCA EL ICONO PARA CAMBIARLO")
-    drafts.forEachIndexed { index, draft ->
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                DotIcon(
-                    DotIcons.meal(draft.icon), done = true, contentDescription = "Icono de ${draft.name}",
-                    modifier = Modifier.clickable(role = Role.Button) {
-                        change(index) { it.copy(icon = icons[(icons.indexOf(it.icon) + 1) % icons.size]) }
-                    },
-                    size = if (draft.kind == MealKind.MAIN) 40.dp else 30.dp,
-                )
-                ModuleTextField(draft.name, { value -> change(index) { it.copy(name = value.take(30)) } }, "Nombre", Modifier.weight(1f))
-                ModuleTextField(
-                    draft.time, { value -> change(index) { it.copy(time = value.take(5)) } }, "HH:mm",
-                    Modifier.weight(0.45f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                Text(
-                    "×",
-                    Modifier
-                        .clickable(role = Role.Button) { drafts = drafts.filterIndexed { i, _ -> i != index } }
-                        .padding(8.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            ChipRow(listOf(MealKind.MAIN, MealKind.SNACK), draft.kind, { if (it == MealKind.MAIN) "FUERTE" else "SNACK" }) { kind ->
-                change(index) { it.copy(kind = kind) }
-            }
-        }
-        Divider()
-    }
-    ActionLabel("+ AGREGAR COMIDA") {
-        drafts = drafts + MealDraft("m${System.currentTimeMillis()}", "", "", MealKind.SNACK, "snack")
-    }
-    val parsed = drafts.map { d -> runCatching { LocalTime.parse(d.time) }.getOrNull()?.let { MealSlot(d.id, d.name.trim(), it, d.kind, d.icon) } }
-    when {
-        parsed.any { it == null } -> SmallLabel("USA EL FORMATO HH:mm", color = LauncherAccent)
-        parsed.any { it!!.name.isBlank() } -> SmallLabel("CADA COMIDA NECESITA NOMBRE", color = LauncherAccent)
-        else -> ActionLabel("GUARDAR COMIDAS") { onSave(parsed.filterNotNull().sortedBy { it.time }) }
-    }
-}
-
-/** Water: what it is drunk from, how much that holds and how many a day; the day's total is shown below. */
-@Composable
-private fun WaterEditor(settings: ModuleSettings, onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit) {
-    SmallLabel("AGUA · RECIPIENTE", Modifier.padding(top = 8.dp))
-    ChipRow(listOf("vaso", "termo"), settings.waterContainer, ::waterUnit) { container -> onUpdate { it.copy(waterContainer = container) } }
-    SmallLabel("LE CABEN · ML")
-    ChipRow(listOf(250, 355, 500, 750, 1000), settings.waterGlassMl, { "$it" }) { ml -> onUpdate { it.copy(waterGlassMl = ml) } }
-    SmallLabel("CUÁNTOS AL DÍA")
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        ModuleChip("−", false) { onUpdate { it.copy(waterGoal = (it.waterGoal - 1).coerceAtLeast(1)) } }
-        Text("${settings.waterGoal}", style = MaterialTheme.typography.titleLarge)
-        ModuleChip("+", false) { onUpdate { it.copy(waterGoal = (it.waterGoal + 1).coerceAtMost(20)) } }
-        SmallLabel("= ${formatMl(settings.waterGoal * settings.waterGlassMl)} AL DÍA", color = MaterialTheme.colorScheme.onSurface)
-    }
-    // The widget shows the containers whose turn is near, spread over these hours.
-    SmallLabel("DESDE")
-    ChipRow((6..10).map { LocalTime.of(it, 0) }, settings.waterFrom, { it.format(DateTimeFormatter.ofPattern("HH:mm")) }) { t -> onUpdate { it.copy(waterFrom = t) } }
-    SmallLabel("HASTA")
-    ChipRow((19..23).map { LocalTime.of(it, 0) }, settings.waterTo, { it.format(DateTimeFormatter.ofPattern("HH:mm")) }) { t -> onUpdate { it.copy(waterTo = t) } }
-}
-
-/** Daily nutrition and body targets used by the Comida progress bars and IMC calculation. */
-@Composable
-private fun NutritionGoalsEditor(settings: ModuleSettings, onUpdate: ((ModuleSettings) -> ModuleSettings) -> Unit) {
-    var kcal by remember(settings.kcalGoal) { mutableStateOf(if (settings.kcalGoal > 0) settings.kcalGoal.toString() else "") }
-    var protein by remember(settings.proteinGoalG) { mutableStateOf(if (settings.proteinGoalG > 0) settings.proteinGoalG.toString() else "") }
-    var fiber by remember(settings.fiberGoalG) { mutableStateOf(if (settings.fiberGoalG > 0) settings.fiberGoalG.toString() else "") }
-    var weightGoal by remember(settings.weightGoalKg) { mutableStateOf(if (settings.weightGoalKg > 0f) settings.weightGoalKg.toString() else "") }
-    var heightCm by remember(settings.heightCm) { mutableStateOf(if (settings.heightCm > 0f) settings.heightCm.toString() else "") }
-    Divider()
-    SmallLabel("METAS DEL DÍA · 0 O VACÍO = SIN META", Modifier.padding(top = 8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        ModuleTextField(kcal, { kcal = it.filter(Char::isDigit).take(5) }, "Kcal", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        ModuleTextField(protein, { protein = it.filter(Char::isDigit).take(4) }, "Proteína g", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        ModuleTextField(fiber, { fiber = it.filter(Char::isDigit).take(3) }, "Fibra g", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-    }
-    SmallLabel("CUERPO · META DE PESO Y ESTATURA")
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        ModuleTextField(weightGoal, { weightGoal = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "Meta kg", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-        ModuleTextField(heightCm, { heightCm = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "Estatura cm", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-    }
-    ActionLabel("GUARDAR METAS") {
-        onUpdate {
-            it.copy(
-                kcalGoal = kcal.toIntOrNull()?.coerceIn(0, 15_000) ?: 0,
-                proteinGoalG = protein.toIntOrNull()?.coerceIn(0, 1_000) ?: 0,
-                fiberGoalG = fiber.toIntOrNull()?.coerceIn(0, 500) ?: 0,
-                weightGoalKg = weightGoal.toFloatOrNull()?.coerceIn(0f, 350f) ?: 0f,
-                heightCm = heightCm.toFloatOrNull()?.coerceIn(0f, 260f) ?: 0f,
-            )
-        }
-    }
-}
-
-@Composable
-private fun TimeField(value: LocalTime, onSave: (LocalTime) -> Unit) {
-    var text by remember(value) { mutableStateOf(value.format(hhmm)) }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        ModuleTextField(text, { text = it.take(5) }, "HH:mm", Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        ActionLabel("GUARDAR") { runCatching { LocalTime.parse(text) }.getOrNull()?.let(onSave) }
     }
 }
 

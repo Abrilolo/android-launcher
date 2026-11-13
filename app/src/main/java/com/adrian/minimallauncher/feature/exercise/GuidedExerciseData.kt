@@ -38,52 +38,6 @@ interface GuidedExerciseDao {
 internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
     private val records = db.guidedExercise()
 
-    suspend fun load(date: LocalDate, settings: ModuleSettings, scene: SceneInputs): String {
-        val plans = records.allPlans().associate { it.id to it.payload }
-        val session = RoutinePlans.sessionFor(date, plans)
-        val logs = db.exercise().allSets()
-        val today = logs.filter { it.date == date.toString() }
-        fun planItem(ex: PlanExercise): JSONObject {
-            val last = logs.filter { it.exerciseId == ex.id && it.date < date.toString() }.maxByOrNull { it.createdAt }
-            return JSONObject().put("id", ex.id).put("name", ex.name).put("zone", ex.group())
-                .put("sets", JSONArray(List(ex.sets) { JSONArray(listOf(ex.minTarget, last?.weightKg ?: ex.startKg ?: 0f)) }))
-                .put("timed", ex.timed).put("posture", ex.how).put("tips", ex.care)
-                .put("hist", JSONArray()).put("kcal", JSONObject.NULL)
-        }
-        val exercises = session.exercises.map(::planItem).ifEmpty {
-            val minutes = session.minutes() ?: 15
-            listOf(JSONObject().put("id", "session_${session.kind.name.lowercase()}")
-                .put("name", if (session.kind == SessionKind.REST) "Paseo suave" else session.title)
-                .put("zone", "cardio").put("timed", true)
-                .put("sets", JSONArray().put(JSONArray().put(minutes * 60).put(0)))
-                .put("posture", session.note).put("tips", session.note).put("hist", JSONArray()).put("kcal", JSONObject.NULL))
-        }
-        val catalog = TokyoGuide.week.flatMap { it.exercises }.distinctBy { it.id }.map(::planItem) + db.stack().all().map {
-            JSONObject().put("id", it.id).put("name", it.name).put("zone", it.muscleGroup).put("timed", true)
-                .put("sets", JSONArray().put(JSONArray().put(it.minutes * 60).put(0)))
-                .put("posture", "").put("tips", "").put("hist", JSONArray()).put("kcal", JSONObject.NULL)
-        }
-        val lastKg = { id: String -> logs.filter { it.exerciseId == id && it.date < date.toString() }.maxByOrNull { it.createdAt }?.weightKg }
-        val weekDates = (0L..6L).map { date.minusDays(date.dayOfWeek.value - 1L).plusDays(it).toString() }
-        val trained = PersonalRepository(db).completedWorkouts.first() + logs.map { it.date }
-        return JSONObject().put("version", 1).put("date", date.toString())
-            .put("dateLabel", RoutinePlans.dateLabel(date)).put("startTime", settings.exerciseStart.toString()).put("phase", scene.phase).put("trainingNow", scene.trainingNow)
-            .put("completed", scene.completed).put("excess", JSONArray(scene.excess)).put("boot", scene.boot ?: JSONObject.NULL)
-            .put("muscles", JSONArray(MuscleGroups.map { (key, name) -> JSONArray(listOf(key, name)) }))
-            .put("todayIndex", date.dayOfWeek.value - 1)
-            .put("weekDates", JSONArray(weekDates)).put("weekDone", JSONArray(weekDates.map { it in trained }))
-            .put("week", RoutinePlans.week(date, plans, lastKg)).put("chosen", RoutinePlans.planOf(session, date, lastKg))
-            .put("title", session.title).put("restSeconds", settings.exerciseRestSeconds)
-            .put("groups", JSONArray(exercises.map { it.getString("zone") }.distinct().map { JSONArray(listOf(it, MuscleGroups[it] ?: it)) }))
-            .put("exercises", JSONArray(exercises)).put("catalog", JSONArray(catalog))
-            .put("logs", JSONArray(today.map { JSONObject().put("exerciseId", it.exerciseId).put("index", it.setIndex).put("r", it.reps).put("kg", it.weightKg.toDouble()) }))
-            .put("history", JSONArray(logs.filter { it.date < date.toString() }.takeLast(2000).map {
-                JSONObject().put("exerciseId", it.exerciseId).put("date", it.date).put("r", it.reps).put("kg", it.weightKg.toDouble())
-            }))
-            .put("saved", records.get("session:$date")?.let { JSONObject(it.payload) } ?: JSONObject.NULL)
-            .put("library", records.get("library")?.let { JSONObject(it.payload) } ?: JSONObject.NULL).toString()
-    }
-
     /** Acknowledged, transactional writes: repeated checkpoints never duplicate finished sets. */
     suspend fun save(date: LocalDate, text: String): Boolean = runCatching {
         require(text.length <= 2_000_000)
@@ -129,6 +83,25 @@ internal class GuidedExerciseRepository(private val db: LauncherDatabase) {
         // A session not yet started restarts from the new plan; one under way keeps what it recorded.
         val draft = records.get("session:$date")?.let { JSONObject(it.payload).optJSONObject("state") }
         if (draft != null && draft.isNull("startedAt")) records.delete("session:$date")
+    }
+
+    /**
+     * Saves [draft] as the routine of [date]'s weekday from now on: the week plan gets it, and an override saved for
+     * that very date is dropped so it does not hide the change.
+     */
+    suspend fun saveWeekday(date: LocalDate, draft: RoutineDraft) = db.withTransaction {
+        val plans = records.allPlans().associate { it.id to it.payload }
+        val logs = db.exercise().allSets()
+        val lastKg = { id: String -> logs.filter { it.exerciseId == id && it.date < date.toString() }.maxByOrNull { it.createdAt }?.weightKg }
+        val week = RoutinePlans.week(date, plans, lastKg)
+        week.put(date.dayOfWeek.value - 1, RoutinePlans.encode(draft))
+        records.put(GuidedExerciseRecord(RoutinePlans.WEEK, JSONObject().put("days", week).toString(), System.currentTimeMillis()))
+        records.delete(RoutinePlans.todayId(date))
+    }
+
+    /** Saves [draft] as the routine of [date] alone; the weekday keeps its own. */
+    suspend fun saveDay(date: LocalDate, draft: RoutineDraft) {
+        records.put(GuidedExerciseRecord(RoutinePlans.todayId(date), RoutinePlans.encode(draft).toString(), System.currentTimeMillis()))
     }
 
     /** Clears today's guided draft, logged sets, and workout check so the session flow can be tested again from the start. */

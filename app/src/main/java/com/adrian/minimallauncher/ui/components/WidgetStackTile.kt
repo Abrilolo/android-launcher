@@ -111,7 +111,6 @@ val WIDGET_LABELS = mapOf(
     "clock" to "Reloj",
     "water" to "Agua",
     "alarms" to "Alarma",
-    "exercise" to "Ejercicio",
     "finance" to "Finanzas",
     "diet" to "Dieta",
     "world" to "Reloj Mundial",
@@ -119,7 +118,7 @@ val WIDGET_LABELS = mapOf(
     "notes" to "Nota Fijada",
     AI_STRIP to "Asistentes IA",
     "routine" to "Rutinas",
-) + com.adrian.minimallauncher.feature.finance.FinanceWidgets.labels + AiApp.entries.associate { it.widgetId to it.label }
+) + com.adrian.minimallauncher.feature.exercise.ExerciseWidgets.labels + com.adrian.minimallauncher.feature.finance.FinanceWidgets.labels + AiApp.entries.associate { it.widgetId to it.label }
 
 /**
  * A customizable tile or smart stack of tiles on the home screen.
@@ -784,7 +783,8 @@ fun WidgetContent(
     when (widgetId) {
         "clock" -> ClockTile(now, fillMod, { onOpenModule("alarms") }, onLongClick, padded = padded)
         "alarms" -> AlarmTile(now, fillMod, onClick, onLongClick)
-        "exercise" -> Tile(fillMod, onClick, onLongClick) { ExerciseWidget(data.exercise, data.settings.exerciseStart) }
+        in com.adrian.minimallauncher.feature.exercise.ExerciseWidgets.ids ->
+            ExerciseWidget(widgetId, data.exercise, data.settings.exerciseStart, fillMod, onOpenModule, onLongClick)
         in com.adrian.minimallauncher.feature.finance.FinanceWidgets.ids -> com.adrian.minimallauncher.feature.finance.FinanceWidget(
             widgetId,
             com.adrian.minimallauncher.feature.finance.FinanceWidgetData(

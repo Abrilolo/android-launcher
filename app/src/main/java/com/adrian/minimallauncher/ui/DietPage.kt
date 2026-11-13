@@ -40,7 +40,33 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.adrian.minimallauncher.data.MealKind
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.key
+import androidx.compose.ui.unit.sp
+import com.adrian.minimallauncher.feature.finance.ActionColor
+import com.adrian.minimallauncher.feature.finance.FinIcon
+import com.adrian.minimallauncher.feature.finance.FinanceDock
+import com.adrian.minimallauncher.feature.finance.FinanceMuted
+import com.adrian.minimallauncher.feature.finance.FinanceWhite
+import com.adrian.minimallauncher.feature.finance.GlassLine
+import com.adrian.minimallauncher.feature.finance.InfoIcon
+import com.adrian.minimallauncher.feature.finance.LabelCream
+import com.adrian.minimallauncher.feature.finance.MoneyPlenty
+import com.adrian.minimallauncher.feature.finance.PlanState
+import com.adrian.minimallauncher.feature.finance.Pop
+import com.adrian.minimallauncher.feature.finance.PopRow
+import com.adrian.minimallauncher.feature.finance.PopRule
+import com.adrian.minimallauncher.feature.finance.SectionHead
+import com.adrian.minimallauncher.feature.finance.SectionLabel
+import com.adrian.minimallauncher.feature.finance.StateDot
+import com.adrian.minimallauncher.feature.finance.SwipePages
+import com.adrian.minimallauncher.feature.finance.TextBlue
+import com.adrian.minimallauncher.feature.finance.TintFigure
+import com.adrian.minimallauncher.feature.finance.glass
+import com.adrian.minimallauncher.feature.finance.usageColor
+import com.adrian.minimallauncher.feature.food.FoodGear
+import java.time.LocalTime
 import com.adrian.minimallauncher.data.MealRecord
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.data.PersonalRecordActions
@@ -50,8 +76,8 @@ import com.adrian.minimallauncher.feature.LauncherAccent
 import com.adrian.minimallauncher.feature.LauncherDanger
 import com.adrian.minimallauncher.feature.ModuleDock
 import com.adrian.minimallauncher.feature.ModuleTitle
-import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
+import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.food.CheckButton
 import com.adrian.minimallauncher.feature.food.FoodActions
 import com.adrian.minimallauncher.feature.food.FoodSheet
@@ -109,10 +135,9 @@ private val HABIT_NAMES = mapOf("walk" to "Caminar", "no_extras" to "Sin azúcar
 private const val GLASSES_PER_ROW = 8
 
 /**
- * Comida, following docs/design/concept/ComidaVisual.html. Two views behind icon tabs: Hoy (the kcal ring against the
- * goal, protein and fiber, the day's meals with their hour, recipe photo and kcal, water and habits) and Semana
- * (weight, BMI and the week's kcal). The book opens the recipes, the gear the settings and + logs food from a recipe
- * or from ingredients. Short labels name what each thing is; what comes next has its hour in red.
+ * Comida, with the look and the pieces of Finanzas (2026-11-11). Two views behind the dock: Hoy (the kcal left, protein
+ * and fiber, the day's meals with their hour and state, then water and habits to swipe) and Semana. Recetas opens the
+ * library; the gear opens the settings; + logs food from a recipe or from ingredients.
  */
 @Composable
 fun DietPage(
@@ -122,11 +147,9 @@ fun DietPage(
     settings: ModuleSettings,
     vm: LauncherViewModel,
     onSetHabit: (String, Boolean) -> Unit,
-    onSettings: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BackHandler(onBack = onBack)
     val reactions = LocalReactions.current
     val date = now.toLocalDate()
     val recipes by vm.recipes.collectAsState()
@@ -149,46 +172,51 @@ fun DietPage(
     }
 
     var tab by rememberSaveable { mutableStateOf("hoy") }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
     // Sheets: the log sheet (for a slot or loose), the recipe library, and one recipe ("new" for a new one).
     var logOpen by rememberSaveable { mutableStateOf(false) }
     var logSlot by rememberSaveable { mutableStateOf<String?>(null) }
     var libraryOpen by rememberSaveable { mutableStateOf(false) }
     var openRecipe by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val todayMeals = records.meals.filter { it.createdAt.toLocalDate() == date }.sortedBy { it.createdAt }
+    if (settingsOpen) {
+        FoodGear(settings, vm::updateModuleSettings, { settingsOpen = false }, modifier)
+        return
+    }
+    BackHandler(onBack = onBack)
 
+    val todayMeals = records.meals.filter { it.createdAt.toLocalDate() == date }.sortedBy { it.createdAt }
     val mealsLeft = settings.meals.count { mealKey(date, it.id) !in records.completedHabits }
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Column(Modifier.weight(1f).padding(horizontal = 24.dp)) {
-                ModuleTitle(if (tab == "hoy") dayTitle(date) else "Semana", onSettings)
-                Column(
-                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp),
-                ) {
-                    if (tab == "hoy") {
-                        TodayView(date, settings, records, todayMeals, recipes, onSetHabit, actions) { slot -> logSlot = slot; logOpen = true }
-                    } else {
-                        FoodWeek(date, records.meals, records.bodyMetrics, settings, food.addWeight)
+                ModuleTitle(if (tab == "hoy") "Comida" else "Semana", { settingsOpen = true })
+                key(tab) {
+                    Column(
+                        Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(28.dp),
+                    ) {
+                        if (tab == "hoy") {
+                            TodayView(now, settings, records, todayMeals, recipes, onSetHabit, actions) { slot -> logSlot = slot; logOpen = true }
+                        } else {
+                            FoodWeek(date, records.meals, records.bodyMetrics, settings, food.addWeight)
+                        }
                     }
                 }
             }
-            ModuleDock(
+            FinanceDock(
                 listOf(
                     DockItem("hoy", "Hoy", "hoy", badge = mealsLeft.takeIf { it > 0 }?.toString()),
                     DockItem("semana", "Semana", "semana"),
-                    DockItem("recetas", "Recetas", "escuela", menu = listOf("Nueva receta" to { openRecipe = "new" })),
-                    DockItem("ajustes", "Ajustes", "gear"),
+                    DockItem("recetas", "Recetas", "escuela"),
                 ),
                 tab,
-                onOpen = { key ->
-                    when (key) {
-                        "recetas" -> libraryOpen = true
-                        "ajustes" -> onSettings()
-                        else -> tab = key
-                    }
-                },
+                onOpen = { key -> if (key == "recetas") libraryOpen = true else tab = key },
             )
+        }
+
+        if (!logOpen && !libraryOpen && openRecipe == null && tab == "hoy") {
+            AddMealButton(Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 92.dp)) { logSlot = null; logOpen = true }
         }
 
         if (logOpen) {
@@ -225,7 +253,7 @@ fun DietPage(
                 modifier = Modifier.fillMaxSize(),
                 header = {
                     Row(Modifier.fillMaxWidth(), Arrangement.End) {
-                        IconButton("Nueva receta", { libraryOpen = false; openRecipe = "new" }) { StrokeIcon("nueva", StrokeState.DONE, 22.dp, color = Muted) }
+                        FinIcon("nueva", "Nueva receta", ActionColor.Add) { libraryOpen = false; openRecipe = "new" }
                     }
                 },
             ) {
@@ -238,9 +266,37 @@ fun DietPage(
     }
 }
 
+/** The blue + over the dock, as in Finanzas: it opens the log for a meal that is not on the plan. */
+@Composable
+private fun AddMealButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier
+            .size(56.dp)
+            .background(LauncherAccent, CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "Registrar comida" },
+        contentAlignment = Alignment.Center,
+    ) { StrokeIcon("nueva", StrokeState.DONE, 26.dp, color = Color.White) }
+}
+
+/** How a meal of the plan stands: done, the next one (pink once its hour passed), passed without marking, or to come. */
+private fun mealState(done: Boolean, next: Boolean, time: LocalTime, now: LocalTime): PlanState = when {
+    done -> PlanState.DONE
+    now.isAfter(time.plusMinutes(45)) -> PlanState.LATE
+    next -> PlanState.TODAY
+    else -> PlanState.PLANNED
+}
+
+/**
+ * Hoy, in reading order:
+ * 1. Te quedan: the kcal left today, big, in its state color; a tap shows the sum and the macros.
+ * 2. Proteína and Fibra, each with its bar toward the goal.
+ * 3. Comidas: each meal with its state, hour, what was logged and its kcal. A tap logs; a long press marks it.
+ * 4. Agua and Hábitos, to swipe.
+ */
 @Composable
 private fun TodayView(
-    date: LocalDate,
+    now: LocalDateTime,
     settings: ModuleSettings,
     records: PersonalRecords,
     todayMeals: List<MealRecord>,
@@ -249,68 +305,163 @@ private fun TodayView(
     actions: PersonalRecordActions,
     onOpenSlot: (String?) -> Unit,
 ) {
+    val date = now.toLocalDate()
     val reactions = LocalReactions.current
     val eaten = todayMeals.fold(Nutrition()) { acc, m -> acc + Nutrition(m.kcal, m.proteinG, m.carbsG, m.fatG, m.fiberG) }
-    NutrientTable(eaten, settings)
-    val upcoming = settings.meals.firstOrNull { mealKey(date, it.id) !in records.completedHabits }
-    Row(
-        Modifier.fillMaxWidth().clickable(role = Role.Button) { onOpenSlot(null) }.padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("REGISTRAR COMIDA", style = MaterialTheme.typography.labelLarge, color = LauncherAccent)
-        Spacer(Modifier.weight(1f))
-        upcoming?.let { Text("${it.name.uppercase(spanish)} ${it.time.format(hhmm)}", style = MaterialTheme.typography.labelSmall, color = Muted) }
+
+    // 1. Te quedan
+    val goal = settings.kcalGoal
+    val left = goal - eaten.kcal.toInt()
+    val color = if (goal > 0) usageColor(eaten.kcal.toLong(), goal.toLong()) else FinanceWhite
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel(if (goal <= 0) "Comiste hoy" else if (left >= 0) "Te quedan" else "Te pasaste")
+            InfoIcon("Las kcal que te quedan hoy para tu meta: verde con espacio, azul a la mitad, ámbar cerca y rosa si te pasaste. Toca el número para ver de dónde sale.")
+        }
+        Pop(description = "Ver cómo se calcula", pop = {
+            if (goal > 0) PopRow("Meta", "%,d kcal".format(goal))
+            PopRow("Comiste", "%,d kcal".format(eaten.kcal.toInt()), TextBlue)
+            if (goal > 0) {
+                PopRule()
+                PopRow(if (left >= 0) "Te quedan" else "Te pasaste", "%,d kcal".format(kotlin.math.abs(left)), color)
+            }
+            PopRule()
+            PopRow("Carbohidratos", "${eaten.carbsG.whole()} g")
+            PopRow("Grasa", "${eaten.fatG.whole()} g")
+        }) {
+            Column {
+                Text(
+                    "%,d".format(if (goal > 0) kotlin.math.abs(left) else eaten.kcal.toInt()),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontSize = 54.sp, lineHeight = 60.sp),
+                    color = color,
+                )
+                Text(if (goal > 0) "kcal · comiste ${"%,d".format(eaten.kcal.toInt())}" else "kcal", style = MaterialTheme.typography.titleMedium, color = FinanceWhite)
+            }
+        }
     }
 
-    // The plan: each meal slot with what was logged near its hour; meals with no slot at all show on their own.
+    // 2. Proteína · Fibra
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        NutrientFigure("Proteína", eaten.proteinG, settings.proteinGoalG, FoodProtein, Modifier.weight(1f))
+        NutrientFigure("Fibra", eaten.fiberG, settings.fiberGoalG, FoodFiber, Modifier.weight(1f))
+    }
+
+    // 3. Comidas
     val photoOf = recipes.associate { it.id to it.photoUri }
     val meals = settings.meals
     val done = meals.map { mealKey(date, it.id) in records.completedHabits }
     val next = done.indexOf(false)
     val bySlot = todayMeals.groupBy { nearestSlot(it, settings)?.id }
     Column {
-        Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("HORA", Modifier.width(52.dp), style = MaterialTheme.typography.labelSmall, color = Muted)
-            Spacer(Modifier.width(48.dp))
-            Text("COMIDA", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = Muted)
-            Text("KCAL", style = MaterialTheme.typography.labelSmall, color = Muted)
-        }
+        SectionHead("Comidas", "Toca una comida para registrar qué comiste; mantén presionado para marcarla sin registrar. Azul es la que sigue, rosa si se pasó su hora.")
         meals.forEachIndexed { i, slot ->
             val logged = bySlot[slot.id].orEmpty()
-            val time = slot.time.format(hhmm)
-            var play by remember { mutableIntStateOf(0) }
-            PlanRow(
+            val state = mealState(done[i], i == next, slot.time, now.toLocalTime())
+            MealRow(
                 name = slot.name,
                 detail = logged.joinToString(", ") { it.description }.takeIf { it.isNotEmpty() },
-                time = time,
-                timeColor = when { done[i] -> White; i == next -> LauncherAccent; else -> Muted },
-                icon = { StrokeIcon(mealStrokeIcon(slot.icon), if (done[i]) StrokeState.NOW else StrokeState.OFF, if (slot.kind == MealKind.MAIN) 34.dp else 28.dp, playKey = play) },
+                time = slot.time.format(hhmm),
+                state = state,
                 photo = logged.firstNotNullOfOrNull { m -> m.recipeId?.let { photoOf[it] } },
-                hasMeal = logged.isNotEmpty(),
-                dim = !done[i],
                 kcal = logged.takeIf { it.isNotEmpty() }?.sumOf { it.kcal.toDouble() }?.toFloat(),
-                description = "${slot.name} $time",
                 onClick = { onOpenSlot(slot.id) },
                 onLongClick = {
                     val marking = !done[i]
                     onSetHabit(mealKey(date, slot.id), marking)
-                    if (marking) { play++; if (done.count { it } + 1 == meals.size) reactions.done() else reactions.tick() }
+                    if (marking) { if (done.count { it } + 1 == meals.size) reactions.done() else reactions.tick() }
                 },
             )
-            LaunchedEffect(done[i]) { if (done[i]) play++ }
         }
         bySlot[null].orEmpty().forEach { m ->
             val time = Instant.ofEpochMilli(m.createdAt).atZone(ZoneId.systemDefault()).format(hhmm)
-            PlanRow(m.description, null, time, White, { StrokeIcon("plato", StrokeState.DONE, 26.dp) }, m.recipeId?.let { photoOf[it] }, true, false, m.kcal, "${m.description} $time", { onOpenSlot(null) }, null)
+            MealRow(m.description, null, time, PlanState.DONE, m.recipeId?.let { photoOf[it] }, m.kcal, { onOpenSlot(null) }, null)
         }
     }
 
-    WaterRow(date, settings, records.completedHabits, onSetHabit)
+    // 4. Agua · Hábitos
+    SwipePages(
+        titles = listOf("Agua", "Hábitos"),
+        info = listOf(
+            "Toca un ${waterUnit(settings.waterContainer).lowercase()} para llenarlo hasta ahí; toca el último lleno para vaciarlo. La meta se cambia en el engrane.",
+            "Lo que quieres cumplir cada día. Tócalo para marcarlo.",
+        ),
+    ) { page ->
+        Column(Modifier.fillMaxWidth().glass().padding(16.dp)) {
+            if (page == 0) WaterRow(date, settings, records.completedHabits, onSetHabit)
+            else Habits(date, records.completedHabits, actions)
+        }
+    }
+}
+
+/** Protein and fiber colors, from the data palette. */
+private val FoodProtein = Color(0xFF8AC6A3)
+private val FoodFiber = Color(0xFF97CFE0)
+
+/** A nutrient in its tinted card: grams eaten, a bar toward the goal and what is left. */
+@Composable
+private fun NutrientFigure(label: String, grams: Float, goal: Int, tint: Color, modifier: Modifier) {
+    val left = goal - grams
+    TintFigure(
+        label, "${grams.whole()} g", tint, modifier,
+        detail = when {
+            goal <= 0 -> "Sin meta"
+            left <= 0f -> "Meta cumplida"
+            else -> "Faltan ${left.whole()} g"
+        },
+        bar = if (goal > 0) grams / goal else null,
+    )
+}
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun MealRow(
+    name: String,
+    detail: String?,
+    time: String,
+    state: PlanState,
+    photo: String?,
+    kcal: Float?,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)?,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .semantics(mergeDescendants = true) { contentDescription = "$name $time" }
+            .heightIn(min = 60.dp)
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StateDot(state, 14.dp)
+        Text(
+            time, Modifier.width(48.dp), style = MaterialTheme.typography.labelLarge,
+            color = when (state) {
+                PlanState.TODAY -> TextBlue
+                PlanState.LATE -> LauncherDanger
+                else -> LabelCream
+            },
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium, color = if (state == PlanState.DONE) FinanceWhite else FinanceMuted, maxLines = 1)
+            detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = FinanceMuted, maxLines = 1) }
+        }
+        if (photo != null) RecipePhoto(photo, 36.dp, dim = state != PlanState.DONE)
+        Text(kcal?.whole() ?: "", style = MaterialTheme.typography.labelLarge, color = FinanceWhite)
+    }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(GlassLine))
+}
+
+/** The day's habits as icons with their name; a tap marks one. */
+@Composable
+private fun Habits(date: LocalDate, habits: Set<String>, actions: PersonalRecordActions) {
+    val reactions = LocalReactions.current
     Row(Modifier.fillMaxWidth()) {
         DIET_HABITS.forEach { (id, label) ->
-            val isDone = habitKey(date, id) in records.completedHabits
+            val isDone = habitKey(date, id) in habits
             var play by remember { mutableIntStateOf(0) }
-            Box(
+            Column(
                 Modifier
                     .weight(1f)
                     .clickable(role = Role.Checkbox) {
@@ -319,102 +470,14 @@ private fun TodayView(
                     }
                     .semantics { contentDescription = label }
                     .padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    StrokeIcon(HABIT_STROKES.getValue(id), if (isDone) StrokeState.NOW else StrokeState.OFF, 30.dp, playKey = play)
-                    SmallLabel(HABIT_NAMES.getValue(id), color = if (isDone) White else Muted, maxLines = 1)
-                }
+                StrokeIcon(HABIT_STROKES.getValue(id), if (isDone) StrokeState.NOW else StrokeState.OFF, 30.dp, playKey = play, color = if (isDone) MoneyPlenty else null)
+                Text(HABIT_NAMES.getValue(id), style = MaterialTheme.typography.labelLarge, color = if (isDone) FinanceWhite else LabelCream, maxLines = 1)
             }
         }
     }
-}
-
-/**
- * The day's goals as a table: one row per nutrient with its goal in the label and what is left (or what is over, in
- * red) as words; a thin bar under each row fills toward the goal.
- */
-@Composable
-private fun NutrientTable(eaten: Nutrition, settings: ModuleSettings) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        val kcalGoal = settings.kcalGoal
-        val over = kcalGoal > 0 && eaten.kcal > kcalGoal
-        NutrientRow(
-            label = if (kcalGoal > 0) "KCAL · META ${kcalGoal}" else "KCAL",
-            value = when {
-                kcalGoal <= 0 -> "${eaten.kcal.whole()}"
-                over -> "${(eaten.kcal - kcalGoal).whole()} DE MÁS"
-                else -> "${(kcalGoal - eaten.kcal).whole()} QUEDAN"
-            },
-            fraction = if (kcalGoal > 0) eaten.kcal / kcalGoal else 0f,
-            alert = over,
-        )
-        NutrientRow(
-            label = "PROTEÍNA · META ${settings.proteinGoalG}",
-            value = "${eaten.proteinG.whole()} g",
-            fraction = if (settings.proteinGoalG > 0) eaten.proteinG / settings.proteinGoalG else 0f,
-            alert = false,
-        )
-        NutrientRow(
-            label = "FIBRA · META ${settings.fiberGoalG}",
-            value = "${eaten.fiberG.whole()} g",
-            fraction = if (settings.fiberGoalG > 0) eaten.fiberG / settings.fiberGoalG else 0f,
-            alert = false,
-        )
-    }
-}
-
-/** One nutrient line: its label on the left, its value on the right, and a bar that fills toward the goal. */
-@Composable
-private fun NutrientRow(label: String, value: String, fraction: Float, alert: Boolean) {
-    val width = remember { Animatable(0f) }
-    LaunchedEffect(fraction) { width.animateTo(fraction.coerceIn(0f, 1f), tween(700)) }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = Muted, maxLines = 1)
-            Text(value, style = MaterialTheme.typography.labelLarge, color = if (alert) LauncherDanger else White)
-        }
-        Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0xFF1F1F1F))) {
-            Box(Modifier.fillMaxWidth(width.value).height(3.dp).background(if (alert) LauncherDanger else White))
-        }
-    }
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-private fun PlanRow(
-    name: String,
-    detail: String?,
-    time: String,
-    timeColor: Color,
-    icon: @Composable () -> Unit,
-    photo: String?,
-    hasMeal: Boolean,
-    dim: Boolean,
-    kcal: Float?,
-    description: String,
-    onClick: () -> Unit,
-    onLongClick: (() -> Unit)?,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .semantics { contentDescription = description }
-            .padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(time, Modifier.width(52.dp), style = MaterialTheme.typography.labelLarge, color = timeColor)
-        Box(Modifier.width(36.dp), contentAlignment = Alignment.Center) { icon() }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(name, style = MaterialTheme.typography.bodyMedium, color = if (dim) Muted else White, maxLines = 1)
-            detail?.let { SmallLabel(it, maxLines = 1) }
-        }
-        if (hasMeal || photo != null) RecipePhoto(photo, 40.dp, dim = dim)
-        Text(kcal?.whole() ?: "", style = MaterialTheme.typography.labelLarge, color = if (dim) Muted else White)
-    }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF141414)))
 }
 
 /**
@@ -464,9 +527,10 @@ private fun WaterRow(date: LocalDate, settings: ModuleSettings, habits: Set<Stri
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-            SmallLabel("Agua · ${formatMl(ml)}")
-            SmallLabel(formatMl(count * ml), color = if (count > 0) White else Muted)
+        val goalMl = goal * ml
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Llevas ${formatMl(count * ml).lowercase()}", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = if (count >= goal) MoneyPlenty else TextBlue)
+            Text(if (count >= goal) "Meta cumplida" else "Faltan ${formatMl(goalMl - count * ml).lowercase()}", style = MaterialTheme.typography.bodyMedium, color = FinanceWhite)
         }
     }
 }

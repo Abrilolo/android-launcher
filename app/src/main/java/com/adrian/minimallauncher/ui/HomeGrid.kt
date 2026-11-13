@@ -103,6 +103,7 @@ val HOME_TILES = listOf("alarms", "exercise", "finance", "diet", "world", "vault
 
 /** Everything the widget catalog offers: the module tiles plus the big clock and the water glasses (part of Dieta). */
 val WIDGET_IDS = listOf("clock", "water") + HOME_TILES + "ai" + "routine" +
+    com.adrian.minimallauncher.feature.exercise.ExerciseWidgets.ids.drop(1) +
     com.adrian.minimallauncher.feature.finance.FinanceWidgets.ids.drop(1)
 
 /**

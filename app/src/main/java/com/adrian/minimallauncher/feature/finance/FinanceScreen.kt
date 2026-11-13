@@ -342,6 +342,7 @@ fun FinanceScreen(
                 AddButton(Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 92.dp)) { editing = null; entryOpen = true }
             }
             if (entryOpen) ModalBottomSheet(
+                scrimColor = SheetScrim,
                 onDismissRequest = { entryOpen = false },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = com.adrian.minimallauncher.feature.CardFill,

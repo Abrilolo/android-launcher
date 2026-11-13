@@ -1,8 +1,6 @@
 package com.adrian.minimallauncher.feature.exercise
 
 import android.app.Application
-import android.os.Looper
-import android.webkit.WebView
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.adrian.minimallauncher.data.BodyMetricRecord
@@ -37,6 +35,12 @@ data class ExerciseDay(
     val weekDone: Set<LocalDate> = emptySet(),
     /** Days of the current week that the routine leaves free. */
     val weekRest: Set<LocalDate> = emptySet(),
+    /** Monday to Sunday of the current week, each with its routine. */
+    val week: List<Pair<LocalDate, Session>> = emptyList(),
+    /** The saved plans (week and single days), to work out any date's routine with [RoutinePlans.sessionFor]. */
+    val plans: Map<String, String> = emptyMap(),
+    /** Days of the last twelve weeks with a finished session or a logged set: the consistency history. */
+    val doneDates: Set<LocalDate> = emptySet(),
 ) {
     val doneSets: Int get() = session.exercises.sumOf { ex -> sets[ex.id].orEmpty().size.coerceAtMost(ex.sets) }
 }
@@ -47,14 +51,6 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     private val dao = db.exercise()
     private val personal = PersonalRepository(db)
     private val settingsRepository = SettingsRepository(application)
-
-    // The first WebView of a process is the slow one; made when the launcher is idle, opening Ejercicio doesn't pay for it.
-    init {
-        Looper.getMainLooper().queue.addIdleHandler {
-            runCatching { WebView(application).destroy() }
-            false
-        }
-    }
 
     // Re-checked every minute so the page rolls over to the next day's session at midnight.
     private val today = flow {
@@ -69,7 +65,7 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
         combine(
             dao.setsOn(date.toString()),
             dao.lastBefore(date.toString()),
-            dao.activeDates(monday.toString()),
+            dao.activeDates(monday.minusWeeks(12).toString()),
             personal.completedWorkouts,
             db.guidedExercise().plans().map { rows -> rows.associate { it.id to it.payload } }.distinctUntilChanged(),
         ) { sets, last, active, workouts, plans ->
@@ -81,7 +77,11 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
                 lastLogs = last.associateBy { it.exerciseId },
                 completed = date.toString() in workouts,
                 weekDone = weekDays.filter { it.toString() in workouts || it.toString() in active }.toSet(),
+                plans = plans,
+                doneDates = (workouts.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() } + active.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() })
+                    .filter { !it.isBefore(monday.minusWeeks(12)) }.toSet(),
                 weekRest = weekDays.filter { RoutinePlans.sessionFor(it, plans).kind == SessionKind.REST }.toSet(),
+                week = weekDays.map { it to RoutinePlans.sessionFor(it, plans) },
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ExerciseDay())
@@ -119,6 +119,26 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     fun resetRoutine() {
         val date = day.value.date
         viewModelScope.launch { GuidedExerciseRepository(db).reset(date) }
+    }
+
+    /** Saves [draft] for [date] only, or as the routine of its weekday from now on. */
+    fun saveRoutine(date: LocalDate, draft: RoutineDraft, onlyThisDay: Boolean) {
+        viewModelScope.launch {
+            val repository = GuidedExerciseRepository(db)
+            if (onlyThisDay) repository.saveDay(date, draft) else repository.saveWeekday(date, draft)
+        }
+    }
+
+    /** Gives the week starting [toMonday] the same routines, day by day, as the week before it. */
+    fun copyPreviousWeek(toMonday: LocalDate) {
+        val plans = day.value.plans
+        viewModelScope.launch {
+            val repository = GuidedExerciseRepository(db)
+            (0L..6L).forEach { i ->
+                val from = toMonday.minusWeeks(1).plusDays(i)
+                repository.saveDay(toMonday.plusDays(i), RoutinePlans.draftOf(RoutinePlans.sessionFor(from, plans)) { null })
+            }
+        }
     }
 
     fun addBodyMetric(type: String, value: Float) { viewModelScope.launch { personal.addBodyMetric(type, value) } }

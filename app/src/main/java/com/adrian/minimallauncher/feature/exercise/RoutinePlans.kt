@@ -1,13 +1,24 @@
 package com.adrian.minimallauncher.feature.exercise
 
-import com.adrian.minimallauncher.data.routine.RoutineDefaults
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
-import java.time.LocalTime
 
-/** What the scene needs besides the routine: [phase] picks the person's day, [boot] reopens it after Guardar. */
-internal data class SceneInputs(val phase: String, val trainingNow: Boolean, val completed: Boolean, val excess: String, val boot: String?)
+/** One movement of a routine being edited: [reps] are minutes for cardio and seconds when [timed]. */
+data class RoutineItem(
+    val id: String,
+    val name: String,
+    val group: String,
+    val sets: Int,
+    val reps: Int,
+    val kg: Float,
+    val timed: Boolean,
+    val how: String = "",
+    val care: String = "",
+)
+
+/** A day's routine as the editor holds it; no items is a rest day. */
+data class RoutineDraft(val name: String, val minutes: Int, val items: List<RoutineItem>)
 
 /**
  * The routine the user edits in Tu rutina, stored as JSON next to the session drafts (so it goes in the backup):
@@ -82,16 +93,25 @@ internal object RoutinePlans {
         })
     }
 
-    /** The routine phase as one of the person's days; a phase the user created goes by the clock. */
-    fun scenePhase(phaseId: String, now: LocalTime, training: Boolean): String = when {
-        training -> "training"
-        phaseId == RoutineDefaults.INICIO -> "morning"
-        phaseId == RoutineDefaults.TRASLADO || phaseId == RoutineDefaults.SALIDA -> "commute"
-        phaseId == RoutineDefaults.TRABAJO -> "work"
-        now.hour >= 21 || now.hour < 5 -> "night"
-        phaseId == RoutineDefaults.CASA -> "home"
-        now.hour < 9 -> "morning"
-        now.hour < 18 -> "work"
-        else -> "home"
+    /** A session as the editor holds it. Cardio and intervals, which have no list, become one timed item. */
+    fun draftOf(session: Session, lastKg: (String) -> Float?): RoutineDraft {
+        val items = session.exercises.map { ex ->
+            val cardio = ex.group() == "cardio"
+            RoutineItem(
+                ex.id, ex.name, ex.group(), ex.sets, if (cardio) (ex.minTarget / 60).coerceAtLeast(1) else ex.minTarget,
+                lastKg(ex.id) ?: ex.startKg ?: 0f, ex.timed, ex.how, ex.care,
+            )
+        }.ifEmpty {
+            if (session.kind == SessionKind.REST) emptyList()
+            else listOf(RoutineItem("session_${session.kind.name.lowercase()}", session.title, "cardio", 1, session.minutes() ?: 20, 0f, true, session.note, session.note))
+        }
+        return RoutineDraft(session.title, session.minutes() ?: 0, items)
     }
+
+    fun encode(draft: RoutineDraft): JSONObject = JSONObject().put("name", draft.name).put("minutes", draft.minutes)
+        .put("groups", JSONArray(draft.items.map { it.group }.distinct()))
+        .put("items", JSONArray(draft.items.map {
+            JSONObject().put("id", it.id).put("name", it.name).put("group", it.group).put("sets", it.sets).put("reps", it.reps)
+                .put("kg", it.kg.toDouble()).put("timed", it.timed).put("how", it.how).put("care", it.care)
+        }))
 }

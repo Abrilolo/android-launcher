@@ -156,9 +156,12 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             else -> restrictedApp = app
         }
     }
+    // Where a widget sends Ejercicio: "start" (today's session) or "day:<date>" (that day's routine).
+    var exerciseRoute by remember { mutableStateOf<String?>(null) }
     val openModuleById: (String) -> Unit = { id ->
         when {
             id == com.adrian.minimallauncher.feature.finance.FinanceWidgets.ADD_ROUTE -> { financeEntry = true; openModule = "finance" }
+            id.startsWith("exercise:") -> { exerciseRoute = id.removePrefix("exercise:"); openModule = "exercise" }
             id.startsWith("finance:") -> { financeTab = id.removePrefix("finance:"); openModule = "finance" }
             id == "vault" -> (context as? FragmentActivity)?.let { activity -> unlockVault(activity) { openModule = "vault" } }
             id.startsWith("app:") -> id.removePrefix("app:").let { pkg -> openAppRoute(pkg) { viewModel.openApp(pkg) } }
@@ -381,20 +384,23 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
                 val exerciseSettings by exerciseViewModel.settings.collectAsState()
                 val exerciseMetrics by exerciseViewModel.bodyMetrics.collectAsState()
                 val exerciseStack by viewModel.exerciseStack.collectAsState()
-                val exerciseFood by viewModel.foodDay.collectAsState()
-                val exercisePhase by viewModel.currentPhase.collectAsState()
                 ExerciseScreen(
                     day = exerciseDay,
                     settings = exerciseSettings,
                     bodyMetrics = exerciseMetrics,
                     stack = exerciseStack,
-                    kcalOver = exerciseFood.over,
-                    phaseId = exercisePhase.id,
                     onAddBodyMetric = exerciseViewModel::addBodyMetric,
                     onSaveSettings = exerciseViewModel::saveSettings,
                     onSaveStackExercise = viewModel::saveStackExercise,
                     onDeleteStackExercise = viewModel::deleteStackExercise,
                     onClearPlaceholders = viewModel::clearPlaceholderStack,
+                    onLogSet = exerciseViewModel::logSet,
+                    onUndoSet = exerciseViewModel::undoSet,
+                    onFinish = exerciseViewModel::setCompleted,
+                    onSaveRoutine = exerciseViewModel::saveRoutine,
+                    onCopyPreviousWeek = exerciseViewModel::copyPreviousWeek,
+                    route = exerciseRoute,
+                    onRouteShown = { exerciseRoute = null },
                     onBack = closeModule,
                     modifier = screenModifier,
                 )
@@ -403,7 +409,7 @@ fun LauncherScreen(viewModel: LauncherViewModel, exerciseViewModel: ExerciseView
             } else if (openModule == "world") Box(overlay) {
                 WorldClockPage(now, moduleSettings.worldZones, closeModule, screenModifier)
             } else if (openModule == "diet") Box(overlay) {
-                DietPage(now, personalRecords, personalActions, moduleSettings, viewModel, viewModel::setHabit, { openModule = "settings:diet" }, closeModule, screenModifier)
+                DietPage(now, personalRecords, personalActions, moduleSettings, viewModel, viewModel::setHabit, closeModule, screenModifier)
             } else if (openModule == "finance") Box(overlay) {
                 androidx.compose.runtime.DisposableEffect(Unit) { onDispose { financeTab = null } }
                 val financeSummary by viewModel.financeSummary.collectAsState()

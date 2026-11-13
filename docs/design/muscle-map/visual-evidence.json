@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "uizze.visual-evidence.v1",
+  "scope": "Regional muscle geometry and responsive Compose layout",
+  "platform": "android",
+  "comparison": "existing-system",
+  "sources": [
+    {
+      "path": "C:\\Workspace\\20-Personal\\Labs\\android-launcher\\app\\src\\main\\java\\com\\adrian\\minimallauncher\\feature\\exercise\\BodyShapes.kt",
+      "sha256": "e5b45ec133ba020656aee4b39a51057dde32bd8ae10f0266c442e6cd7a2ffaa4"
+    },
+    {
+      "path": "C:\\Workspace\\20-Personal\\Labs\\android-launcher\\app\\src\\main\\java\\com\\adrian\\minimallauncher\\feature\\exercise\\MuscleMap.kt",
+      "sha256": "ada06c435bf8594af20f05fdb88828a08ddc70cc10c95d1f3b38e9bf55cda7ac"
+    }
+  ],
+  "checks": [
+    {
+      "id": "geometry",
+      "status": "pass",
+      "environment": {
+        "kind": "browser",
+        "name": "Chrome headless",
+        "width": 680,
+        "height": 820
+      },
+      "observed": "Inspected mirrored front/back SVG geometry and abdominal subdivisions. This is geometry-only evidence, not a Compose screenshot.",
+      "artifacts": [
+        {
+          "path": "C:\\Workspace\\20-Personal\\Labs\\android-launcher\\docs\\design\\muscle-map\\geometry.png",
+          "sha256": "94590a75e53949f42a93545ac6c71d5b2c975d882c088ff43d341f5b13ea13b7"
+        }
+      ]
+    },
+    {
+      "id": "native-layout",
+      "status": "blocked",
+      "observed": "Android screen layout, large text and taps have not been exercised on a device."
+    },
+    {
+      "id": "unit-tests",
+      "status": "pass",
+      "observed": "92 tests passed, including four regional mapping tests; Kotlin compilation passed."
+    }
+  ],
+  "unresolved": [
+    "Native layout and touch verification pending."
+  ],
+  "anatomyReference": "https://www.nasm.org/resource-center/blog/training/best-abs-exercises"
+}

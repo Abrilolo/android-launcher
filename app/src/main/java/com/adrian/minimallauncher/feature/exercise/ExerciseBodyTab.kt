@@ -1,6 +1,5 @@
 package com.adrian.minimallauncher.feature.exercise
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,18 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,166 +24,189 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.ModuleSettings
-import com.adrian.minimallauncher.feature.LauncherAccent
-import com.adrian.minimallauncher.feature.ModuleCard
-import com.adrian.minimallauncher.ui.components.DotMatrixText
-import com.adrian.minimallauncher.ui.components.StrokeIcon
-import com.adrian.minimallauncher.ui.components.StrokeState
-import java.time.Instant
+import com.adrian.minimallauncher.feature.LauncherDanger
+import com.adrian.minimallauncher.feature.ModuleTextField
+import com.adrian.minimallauncher.feature.finance.ActionColor
+import com.adrian.minimallauncher.feature.finance.FillBar
+import com.adrian.minimallauncher.feature.finance.FinIcon
+import com.adrian.minimallauncher.feature.finance.FinanceMuted
+import com.adrian.minimallauncher.feature.finance.FinanceWhite
+import com.adrian.minimallauncher.feature.finance.GlassFill
+import com.adrian.minimallauncher.feature.finance.InfoIcon
+import com.adrian.minimallauncher.feature.finance.LabelCream
+import com.adrian.minimallauncher.feature.finance.MoneyLow
+import com.adrian.minimallauncher.feature.finance.MoneyPlenty
+import com.adrian.minimallauncher.feature.finance.Pop
+import com.adrian.minimallauncher.feature.finance.PopRow
+import com.adrian.minimallauncher.feature.finance.SectionHead
+import com.adrian.minimallauncher.feature.finance.SectionLabel
+import com.adrian.minimallauncher.feature.finance.TextBlue
+import com.adrian.minimallauncher.feature.finance.glass
+import com.adrian.minimallauncher.feature.finance.tinted
+import com.adrian.minimallauncher.ui.components.LocalReactions
 import java.time.LocalDate
-import java.time.ZoneId
 
-/** The measurements the body tab follows: type stored in body metrics, icon, and what screen readers say. */
-private val Measurements = listOf(
-    Triple("WAIST", "cinta", "Cintura"),
-    Triple("CHEST", "pecho", "Pecho"),
-    Triple("ARM", "brazos", "Brazo"),
-    Triple("THIGH", "piernas", "Muslo"),
-)
+/** The measurements Cuerpo follows: type stored in body metrics, and its name. */
+private val Measurements = listOf("WAIST" to "Cintura", "CHEST" to "Pecho", "ARM" to "Brazo", "THIGH" to "Muslo")
 
-/** Weight against its goal, BMI on a scale, and body measurements; a tap on any opens a number entry. */
+/**
+ * Cuerpo, in reading order:
+ * 1. Peso: big, with how much it changed since the first record (a record, not a goal); + logs a new one.
+ * 2. IMC on its scale, in a card.
+ * 3. Medidas, as tinted cards; a tap logs one.
+ */
 @Composable
 internal fun BodyTab(today: LocalDate, settings: ModuleSettings, metrics: List<BodyMetricRecord>, onAdd: (String, Float) -> Unit) {
     var entering by rememberSaveable { mutableStateOf<String?>(null) }
+    val reactions = LocalReactions.current
     val byType = metrics.groupBy { it.type }.mapValues { (_, list) -> list.sortedBy { it.createdAt }.map { it.value } }
     val weights = byType["WEIGHT"].orEmpty()
     val weight = weights.lastOrNull()
     val goal = settings.weightGoalKg.takeIf { it > 0f }
     val heightM = settings.heightCm.takeIf { it > 0f }?.div(100f)
-    val weekStart = today.minusDays(today.dayOfWeek.value - 1L)
-    val mornings = metrics.count { it.type == "WEIGHT" && !it.createdAt.toLocalDate().isBefore(weekStart) }
+    val save = { type: String, value: Float -> onAdd(type, value); reactions.tick(); entering = null }
 
-    // Weight: a line from the first weight to the goal, the red mark is now; three dots for this week's mornings.
-    ModuleCard(Modifier.clickable(role = Role.Button) { entering = "WEIGHT" }.semantics { contentDescription = "Peso" }) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StrokeIcon("bascula", StrokeState.NOW, 32.dp)
-            DotMatrixText(weight?.let { "%.1f".format(it) } ?: "--.-", cell = 4.dp)
-            Spacer(Modifier.weight(1f))
-            Trend(weights)
+    // 1. Peso
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Peso")
+            InfoIcon("Tu último peso y cuánto cambió desde tu primer registro. Es solo un registro de tu progreso; la meta de Ejercicio es la constancia.")
+            Box(Modifier.weight(1f))
+            FinIcon("nueva", "Anotar peso", ActionColor.Add) { entering = "WEIGHT" }
         }
-        val start = weights.firstOrNull()
-        val progress = if (weight != null && start != null && goal != null && start != goal) ((start - weight) / (start - goal)).coerceIn(0f, 1f) else 0f
-        Scale(listOf(Triple(0f, progress, MaterialTheme.colorScheme.onSurface)), listOf(progress to LauncherAccent))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Num(start?.let { "%.1f".format(it) } ?: "", modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-                repeat(3) { i -> Dot(if (i < mornings) MaterialTheme.colorScheme.onSurface else if (i == mornings) LauncherAccent else EmptyGray, 8.dp) }
+        Pop(description = "Ver detalle del peso", pop = {
+            weights.firstOrNull()?.let { PopRow("Empezaste", "${kgText(it)} kg") }
+            weight?.let { PopRow("Ahora", "${kgText(it)} kg", TextBlue) }
+            if (weights.isEmpty()) PopRow("Sin registros", "")
+        }) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(weight?.let(::kgText) ?: "—", style = MaterialTheme.typography.headlineLarge.copy(fontSize = 54.sp, lineHeight = 60.sp), color = FinanceWhite)
+                Text("kg", Modifier.padding(bottom = 10.dp), style = MaterialTheme.typography.titleMedium, color = LabelCream)
+                Box(Modifier.weight(1f))
+                Trend(weights, null, "kg")
             }
-            if (goal != null) {
-                StrokeIcon("meta", StrokeState.DONE, 16.dp)
-                Num(" %.1f".format(goal), MaterialTheme.colorScheme.onSurface)
-            }
+        }
+        val first = metrics.filter { it.type == "WEIGHT" }.minByOrNull { it.createdAt }
+        if (weight != null && first != null && weights.size >= 2) {
+            val change = weight - first.value
+            val since = java.time.Instant.ofEpochMilli(first.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            Text(
+                (if (change > 0) "+" else if (change < 0) "−" else "") + "%.1f kg desde el ${com.adrian.minimallauncher.feature.shortDay(since)}".format(kotlin.math.abs(change)),
+                style = MaterialTheme.typography.titleMedium, color = FinanceWhite,
+            )
         }
     }
+    if (entering == "WEIGHT") Entry("Peso en kg", 30f..250f, { save("WEIGHT", it) }) { entering = null }
 
-    // BMI: white is the healthy range, the red mark is now and the white tick the BMI of the goal weight.
+    // 2. IMC
     val bmi = if (weight != null && heightM != null) weight / (heightM * heightM) else null
     val goalBmi = if (goal != null && heightM != null) goal / (heightM * heightM) else null
-    fun x(v: Float) = ((v.coerceIn(15f, 35f) - 15f) / 20f)
-    ModuleCard(Modifier.semantics { contentDescription = "IMC" }) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            DotMatrixText(bmi?.let { "%.1f".format(it) } ?: "--.-", cell = 3.5.dp, modifier = Modifier.weight(1f))
-            if (goalBmi != null) {
-                StrokeIcon("meta", StrokeState.DONE, 16.dp)
-                Num(" %.1f".format(goalBmi), MaterialTheme.colorScheme.onSurface)
-            }
-        }
-        Scale(
-            listOf(Triple(x(18.5f), x(25f), MaterialTheme.colorScheme.onSurface)),
-            listOfNotNull(goalBmi?.let { x(it) to MaterialTheme.colorScheme.onSurface }, bmi?.let { x(it) to LauncherAccent }),
-        )
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) { Num("18.5"); Num("25"); Num("30") }
-    }
-
-    // Measurements with the icon of their zone; the waist goal is half the height.
-    Measurements.chunked(2).forEach { pair ->
-        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-            pair.forEach { (type, icon, name) ->
-                val values = byType[type].orEmpty()
-                ModuleCard(Modifier.weight(1f).clickable(role = Role.Button) { entering = type }.semantics { contentDescription = name }) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StrokeIcon(icon, StrokeState.DONE, 26.dp)
-                        Column(Modifier.weight(1f)) {
-                            Num(values.lastOrNull()?.let { "%.0f".format(it) } ?: "--", MaterialTheme.colorScheme.onSurface)
-                            if (type == "WAIST" && settings.heightCm > 0f) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    StrokeIcon("meta", StrokeState.OFF, 12.dp)
-                                    Num(" %.0f".format(settings.heightCm / 2f))
-                                }
-                            }
-                        }
-                        Trend(values)
-                    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHead("IMC", "Índice de masa corporal: tu peso entre tu estatura al cuadrado. La franja clara es el rango saludable (18.5 a 25); la marca delgada es el IMC de tu meta.")
+        Column(Modifier.fillMaxWidth().glass().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (bmi == null) {
+                Text(if (heightM == null) "Agrega tu estatura en el engrane" else "Anota tu peso", style = MaterialTheme.typography.bodyMedium, color = FinanceWhite)
+            } else {
+                val (label, color) = when {
+                    bmi < 18.5f -> "Bajo" to MoneyLow
+                    bmi < 25f -> "Saludable" to MoneyPlenty
+                    bmi < 30f -> "Alto" to MoneyLow
+                    else -> "Muy alto" to LauncherDanger
+                }
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("%.1f".format(bmi), style = MaterialTheme.typography.headlineMedium, color = FinanceWhite)
+                    Text(label, Modifier.padding(bottom = 4.dp), style = MaterialTheme.typography.titleMedium, color = color)
+                }
+                fun x(v: Float) = ((v.coerceIn(15f, 35f) - 15f) / 20f)
+                Scale(x(18.5f) to x(25f), listOfNotNull(goalBmi?.let { x(it) to LabelCream }, x(bmi) to color))
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    listOf("15", "18.5", "25", "30", "35").forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = FinanceMuted) }
                 }
             }
         }
     }
 
-    AnimatedVisibility(entering != null) {
-        val type = entering ?: "WEIGHT"
-        MetricEntry(
-            icon = if (type == "WEIGHT") "bascula" else Measurements.first { it.first == type }.second,
-            valid = if (type == "WEIGHT") 30f..250f else 10f..200f,
-            onSave = { onAdd(type, it); entering = null },
-            onCancel = { entering = null },
-        )
-    }
-}
-
-@Composable
-private fun MetricEntry(icon: String, valid: ClosedFloatingPointRange<Float>, onSave: (Float) -> Unit, onCancel: () -> Unit) {
-    var text by rememberSaveable(icon) { mutableStateOf("") }
-    val value = text.replace(',', '.').toFloatOrNull()?.takeIf { it in valid }
-    ModuleCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StrokeIcon(icon, StrokeState.NOW, 26.dp)
-            OutlinedTextField(
-                text, { text = it.take(5) }, Modifier.weight(1f), singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { value?.let(onSave) }),
-            )
-            IconButton("listo", if (value != null) StrokeState.DONE else StrokeState.OFF, 26.dp, "Guardar") { value?.let(onSave) }
-            Num("✕", modifier = Modifier.clip(CircleShape).clickable(role = Role.Button, onClick = onCancel).padding(8.dp))
+    // 3. Medidas
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHead("Medidas", "En centímetros. Toca una para anotarla. La meta de cintura es la mitad de tu estatura.")
+        Measurements.chunked(2).forEach { pair ->
+            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
+                pair.forEach { (type, name) ->
+                    val values = byType[type].orEmpty()
+                    Column(
+                        Modifier.weight(1f).tinted(TextBlue).clickable(role = Role.Button) { entering = type }
+                            .semantics(mergeDescendants = true) { contentDescription = "Anotar $name" }.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(name, style = MaterialTheme.typography.labelLarge, color = TextBlue)
+                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(values.lastOrNull()?.let { "%.0f".format(it) } ?: "—", style = MaterialTheme.typography.titleLarge, color = FinanceWhite)
+                            Text("cm", Modifier.padding(bottom = 3.dp), style = MaterialTheme.typography.bodySmall, color = LabelCream)
+                            Box(Modifier.weight(1f))
+                            Trend(values, if (type == "WAIST" && settings.heightCm > 0f) settings.heightCm / 2f else null, "")
+                        }
+                        if (type == "WAIST" && settings.heightCm > 0f) Text("Meta ${"%.0f".format(settings.heightCm / 2f)}", style = MaterialTheme.typography.bodySmall, color = FinanceMuted)
+                    }
+                }
+            }
+        }
+        entering?.takeIf { it != "WEIGHT" }?.let { type ->
+            Entry("${Measurements.first { it.first == type }.second} en cm", 10f..200f, { save(type, it) }) { entering = null }
         }
     }
 }
 
-/** ↑ in red when it went up, ↓ in white when it went down, · when unchanged. */
+/** A number to log: the field, ✓ saves (blue when the number is valid), ✕ closes. */
 @Composable
-private fun Trend(values: List<Float>) {
+private fun Entry(hint: String, valid: ClosedFloatingPointRange<Float>, onSave: (Float) -> Unit, onCancel: () -> Unit) {
+    var text by rememberSaveable(hint) { mutableStateOf("") }
+    val value = text.replace(',', '.').toFloatOrNull()?.takeIf { it in valid }
+    Row(Modifier.fillMaxWidth().glass().padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        ModuleTextField(
+            text, { text = it.take(5) }, hint, Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { value?.let(onSave) }),
+        )
+        FinIcon("listo", "Guardar", if (value != null) ActionColor.Add else FinanceMuted) { value?.let(onSave) }
+        FinIcon("no", "Cancelar", onClick = onCancel)
+    }
+}
+
+/** How the last change went: toward the goal in green, away in pink; with no goal, plain. */
+@Composable
+private fun Trend(values: List<Float>, goal: Float?, unit: String) {
     if (values.size < 2) return
     val (previous, current) = values.takeLast(2)
-    when {
-        current > previous -> Num("↑", LauncherAccent)
-        current < previous -> Num("↓", MaterialTheme.colorScheme.onSurface)
-        else -> Num("·")
+    val delta = current - previous
+    if (kotlin.math.abs(delta) < 0.05f) return
+    val better = goal?.let { kotlin.math.abs(current - it) < kotlin.math.abs(previous - it) }
+    val color = when (better) {
+        true -> MoneyPlenty
+        false -> LauncherDanger
+        null -> FinanceWhite
     }
+    Text((if (delta > 0) "↑ " else "↓ ") + "%.1f".format(kotlin.math.abs(delta)) + if (unit.isNotEmpty()) " $unit" else "", style = MaterialTheme.typography.labelLarge, color = color)
 }
 
-/** A gray track with [segments] (from, to, color) as fractions of the width and [marks] (at, color) as ticks. */
+/** A glass track with the [band] (from, to) lighter and [marks] (at, color) as ticks; fractions of the width. */
 @Composable
-private fun Scale(segments: List<Triple<Float, Float, Color>>, marks: List<Pair<Float, Color>>, height: Dp = 18.dp) {
-    BoxWithConstraints(Modifier.fillMaxWidth().height(height)) {
+private fun Scale(band: Pair<Float, Float>, marks: List<Pair<Float, Color>>) {
+    BoxWithConstraints(Modifier.fillMaxWidth().height(20.dp)) {
         val w = maxWidth
-        Box(Modifier.align(Alignment.CenterStart).fillMaxWidth().height(4.dp).background(EmptyGray, RoundedCornerShape(2.dp)))
-        segments.forEach { (from, to, color) ->
-            Box(Modifier.align(Alignment.CenterStart).offset(x = w * from).width(w * (to - from).coerceAtLeast(0f)).height(4.dp).background(color, RoundedCornerShape(2.dp)))
-        }
+        Box(Modifier.align(Alignment.CenterStart).fillMaxWidth().height(6.dp).background(GlassFill, RoundedCornerShape(3.dp)))
+        Box(Modifier.align(Alignment.CenterStart).offset(x = w * band.first).width(w * (band.second - band.first)).height(6.dp).background(MoneyPlenty.copy(alpha = 0.35f), RoundedCornerShape(3.dp)))
         marks.forEach { (at, color) ->
-            Box(Modifier.align(Alignment.CenterStart).offset(x = (w * at - 1.dp).coerceAtLeast(0.dp)).width(2.dp).height(height).background(color, RoundedCornerShape(1.dp)))
+            Box(Modifier.align(Alignment.CenterStart).offset(x = (w * at - 1.5.dp).coerceAtLeast(0.dp)).width(3.dp).height(20.dp).background(color, RoundedCornerShape(1.5.dp)))
         }
     }
 }
-
-private fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()

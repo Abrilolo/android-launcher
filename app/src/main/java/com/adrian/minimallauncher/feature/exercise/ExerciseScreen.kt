@@ -54,6 +54,11 @@ import androidx.compose.ui.unit.dp
 import com.adrian.minimallauncher.data.BodyMetricRecord
 import com.adrian.minimallauncher.data.ModuleSettings
 import com.adrian.minimallauncher.feature.LauncherAccent
+import com.adrian.minimallauncher.feature.DockItem
+import com.adrian.minimallauncher.feature.ModuleTitle
+import com.adrian.minimallauncher.feature.finance.FinanceDock
+import androidx.compose.runtime.key
+import java.time.LocalDate
 import com.adrian.minimallauncher.feature.ModuleCard
 import com.adrian.minimallauncher.feature.SettingsGear
 import com.adrian.minimallauncher.feature.SmallLabel
@@ -61,8 +66,6 @@ import com.adrian.minimallauncher.feature.StatusDot
 import com.adrian.minimallauncher.ui.components.StrokeIcon
 import com.adrian.minimallauncher.ui.components.StrokeState
 import kotlinx.coroutines.delay
-
-private enum class ExerciseTab { TODAY, BODY }
 
 internal val NumberGray = Color(0xFFB0B0B0)
 internal val EmptyGray = Color(0xFF2A2A2A)
@@ -113,8 +116,9 @@ internal fun Session.minutes(): Int? = if (kind == SessionKind.REST) null else R
 internal fun PlanExercise.numbers(): String = scheme.replace(Regex("[\\sA-ZÁÉÍÓÚ.]+$"), "") + if (timed) "\"" else ""
 
 /**
- * Hoy, Semana, Tu rutina, Terminaste and the guided session run in one scene with the person. Cuerpo stays native;
- * [phaseId] is the routine phase the person acts out.
+ * Ejercicio, with the look and the pieces of Finanzas. Three views behind the dock: Hoy (the day's routine, its hour
+ * and what it works; the week to tap; consistency as the goal), Plan (this week and the next ones) and Cuerpo (weight
+ * and measurements, only as a record). A day's routine, the session and the muscle map in big open over them.
  */
 @Composable
 fun ExerciseScreen(
@@ -122,82 +126,114 @@ fun ExerciseScreen(
     settings: ModuleSettings,
     bodyMetrics: List<BodyMetricRecord>,
     stack: List<StackExercise>,
-    kcalOver: Float,
-    phaseId: String,
     onAddBodyMetric: (String, Float) -> Unit,
     onSaveSettings: (ModuleSettings) -> Unit,
     onSaveStackExercise: (StackExercise) -> Unit,
     onDeleteStackExercise: (String) -> Unit,
     onClearPlaceholders: () -> Unit,
+    onLogSet: (PlanExercise, Float, Int) -> Unit,
+    onUndoSet: (PlanExercise, Int) -> Unit,
+    onFinish: (Boolean) -> Unit,
+    onSaveRoutine: (LocalDate, RoutineDraft, Boolean) -> Unit,
+    onCopyPreviousWeek: (LocalDate) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Where a widget sent Ejercicio: "start" opens today's session, "day:<date>" that day's routine. */
+    route: String? = null,
+    onRouteShown: () -> Unit = {},
 ) {
-    var tab by rememberSaveable { mutableStateOf(ExerciseTab.TODAY) }
-    var showSettings by rememberSaveable { mutableStateOf(false) }
-    val covered = showSettings || tab != ExerciseTab.TODAY
-    // What was last on top, so it can fade out with its content after the tab is already back on Hoy.
-    var cover by remember { mutableStateOf(ExerciseTab.BODY to false) }
-    if (covered) cover = tab to showSettings
+    var tab by rememberSaveable { mutableStateOf("hoy") }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    // The day whose routine is open, whether today's session runs, and the muscle map in big (over either).
+    var routineDay by rememberSaveable { mutableStateOf<String?>(null) }
+    var training by rememberSaveable { mutableStateOf(false) }
+    var bigMap by remember { mutableStateOf<Triple<String, List<MapMove>, Int>?>(null) }
+    val lastKg = { id: String -> day.lastLogs[id]?.weightKg }
+    androidx.compose.runtime.LaunchedEffect(route) {
+        when {
+            route == "start" -> { routineDay = null; settingsOpen = false; training = !day.session.isRest() }
+            route?.startsWith("day:") == true -> { training = false; settingsOpen = false; routineDay = route.removePrefix("day:") }
+        }
+        if (route != null) onRouteShown()
+    }
 
-    Box(modifier.fillMaxSize()) {
-        val weightKg = bodyMetrics.filter { it.type == "WEIGHT" }.maxByOrNull { it.createdAt }?.value ?: ExerciseBurn.DEFAULT_WEIGHT_KG
-        // The scene stays alive under the native screens, so coming back is instant and nothing restarts.
-        GuidedExerciseScreen(
-            day = day,
-            settings = settings,
-            phaseId = phaseId,
-            excess = excessOptions(day.session, stack, kcalOver, weightKg),
-            onExit = onBack,
-            onOpenNative = { target ->
-                if (target == "goals") tab = ExerciseTab.BODY else showSettings = true
-            },
-            onStartTime = { onSaveSettings(settings.copy(exerciseStart = it)) },
-            onRestSeconds = { onSaveSettings(settings.copy(exerciseRestSeconds = it)) },
-            covered = covered,
-        )
-        BackHandler(enabled = covered) { if (showSettings) showSettings = false else tab = ExerciseTab.TODAY }
-        AnimatedVisibility(covered, enter = fadeIn(tween(140)), exit = fadeOut(tween(120))) {
-            val background = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).pointerInput(Unit) { detectTapGestures { } }
-            val (shownTab, settingsOpen) = cover
-            if (settingsOpen) ExerciseSettings(settings, stack, onSaveSettings, onSaveStackExercise, onDeleteStackExercise, onClearPlaceholders, { showSettings = false }, background)
-            else Column(background.padding(horizontal = 24.dp)) {
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp).height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                        TabIcon("gimnasio", "Hoy", false) { tab = ExerciseTab.TODAY }
-                        TabIcon("bascula", "Cuerpo", shownTab == ExerciseTab.BODY) { tab = ExerciseTab.BODY }
+    bigMap?.let { (title, moves, start) ->
+        MuscleMapScreen(title, moves, start, { bigMap = null }, modifier)
+        return
+    }
+    when {
+        training -> {
+            ExerciseSession(
+                day, settings, lastKg, onLogSet, onUndoSet, onFinish,
+                onOpenMap = { i -> bigMap = Triple("Músculos", day.session.exercises.map { MapMove(it.name, it.ask(lastKg(it.id) ?: it.startKg), it.muscles()) }, i) },
+                onBack = { training = false },
+                modifier = modifier,
+            )
+            return
+        }
+        settingsOpen -> {
+            ExerciseSettings(settings, stack, onSaveSettings, onSaveStackExercise, onDeleteStackExercise, onClearPlaceholders, { settingsOpen = false }, modifier)
+            return
+        }
+        routineDay != null -> {
+            val date = LocalDate.parse(routineDay)
+            val session = if (date == day.date) day.session else RoutinePlans.sessionFor(date, day.plans)
+            RoutineView(
+                date = date,
+                today = day.date,
+                session = session,
+                lastKg = lastKg,
+                started = date == day.date && day.sets.isNotEmpty(),
+                done = date == day.date && day.completed,
+                savedOnlyForDay = RoutinePlans.todayId(date) in day.plans,
+                onSave = { draft, only -> onSaveRoutine(date, draft, only) },
+                onStart = { routineDay = null; training = true },
+                onOpenMap = { items -> bigMap = Triple("Músculos", items.map { MapMove(it.name, it.ask(), it.muscles()) }, -1) },
+                onBack = { routineDay = null },
+                modifier = modifier,
+            )
+            return
+        }
+    }
+
+    BackHandler(onBack = onBack)
+    Column(modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).padding(horizontal = 24.dp)) {
+            ModuleTitle(
+                when (tab) {
+                    "plan" -> "Plan"
+                    "cuerpo" -> "Cuerpo"
+                    else -> "Ejercicio"
+                },
+                { settingsOpen = true },
+            )
+            key(tab) {
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                ) {
+                    when (tab) {
+                        "plan" -> ExercisePlan(day, { routineDay = it.toString() }, onCopyPreviousWeek)
+                        "cuerpo" -> BodyTab(day.date, settings, bodyMetrics, onAddBodyMetric)
+                        else -> ExerciseHoy(
+                            day = day,
+                            settings = settings,
+                            onStart = { training = true },
+                            onOpenDay = { routineDay = it.toString() },
+                        )
                     }
-                    SettingsGear({ showSettings = true })
-                }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    BodyTab(day.date, settings, bodyMetrics, onAddBodyMetric)
                 }
             }
         }
-    }
-}
-
-/** When food went over the goal: exercises of today's group that burn the excess, least work first, for the scene. */
-private fun excessOptions(session: Session, stack: List<StackExercise>, kcalOver: Float, weightKg: Float): String {
-    if (kcalOver <= 0f) return "[]"
-    val options = stack.filter { it.muscleGroup.equals(ExerciseBurn.groupOf(session), ignoreCase = true) }
-    val ranked = options.filter { ExerciseBurn.kcal(it, weightKg) >= kcalOver }.sortedBy { ExerciseBurn.kcal(it, weightKg) } +
-        options.filter { ExerciseBurn.kcal(it, weightKg) < kcalOver }.sortedByDescending { it.met }
-    return org.json.JSONArray(ranked.map { pick ->
-        val perMinute = ExerciseBurn.perMinute(pick.met, weightKg)
-        val minutes = if (ExerciseBurn.kcal(pick, weightKg) >= kcalOver) pick.minutes else kotlin.math.ceil(kcalOver / perMinute).toInt().coerceIn(pick.minutes, 90)
-        org.json.JSONObject().put("over", kcalOver.toInt()).put("name", pick.name).put("minutes", minutes).put("kcal", (perMinute * minutes).toInt())
-    }).toString()
-}
-
-@Composable
-private fun TabIcon(icon: String, description: String, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        Modifier.clip(CircleShape).clickable(role = Role.Tab, onClick = onClick).semantics { contentDescription = description }.padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        StrokeIcon(icon, if (selected) StrokeState.NOW else StrokeState.OFF, 24.dp, playKey = selected)
-        Box(Modifier.size(4.dp).background(if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, CircleShape))
+        FinanceDock(
+            listOf(
+                DockItem("hoy", "Hoy", "gimnasio"),
+                DockItem("plan", "Plan", "semana"),
+                DockItem("cuerpo", "Cuerpo", "bascula"),
+            ),
+            tab,
+            onOpen = { tab = it },
+        )
     }
 }
 
